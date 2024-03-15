@@ -2,7 +2,8 @@ import { css, cx } from '@emotion/css';
 import classNames from 'classnames';
 import React, { PropsWithChildren } from 'react';
 
-import { GrafanaTheme2, PageLayoutType } from '@grafana/data';
+// import { GrafanaTheme2, PageLayoutType } from '@grafana/data';
+import { GrafanaTheme2 } from '@grafana/data';
 import { useStyles2, LinkButton, useTheme2 } from '@grafana/ui';
 import config from 'app/core/config';
 import { useGrafana } from 'app/core/context/GrafanaContext';
@@ -15,9 +16,9 @@ import { AppChromeMenu } from './AppChromeMenu';
 import { DOCKED_LOCAL_STORAGE_KEY, DOCKED_MENU_OPEN_LOCAL_STORAGE_KEY } from './AppChromeService';
 import { MegaMenu as DockedMegaMenu } from './DockedMegaMenu/MegaMenu';
 import { MegaMenu } from './MegaMenu/MegaMenu';
-import { NavToolbar } from './NavToolbar/NavToolbar';
-import { SectionNav } from './SectionNav/SectionNav';
-import { TopSearchBar } from './TopBar/TopSearchBar';
+// import { NavToolbar } from './NavToolbar/NavToolbar';
+// import { SectionNav } from './SectionNav/SectionNav';
+// import { TopSearchBar } from './TopBar/TopSearchBar';
 import { TOP_BAR_LEVEL_HEIGHT } from './types';
 
 export interface Props extends PropsWithChildren<{}> {}
@@ -49,9 +50,9 @@ export function AppChrome({ children }: Props) {
     [styles.contentChromeless]: state.chromeless,
   });
 
-  const handleMegaMenu = () => {
-    chrome.setMegaMenuOpen(!state.megaMenuOpen);
-  };
+  // const handleMegaMenu = () => {
+  //   chrome.setMegaMenuOpen(!state.megaMenuOpen);
+  // };
 
   // Chromeless routes are without topNav, mega menu, search & command palette
   // We check chromeless twice here instead of having a separate path so {children}
@@ -68,7 +69,7 @@ export function AppChrome({ children }: Props) {
           <LinkButton className={styles.skipLink} href="#pageContent">
             Skip to main content
           </LinkButton>
-          <div className={cx(styles.topNav)}>
+          {/* <div className={cx(styles.topNav)}>
             {!searchBarHidden && <TopSearchBar />}
             <NavToolbar
               searchBarHidden={searchBarHidden}
@@ -79,14 +80,14 @@ export function AppChrome({ children }: Props) {
               onToggleMegaMenu={handleMegaMenu}
               onToggleKioskMode={chrome.onToggleKioskMode}
             />
-          </div>
+          </div> */}
         </>
       )}
       <main className={contentClass}>
         <div className={styles.panes}>
-          {state.layout === PageLayoutType.Standard && state.sectionNav && !config.featureToggles.dockedMegaMenu && (
+          {/* {state.layout === PageLayoutType.Standard && state.sectionNav && !config.featureToggles.dockedMegaMenu && (
             <SectionNav model={state.sectionNav} />
-          )}
+          )} */}
           {config.featureToggles.dockedMegaMenu && !state.chromeless && state.megaMenuDocked && state.megaMenuOpen && (
             <DockedMegaMenu className={styles.dockedMegaMenu} onClose={() => chrome.setMegaMenuOpen(false)} />
           )}
@@ -118,7 +119,7 @@ const getStyles = (theme: GrafanaTheme2) => {
     content: css({
       display: 'flex',
       flexDirection: 'column',
-      paddingTop: TOP_BAR_LEVEL_HEIGHT * 2,
+      //paddingTop: TOP_BAR_LEVEL_HEIGHT * 2,
       flexGrow: 1,
       height: '100%',
     }),
