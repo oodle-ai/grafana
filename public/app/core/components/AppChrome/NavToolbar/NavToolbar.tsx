@@ -99,7 +99,8 @@ const getStyles = (theme: GrafanaTheme2) => {
       alignItems: 'center',
     }),
     menuButton: css({
-      display: 'flex',
+      // display: 'flex',
+      display: 'none',
       alignItems: 'center',
       marginRight: theme.spacing(1),
     }),

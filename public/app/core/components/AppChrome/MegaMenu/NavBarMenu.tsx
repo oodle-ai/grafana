@@ -48,7 +48,8 @@ export function NavBarMenu({ activeItem, navItems, searchBarHidden, onClose }: P
 
   useEffect(() => {
     if (state.megaMenuOpen) {
-      setIsOpen(true);
+      // setIsOpen(true);
+      setIsOpen(false);
     }
   }, [state.megaMenuOpen]);
 
