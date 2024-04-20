@@ -58,10 +58,9 @@ export const SelectionOptionsEditor = ({
       />
       {variable.includeAll && (
         <VariableTextField
-          value={variable.allValue ?? ''}
+          value={variable.allValue ?? '.*'}
           onChange={onAllValueChanged}
           name="Custom all value"
-          placeholder="blank = auto"
           testId={selectors.pages.Dashboard.Settings.Variables.Edit.General.selectionOptionsCustomAllInputV2}
         />
       )}
