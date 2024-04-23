@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
@@ -25,6 +27,8 @@ import (
 )
 
 const legendFormatAuto = "__auto"
+
+const numPanelQueriesInParallel = 2
 
 var legendFormatRegexp = regexp.MustCompile(`\{\{\s*(.+?)\s*\}\}`)
 
@@ -97,21 +101,33 @@ func (s *QueryData) Execute(ctx context.Context, req *backend.QueryDataRequest) 
 		Responses: backend.Responses{},
 	}
 
+	var eg errgroup.Group
+	var err error
+	eg.SetLimit(numPanelQueriesInParallel)
+	var mu sync.Mutex
 	for _, q := range req.Queries {
-		query, err := models.Parse(q, s.TimeInterval, s.intervalCalculator, fromAlert)
-		if err != nil {
-			return &result, err
-		}
+		eg.Go(func() error {
+			query, err := models.Parse(q, s.TimeInterval, s.intervalCalculator, fromAlert)
+			if err != nil {
+				return err
+			}
 
-		r := s.fetch(ctx, s.client, query, req.Headers)
-		if r == nil {
-			s.log.FromContext(ctx).Debug("Received nil response from runQuery", "query", query.Expr)
-			continue
-		}
-		result.Responses[q.RefID] = *r
+			r := s.fetch(ctx, s.client, query, req.Headers)
+			if r == nil {
+				s.log.FromContext(ctx).Debug("Received nil response from runQuery", "query", query.Expr)
+				return nil
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+			result.Responses[q.RefID] = *r
+			return nil
+		})
 	}
 
-	return &result, nil
+	err = eg.Wait()
+
+	return &result, err
 }
 
 func (s *QueryData) fetch(ctx context.Context, client *client.Client, q *models.Query, headers map[string]string) *backend.DataResponse {
