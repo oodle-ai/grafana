@@ -123,7 +123,7 @@ export default class PromQlLanguageProvider extends LanguageProvider {
     this.histogramMetrics = processHistogramMetrics(this.metrics).sort();
     return Promise.all([
       this.loadMetricsMetadata(),
-      // this.fetchLabels(), // This is an expensive call.
+      this.fetchLabels(),
     ]);
   };
 
