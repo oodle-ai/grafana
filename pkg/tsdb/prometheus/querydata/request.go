@@ -105,7 +105,8 @@ func (s *QueryData) Execute(ctx context.Context, req *backend.QueryDataRequest) 
 	var err error
 	eg.SetLimit(numPanelQueriesInParallel)
 	var mu sync.Mutex
-	for _, q := range req.Queries {
+	for _, qIter := range req.Queries {
+		q := qIter
 		eg.Go(func() error {
 			query, err := models.Parse(q, s.TimeInterval, s.intervalCalculator, fromAlert)
 			if err != nil {
