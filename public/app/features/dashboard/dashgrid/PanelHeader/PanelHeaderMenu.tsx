@@ -14,7 +14,7 @@ export interface Props {
 export function PanelHeaderMenu({ items }: Props) {
   const renderItems = (items: PanelMenuItem[]) => {
     function sendEventToParent(data: { type: string; payload: { source: string; value: string } }) {
-      window.parent.postMessage(data, 'http://localhost:4001');
+      window.parent.postMessage(data, '*');
     }
     return items.map((item) => {
       switch (item.type) {
