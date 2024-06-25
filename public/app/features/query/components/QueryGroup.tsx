@@ -254,7 +254,7 @@ export class QueryGroup extends PureComponent<Props, State> {
     const { data, queries } = this.state;
 
     return (
-      <div aria-label={selectors.components.QueryTab.content}>
+      <div data-testid={selectors.components.QueryTab.content}>
         <QueryEditorRows
           queries={queries}
           dsSettings={dsSettings}
@@ -396,6 +396,22 @@ export function QueryGroupTopSection({
 }: QueryGroupTopSectionProps) {
   const styles = getStyles();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  // Custom type
+  interface SendDataToParentProps {
+    type: string;
+    payload: {
+      eventType: string;
+      source: string;
+      value: any;
+    };
+  }
+
+  // Custom function
+  function sendEventToParent(data: SendDataToParentProps) {
+    window.parent.postMessage(data, '*');
+  }
+
   return (
     <>
       <div data-testid={selectors.components.QueryTab.queryGroupTopSection}>
@@ -433,12 +449,35 @@ export function QueryGroupTopSection({
                   }}
                 />
               </div>
+              <div className={styles.dataSourceRowItem}>
+                <Button
+                  variant="secondary"
+                  type="button"
+                  data-testid="send-query-button"
+                  onClick={() => {
+                    sendEventToParent({
+                      type: 'message',
+                      payload: {
+                        source: 'oodle-grafana',
+                        eventType: 'sendQuery',
+                        value: JSON.parse(JSON.stringify(data)),
+                      },
+                    });
+                  }}
+                >
+                  <img
+                    src="https://imagedelivery.net/oP5rEbdkySYwiZY4N9HGRw/45cc54f0-9d32-40d4-3c89-d47c4857a800/public"
+                    alt="Insight icon"
+                    data-testid="insight-icon"
+                  />
+                </Button>
+              </div>
               {onOpenQueryInspector && (
                 <div className={styles.dataSourceRowItem}>
                   <Button
                     variant="secondary"
                     onClick={onOpenQueryInspector}
-                    aria-label={selectors.components.QueryTab.queryInspectorButton}
+                    data-testid={selectors.components.QueryTab.queryInspectorButton}
                   >
                     Query inspector
                   </Button>
