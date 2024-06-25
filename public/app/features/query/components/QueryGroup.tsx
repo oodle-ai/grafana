@@ -462,6 +462,7 @@ export function QueryGroupTopSection({
               <div className={styles.dataSourceRowItem}>
                 <Button
                   variant="secondary"
+                  fill="outline"
                   type="button"
                   data-testid="send-query-button"
                   onClick={() => {
@@ -479,7 +480,9 @@ export function QueryGroupTopSection({
                     src="https://imagedelivery.net/oP5rEbdkySYwiZY4N9HGRw/45cc54f0-9d32-40d4-3c89-d47c4857a800/public"
                     alt="Insight icon"
                     data-testid="insight-icon"
+                    className={styles.expressionButton}
                   />
+                  <span>Oodle insight</span>
                 </Button>
               </div>
               {onOpenQueryInspector && (
