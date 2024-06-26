@@ -3,8 +3,10 @@ package querydata
 import (
 	"context"
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -23,6 +25,7 @@ import (
 )
 
 const legendFormatAuto = "__auto"
+const numPanelQueriesInParallel = 2
 
 var legendFormatRegexp = regexp.MustCompile(`\{\{\s*(.+?)\s*\}\}`)
 
@@ -92,15 +95,27 @@ func (s *QueryData) Execute(ctx context.Context, req *backend.QueryDataRequest) 
 	hasPromQLScopeFeatureFlag := cfg.FeatureToggles().IsEnabled("promQLScope")
 	hasPrometheusDataplaneFeatureFlag := cfg.FeatureToggles().IsEnabled("prometheusDataplane")
 
-	for _, q := range req.Queries {
-		r := s.handleQuery(ctx, q, fromAlert, hasPromQLScopeFeatureFlag, hasPrometheusDataplaneFeatureFlag)
-		if r == nil {
-			continue
-		}
-		result.Responses[q.RefID] = *r
+	var eg errgroup.Group
+	eg.SetLimit(numPanelQueriesInParallel)
+	var mu sync.Mutex
+	for _, qIter := range req.Queries {
+		q := qIter
+		eg.Go(func() error {
+			r := s.handleQuery(ctx, q, fromAlert, hasPromQLScopeFeatureFlag, hasPrometheusDataplaneFeatureFlag)
+			if r == nil {
+				return nil
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+			result.Responses[q.RefID] = *r
+			return nil
+		})
 	}
 
-	return &result, nil
+	err := eg.Wait()
+
+	return &result, err
 }
 
 func (s *QueryData) handleQuery(ctx context.Context, bq backend.DataQuery, fromAlert, hasPromQLScopeFeatureFlag, hasPrometheusDataplaneFeatureFlag bool) *backend.DataResponse {
