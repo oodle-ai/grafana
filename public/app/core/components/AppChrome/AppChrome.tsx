@@ -49,7 +49,8 @@ export function AppChrome({ children }: Props) {
   });
 
   const handleMegaMenu = () => {
-    chrome.setMegaMenuOpen(!state.megaMenuOpen);
+    // chrome.setMegaMenuOpen(!state.megaMenuOpen);
+    chrome.setMegaMenuOpen(false);
   };
 
   const { pathname, search } = locationService.getLocation();
