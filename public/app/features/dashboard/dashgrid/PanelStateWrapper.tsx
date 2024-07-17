@@ -31,6 +31,7 @@ import {
   PanelContextProvider,
   SeriesVisibilityChangeMode,
   AdHocFilterItem,
+  Button,
 } from '@grafana/ui';
 import appEvents from 'app/core/app_events';
 import config from 'app/core/config';
@@ -80,6 +81,21 @@ export interface State {
   context: PanelContext;
   data: PanelData;
   liveTime?: TimeRange;
+}
+
+// Custom type
+interface SendDataToParentProps {
+  type: string;
+  payload: {
+    eventType: string;
+    source: string;
+    value: any;
+  };
+}
+
+// Custom function
+function sendEventToParent(data: SendDataToParentProps) {
+  window.parent.postMessage(data, '*');
 }
 
 export class PanelStateWrapper extends PureComponent<Props, State> {
@@ -519,6 +535,7 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
     // Yes this is called ever render for a function that is triggered on every mouse move
     this.eventFilter.onlyLocal = dashboard.graphTooltip === 0;
 
+
     return (
       <>
         <PanelContextProvider value={this.state.context}>
@@ -593,6 +610,45 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
       >
         {(innerWidth, innerHeight) => (
           <>
+          {plugin.meta.id === 'timeseries' && (
+            <Button
+              style={{top: "-32px",right: "28px", position: "absolute", border: 0, padding: 0}}
+              variant="secondary"
+              fill="outline"
+              type="button"
+              data-testid="send-query-button"
+              tooltip={"Oodle insight"}
+              tooltipPlacement="top"
+              onClick={() => {
+                const data = {
+                  dashboardTitle: dashboard.title,
+                  panelTitle: panel.title,
+                  panelId: panel.id,
+                  panelKey: panel.key,
+                  expressionData: panel?.targets,
+                  dashboardTime: dashboard.time,
+                  unit: panel?.fieldConfig?.defaults?.unit
+                }
+
+                sendEventToParent({
+                  type: 'message',
+                  payload: {
+                    source: 'oodle-grafana',
+                    eventType: 'sendQuery',
+                    value: JSON.parse(JSON.stringify(data)),
+                  },
+                });
+
+              }}
+            >
+              <img
+                src="https://imagedelivery.net/oP5rEbdkySYwiZY4N9HGRw/053db276-ec3f-470a-af99-23970c325500/public"
+                alt="Insight icon"
+                data-testid="insight-icon"
+                style={{ height: '30px' }}
+              />
+            </Button>
+          )}
             <ErrorBoundary
               dependencies={[data, plugin, panel.getOptions()]}
               onError={this.onPanelError}
