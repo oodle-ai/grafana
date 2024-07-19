@@ -17,7 +17,6 @@ import {
   copyPanel,
   duplicatePanel,
   removePanel,
-  sharePanel,
   toggleLegend,
   unlinkLibraryPanel,
 } from 'app/features/dashboard/utils/panel';
@@ -53,12 +52,6 @@ export function getPanelMenu(
     });
 
     DashboardInteractions.panelMenuItemClicked('edit');
-  };
-
-  const onSharePanel = (event: React.MouseEvent) => {
-    event.preventDefault();
-    sharePanel(dashboard, panel);
-    DashboardInteractions.panelMenuItemClicked('share');
   };
 
   const onAddLibraryPanel = (event: React.MouseEvent) => {
@@ -142,13 +135,6 @@ export function getPanelMenu(
       shortcut: 'e',
     });
   }
-
-  menu.push({
-    text: t('panel.header-menu.share', `Share`),
-    iconClassName: 'share-alt',
-    onClick: onSharePanel,
-    shortcut: 'p s',
-  });
 
   if (
     contextSrv.hasAccessToExplore() &&

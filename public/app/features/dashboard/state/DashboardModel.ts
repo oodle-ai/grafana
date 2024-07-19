@@ -200,7 +200,7 @@ export class DashboardModel implements TimeModel {
   private initMeta(meta?: DashboardMeta) {
     meta = meta || {};
 
-    meta.canShare = meta.canShare !== false;
+    meta.canShare = false;
     meta.canSave = meta.canSave !== false;
     meta.canStar = meta.canStar !== false;
     meta.canEdit = meta.canEdit !== false;

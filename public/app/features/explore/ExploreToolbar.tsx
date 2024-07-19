@@ -27,7 +27,6 @@ import { getFiscalYearStartMonth, getTimeZone } from '../profile/state/selectors
 import { ExploreTimeControls } from './ExploreTimeControls';
 import { LiveTailButton } from './LiveTailButton';
 import { QueriesDrawerDropdown } from './QueriesDrawer/QueriesDrawerDropdown';
-import { ShortLinkButtonMenu } from './ShortLinkButtonMenu';
 import { ToolbarExtensionPoint } from './extensions/ToolbarExtensionPoint';
 import { changeDatasource } from './state/datasource';
 import { changeCorrelationHelperData } from './state/explorePane';
@@ -201,7 +200,7 @@ export function ExploreToolbar({ exploreId, onChangeTime, onContentOutlineToogle
     dispatch(changeRefreshInterval({ exploreId, refreshInterval }));
   };
 
-  const navBarActions = [<ShortLinkButtonMenu key="share" />, <div style={{ flex: 1 }} key="spacer0" />];
+  const navBarActions = [<div style={{ flex: 1 }} key="spacer0" />];
 
   return (
     <div>
