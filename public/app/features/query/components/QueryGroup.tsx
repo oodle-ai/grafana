@@ -19,7 +19,6 @@ import { PluginHelp } from 'app/core/components/PluginHelp/PluginHelp';
 import config from 'app/core/config';
 import { backendSrv } from 'app/core/services/backend_srv';
 import { addQuery, queryIsEmpty } from 'app/core/utils/query';
-import { getDashboardSrv } from 'app/features/dashboard/services/DashboardSrv';
 import { DataSourceModal } from 'app/features/datasources/components/picker/DataSourceModal';
 import { DataSourcePicker } from 'app/features/datasources/components/picker/DataSourcePicker';
 import { dataSource as expressionDatasource } from 'app/features/expressions/ExpressionDatasource';
@@ -398,21 +397,6 @@ export function QueryGroupTopSection({
   const styles = getStyles();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
-  // Custom type
-  interface SendDataToParentProps {
-    type: string;
-    payload: {
-      eventType: string;
-      source: string;
-      value: any;
-    };
-  }
-
-  // Custom function
-  function sendEventToParent(data: SendDataToParentProps) {
-    window.parent.postMessage(data, '*');
-  }
-
   return (
     <>
       <div data-testid={selectors.components.QueryTab.queryGroupTopSection}>
@@ -449,47 +433,6 @@ export function QueryGroupTopSection({
                     onOptionsChange?.(opts);
                   }}
                 />
-              </div>
-              <div className={styles.dataSourceRowItem}>
-                <Button
-                  style={{border: 0, padding: 0}}
-                  variant="secondary"
-                  fill="outline"
-                  type="button"
-                  data-testid="send-query-button"
-                  tooltip={"Oodle insight"}
-                  tooltipPlacement="top"
-                  onClick={() => {
-                    const dashboard = getDashboardSrv().getCurrent() ?? null;   
-                    const panelData = dashboard?.panels.find(panel => panel.id === data?.request?.panelId)                
-
-                    const expressionData = {
-                      dashboardTitle: dashboard ? dashboard?.title : "",
-                      panelTitle: dashboard ? dashboard?.panelInEdit?.title : "",
-                      panelId: data.request?.panelId,
-                      panelKey: dashboard ? dashboard?.panelInEdit?.key : "",
-                      expressionData: data.request?.targets,
-                      dashboardTime: data.timeRange,
-                      unit: panelData?.fieldConfig?.defaults?.unit
-                    }
-                    
-                    sendEventToParent({
-                      type: 'message',
-                      payload: {
-                        source: 'oodle-grafana',
-                        eventType: 'sendQuery',
-                        value: JSON.parse(JSON.stringify(expressionData)),
-                      },
-                    });
-                  }}
-                >
-                  <img
-                    src="https://imagedelivery.net/oP5rEbdkySYwiZY4N9HGRw/053db276-ec3f-470a-af99-23970c325500/public"
-                    alt="Insight icon"
-                    data-testid="insight-icon"
-                    style={{ height: '32px' }}
-                  />
-                </Button>
               </div>
               {onOpenQueryInspector && (
                 <div className={styles.dataSourceRowItem}>

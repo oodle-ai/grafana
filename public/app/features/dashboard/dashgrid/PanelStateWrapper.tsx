@@ -8,7 +8,7 @@ import {
   AnnotationEventUIModel,
   CoreApp,
   DashboardCursorSync,
-  DataFrame,
+  DataFrame, DataQuery, DataSourceApi, DataSourceRef,
   EventFilterOptions,
   FieldConfigSource,
   getDataSourceRef,
@@ -16,7 +16,7 @@ import {
   LoadingState,
   PanelData,
   PanelPlugin,
-  PanelPluginMeta,
+  PanelPluginMeta, ScopedVars,
   SetPanelAttentionEvent,
   TimeRange,
   toDataFrameDTO,
@@ -508,6 +508,7 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
       return;
     }
 
+
     dispatch(applyFilterFromTable({ datasource: datasourceRef, key, operator, value }));
   };
 
@@ -610,7 +611,7 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
       >
         {(innerWidth, innerHeight) => (
           <>
-          {plugin.meta.id === 'timeseries' && (
+          {(config.featureToggles.oodleInsight) && plugin.meta.id === 'timeseries' && (
             <Button
               style={{top: "-32px",right: "28px", position: "absolute", border: 0, padding: 0}}
               variant="secondary"
@@ -620,25 +621,44 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
               tooltip={"Oodle insight"}
               tooltipPlacement="top"
               onClick={() => {
-                const data = {
-                  dashboardTitle: dashboard.title,
-                  panelTitle: panel.title,
-                  panelId: panel.id,
-                  panelKey: panel.key,
-                  expressionData: panel?.targets,
-                  dashboardTime: dashboard.time,
-                  unit: panel?.fieldConfig?.defaults?.unit
+                const variables = { ...panel?.scopedVars };
+                variables.__interval = {
+                  value: '$__interval',
+                }
+                variables.__interval_ms = {
+                  value: '$__interval_ms',
                 }
 
-                sendEventToParent({
-                  type: 'message',
-                  payload: {
-                    source: 'oodle-grafana',
-                    eventType: 'sendQuery',
-                    value: JSON.parse(JSON.stringify(data)),
-                  },
-                });
-
+                getDataSource(panel.datasource, variables)
+                  .then(ds => {
+                    if (ds.interpolateVariablesInQueries) {
+                      let targets = ds.interpolateVariablesInQueries(panel.targets, variables);
+                      sendOodleInsightEvent(
+                        dashboard.uid,
+                        dashboard.title,
+                        panel.title,
+                        panel.id,
+                        panel.key,
+                        targets,
+                        dashboard.time,
+                        panel?.fieldConfig?.defaults?.unit,
+                      );
+                    } else {
+                      throw new Error('datasource does not support variable interpolation');
+                    }
+                })
+                  .catch(_ => {
+                    sendOodleInsightEvent(
+                      dashboard.uid,
+                      dashboard.title,
+                      panel.title,
+                      panel.id,
+                      panel.key,
+                      panel.targets,
+                      dashboard.time,
+                      panel?.fieldConfig?.defaults?.unit,
+                    );
+                  });
               }}
             >
               <img
@@ -666,4 +686,46 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
       </PanelChrome>
     );
   }
+}
+
+async function getDataSource(
+  datasource: DataSourceRef | string | DataSourceApi | null,
+  scopedVars: ScopedVars
+): Promise<DataSourceApi> {
+  if (datasource && typeof datasource === 'object' && 'query' in datasource) {
+    return datasource;
+  }
+
+  return await getDatasourceSrv().get(datasource, scopedVars);
+}
+
+const sendOodleInsightEvent = (
+  dashboardUId: string,
+  dashboardTitle: string,
+  panelTitle: string,
+  panelId: number,
+  panelKey: string,
+  expressionData: DataQuery[],
+  dashboardTime: TimeRange,
+  unit: string | undefined
+) => {
+  const eventData = {
+    dashboardUId: dashboardUId,
+    dashboardTitle: dashboardTitle,
+    panelTitle: panelTitle,
+    panelId: panelId,
+    panelKey: panelKey,
+    expressionData: expressionData,
+    dashboardTime: dashboardTime,
+    unit: unit
+  }
+
+  sendEventToParent({
+    type: 'message',
+    payload: {
+      source: 'oodle-grafana',
+      eventType: 'sendQuery',
+      value: JSON.parse(JSON.stringify(eventData)),
+    },
+  });
 }
