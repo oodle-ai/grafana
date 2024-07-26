@@ -702,4 +702,8 @@ const (
 	// FlagAzureMonitorPrometheusExemplars
 	// Allows configuration of Azure Monitor as a data source that can provide Prometheus exemplars
 	FlagAzureMonitorPrometheusExemplars = "azureMonitorPrometheusExemplars"
+
+	// FlagOodleInsight
+	// Enables Oodle Insight for Grafana
+	FlagOodleInsight = "oodleInsight"
 )
