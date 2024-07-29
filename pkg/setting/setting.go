@@ -91,28 +91,29 @@ type Cfg struct {
 	appliedEnvOverrides          []string
 
 	// HTTP Server Settings
-	CertFile          string
-	KeyFile           string
-	CertWatchInterval time.Duration
-	HTTPAddr          string
-	HTTPPort          string
-	Env               string
-	AppURL            string
-	AppSubURL         string
-	InstanceName      string
-	ServeFromSubPath  bool
-	StaticRootPath    string
-	Protocol          Scheme
-	SocketGid         int
-	SocketMode        int
-	SocketPath        string
-	RouterLogging     bool
-	Domain            string
-	CDNRootURL        *url.URL
-	ReadTimeout       time.Duration
-	EnableGzip        bool
-	EnforceDomain     bool
-	MinTLSVersion     string
+	CertFile                 string
+	KeyFile                  string
+	CertWatchInterval        time.Duration
+	HTTPAddr                 string
+	HTTPPort                 string
+	Env                      string
+	AppURL                   string
+	AppSubURL                string
+	InstanceName             string
+	ServeFromSubPath         bool
+	StaticRootPath           string
+	Protocol                 Scheme
+	HTTP1MaxParallelRequests int
+	SocketGid                int
+	SocketMode               int
+	SocketPath               string
+	RouterLogging            bool
+	Domain                   string
+	CDNRootURL               *url.URL
+	ReadTimeout              time.Duration
+	EnableGzip               bool
+	EnforceDomain            bool
+	MinTLSVersion            string
 
 	// Security settings
 	SecretKey             string
@@ -1871,6 +1872,8 @@ func (cfg *Cfg) readServerSettings(iniFile *ini.File) error {
 		cfg.SocketMode = server.Key("socket_mode").MustInt(0660)
 		cfg.SocketPath = server.Key("socket").String()
 	}
+
+	cfg.HTTP1MaxParallelRequests = server.Key("http1_max_parallel_requests").MustInt(30)
 
 	cfg.MinTLSVersion = valueAsString(server, "min_tls_version", "TLS1.2")
 	if cfg.MinTLSVersion == "TLS1.0" || cfg.MinTLSVersion == "TLS1.1" {
