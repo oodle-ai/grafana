@@ -662,10 +662,10 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
               }}
             >
               <img
-                src="https://imagedelivery.net/oP5rEbdkySYwiZY4N9HGRw/053db276-ec3f-470a-af99-23970c325500/public"
+                src="https://imagedelivery.net/oP5rEbdkySYwiZY4N9HGRw/d0e74e50-902c-4b3c-90af-cabc367bcb00/public"
                 alt="Insight icon"
                 data-testid="insight-icon"
-                style={{ height: '30px' }}
+                style={{ height: '25px' }}
               />
             </Button>
           )}
