@@ -46,7 +46,11 @@ export const TopSearchBar = React.memo(function TopSearchBar() {
       </TopSearchBarSection> */}
 
       <TopSearchBarSection>
-        <TopSearchBarCommandPaletteTrigger />
+      {
+        window.location.hostname !== 'play.oodle.ai' && (
+            <TopSearchBarCommandPaletteTrigger />
+        )
+      }
       </TopSearchBarSection>
 
       <TopSearchBarSection align="right">
