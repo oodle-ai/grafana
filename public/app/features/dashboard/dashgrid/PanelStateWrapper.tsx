@@ -581,6 +581,12 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
     // Shift the hover menu down if it's on the top row so it doesn't get clipped by topnav
     const hoverHeaderOffset = (panel.gridPos?.y ?? 0) === 0 ? -16 : undefined;
 
+    const playgroundDomain = 'play.oodle.ai';
+    const playgroundOrgId = '4';
+    const isPlayground = (url: URL) => (
+      url.hostname === playgroundDomain &&
+      url.searchParams.get('orgId') === playgroundOrgId
+    );
     const menu = (
       <div data-testid="panel-dropdown">
         <PanelHeaderMenuWrapper panel={panel} dashboard={dashboard} loadingState={data.state} />
@@ -611,7 +617,9 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
       >
         {(innerWidth, innerHeight) => (
           <>
-          {(config.featureToggles.oodleInsight) && plugin.meta.id === 'timeseries' && (
+          {(config.featureToggles.oodleInsight) &&
+            plugin.meta.id === 'timeseries' &&
+            !isPlayground(new URL(window.location.href)) && (
             <Button
               style={{top: "-32px",right: "28px", position: "absolute", border: 0, padding: 0}}
               variant="secondary"
