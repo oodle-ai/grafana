@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/stretchr/testify/require"
 
@@ -48,6 +50,66 @@ type secretsErrorResponseBody struct {
 
 func (rv *fakePluginRequestValidator) Validate(dsURL string, req *http.Request) error {
 	return rv.err
+}
+
+// `/ds/query` endpoint test
+func TestAPIEndpoint_Metrics_QueryMetricsV2_ForwardHeaders(t *testing.T) {
+	forwardHeader1 := "Header1"
+	forwardHeader2 := "Header2"
+	dontForwardHeader := "Header3"
+	cfg := setting.NewCfg()
+	queryDataServiceWithAssert := func(assertQueryDataRequest func(req *backend.QueryDataRequest)) query.Service {
+		return query.ProvideService(
+			cfg,
+			nil,
+			nil,
+			&fakePluginRequestValidator{},
+			&fakePluginClient{
+				QueryDataHandlerFunc: func(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
+					assertQueryDataRequest(req)
+					resp := backend.Responses{
+						"A": backend.DataResponse{
+							Status: http.StatusOK,
+						},
+					}
+					return &backend.QueryDataResponse{Responses: resp}, nil
+				},
+			},
+			plugincontext.ProvideService(cfg, localcache.ProvideService(), &pluginstore.FakePluginStore{
+				PluginList: []pluginstore.Plugin{
+					{
+						JSONData: plugins.JSONData{
+							ID: "grafana",
+						},
+					},
+				},
+			}, &fakeDatasources.FakeCacheService{}, &fakeDatasources.FakeDataSourceService{},
+				pluginSettings.ProvideService(dbtest.NewFakeDB(), secretstest.NewFakeSecretsService()), pluginconfig.NewFakePluginRequestConfigProvider()),
+		)
+	}
+
+	forwardHeadersAllowList = []string{forwardHeader1, forwardHeader2}
+	t.Run("Forward headers are added to the request to the plugin", func(t *testing.T) {
+		serverFeatureEnabled := SetupAPITestServer(t, func(hs *HTTPServer) {
+			assertQDR := func(req *backend.QueryDataRequest) {
+				assert.True(t, len(req.GetHTTPHeader(forwardHeader1)) > 0)
+				assert.True(t, len(req.GetHTTPHeader(forwardHeader2)) > 0)
+				assert.False(t, len(req.GetHTTPHeader(dontForwardHeader)) > 0)
+			}
+			hs.queryDataService = queryDataServiceWithAssert(assertQDR)
+			hs.Features = featuremgmt.WithFeatures(featuremgmt.FlagDatasourceQueryMultiStatus, true)
+			hs.QuotaService = quotatest.New(false, nil)
+		})
+		req := serverFeatureEnabled.NewPostRequest("/api/ds/query", strings.NewReader(reqValid))
+		req.Header.Set(forwardHeader1, "some value")
+		req.Header.Set(forwardHeader2, "some value")
+		req.Header.Set(dontForwardHeader, "some value")
+		webtest.RequestWithSignedInUser(req, &user.SignedInUser{UserID: 1, OrgID: 1, Permissions: map[int64]map[string][]string{1: {datasources.ActionQuery: []string{datasources.ScopeAll}}}})
+		resp, err := serverFeatureEnabled.SendJSON(req)
+		require.NoError(t, err)
+		require.NoError(t, resp.Body.Close())
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+	})
 }
 
 // `/ds/query` endpoint test

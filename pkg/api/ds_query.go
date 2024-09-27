@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/grafana/grafana/pkg/services/query"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 
@@ -20,6 +23,13 @@ import (
 	"github.com/grafana/grafana/pkg/util/errutil/errhttp"
 	"github.com/grafana/grafana/pkg/web"
 )
+
+const (
+	forwardHeadersAllowListEnvName   = "GF_FORWARD_HEADERS_ALLOW_LIST"
+	forwardHeadersAllowListSeparator = ","
+)
+
+var forwardHeadersAllowList = strings.Split(os.Getenv(forwardHeadersAllowListEnvName), forwardHeadersAllowListSeparator)
 
 func (hs *HTTPServer) handleQueryMetricsError(err error) *response.NormalResponse {
 	if errors.Is(err, datasources.ErrDataSourceAccessDenied) {
@@ -76,7 +86,14 @@ func (hs *HTTPServer) QueryMetricsV2(c *contextmodel.ReqContext) response.Respon
 		return response.Error(http.StatusBadRequest, "bad request data", err)
 	}
 
-	resp, err := hs.queryDataService.QueryData(c.Req.Context(), c.SignedInUser, c.SkipDSCache, reqDTO)
+	forwardHeaders := map[string]string{}
+	for _, h := range forwardHeadersAllowList {
+		if headerVal := c.Req.Header.Get(h); len(headerVal) > 0 {
+			forwardHeaders[h] = headerVal
+		}
+	}
+
+	resp, err := hs.queryDataService.QueryData(c.Req.Context(), c.SignedInUser, c.SkipDSCache, reqDTO, query.QueryDataOptionWithForwardHeaders(forwardHeaders))
 	if err != nil {
 		return hs.handleQueryMetricsError(err)
 	}
