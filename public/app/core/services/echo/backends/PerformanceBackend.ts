@@ -32,7 +32,7 @@ export class PerformanceBackend implements EchoBackend<PerformanceEvent, Perform
       return;
     }
 
-    backendSrv.post('/api/frontend-metrics', {
+    backendSrv.post('/api/fe-metrics-endpoint', {
       events: this.buffer,
     });
 
