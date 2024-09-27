@@ -535,7 +535,9 @@ func (hs *HTTPServer) registerRoutes() {
 			annotationsRoute.Get("/tags", authorize(ac.EvalPermission(ac.ActionAnnotationsRead)), routing.Wrap(hs.GetAnnotationTags))
 		})
 
-		apiRoute.Post("/frontend-metrics", routing.Wrap(hs.PostFrontendMetrics))
+		// /fronten-metrics is blocked by some ad blockers and it can show
+		// 'Failed to Fetch' error in the UI if this API fails.
+		apiRoute.Post("/fe-metrics-endpoint", routing.Wrap(hs.PostFrontendMetrics))
 
 		apiRoute.Group("/live", func(liveRoute routing.RouteRegister) {
 			// the channel path is in the name
