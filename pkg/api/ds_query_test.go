@@ -11,11 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/stretchr/testify/require"
-
 	"github.com/grafana/grafana/pkg/infra/db/dbtest"
 	"github.com/grafana/grafana/pkg/infra/localcache"
 	"github.com/grafana/grafana/pkg/plugins"
@@ -37,6 +33,8 @@ import (
 	"github.com/grafana/grafana/pkg/setting"
 	"github.com/grafana/grafana/pkg/util/errutil"
 	"github.com/grafana/grafana/pkg/web/webtest"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type fakePluginRequestValidator struct {
@@ -57,6 +55,7 @@ func TestAPIEndpoint_Metrics_QueryMetricsV2_ForwardHeaders(t *testing.T) {
 	forwardHeader1 := "Header1"
 	forwardHeader2 := "Header2"
 	dontForwardHeader := "Header3"
+	forwardHeaderValues := "headerValue"
 	cfg := setting.NewCfg()
 	queryDataServiceWithAssert := func(assertQueryDataRequest func(req *backend.QueryDataRequest)) query.Service {
 		return query.ProvideService(
@@ -92,18 +91,18 @@ func TestAPIEndpoint_Metrics_QueryMetricsV2_ForwardHeaders(t *testing.T) {
 	t.Run("Forward headers are added to the request to the plugin", func(t *testing.T) {
 		serverFeatureEnabled := SetupAPITestServer(t, func(hs *HTTPServer) {
 			assertQDR := func(req *backend.QueryDataRequest) {
-				assert.True(t, len(req.GetHTTPHeader(forwardHeader1)) > 0)
-				assert.True(t, len(req.GetHTTPHeader(forwardHeader2)) > 0)
-				assert.False(t, len(req.GetHTTPHeader(dontForwardHeader)) > 0)
+				assert.Equal(t, req.GetHTTPHeader(forwardHeader1), forwardHeaderValues)
+				assert.Equal(t, req.GetHTTPHeader(forwardHeader2), forwardHeaderValues)
+				assert.True(t, len(req.GetHTTPHeader(dontForwardHeader)) == 0)
 			}
 			hs.queryDataService = queryDataServiceWithAssert(assertQDR)
 			hs.Features = featuremgmt.WithFeatures(featuremgmt.FlagDatasourceQueryMultiStatus, true)
 			hs.QuotaService = quotatest.New(false, nil)
 		})
 		req := serverFeatureEnabled.NewPostRequest("/api/ds/query", strings.NewReader(reqValid))
-		req.Header.Set(forwardHeader1, "some value")
-		req.Header.Set(forwardHeader2, "some value")
-		req.Header.Set(dontForwardHeader, "some value")
+		req.Header.Set(forwardHeader1, forwardHeaderValues)
+		req.Header.Set(forwardHeader2, forwardHeaderValues)
+		req.Header.Set(dontForwardHeader, forwardHeaderValues)
 		webtest.RequestWithSignedInUser(req, &user.SignedInUser{UserID: 1, OrgID: 1, Permissions: map[int64]map[string][]string{1: {datasources.ActionQuery: []string{datasources.ScopeAll}}}})
 		resp, err := serverFeatureEnabled.SendJSON(req)
 		require.NoError(t, err)

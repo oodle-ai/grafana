@@ -19,11 +19,11 @@ type FakeQueryService struct {
 	mock.Mock
 }
 
-// QueryData provides a mock function with given fields: ctx, user, skipDSCache, reqDTO, applyOptions
-func (_m *FakeQueryService) QueryData(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest, applyOptions ...func(*QueryDataOption)) (*backend.QueryDataResponse, error) {
-	_va := make([]interface{}, len(applyOptions))
-	for _i := range applyOptions {
-		_va[_i] = applyOptions[_i]
+// QueryData provides a mock function with given fields: ctx, user, skipDSCache, reqDTO, opts
+func (_m *FakeQueryService) QueryData(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest, opts ...queryDataOptions) (*backend.QueryDataResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
 	}
 	var _ca []interface{}
 	_ca = append(_ca, ctx, user, skipDSCache, reqDTO)
@@ -36,19 +36,19 @@ func (_m *FakeQueryService) QueryData(ctx context.Context, user identity.Request
 
 	var r0 *backend.QueryDataResponse
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, identity.Requester, bool, dtos.MetricRequest, ...func(*QueryDataOption)) (*backend.QueryDataResponse, error)); ok {
-		return rf(ctx, user, skipDSCache, reqDTO, applyOptions...)
+	if rf, ok := ret.Get(0).(func(context.Context, identity.Requester, bool, dtos.MetricRequest, ...queryDataOptions) (*backend.QueryDataResponse, error)); ok {
+		return rf(ctx, user, skipDSCache, reqDTO, opts...)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, identity.Requester, bool, dtos.MetricRequest, ...func(*QueryDataOption)) *backend.QueryDataResponse); ok {
-		r0 = rf(ctx, user, skipDSCache, reqDTO, applyOptions...)
+	if rf, ok := ret.Get(0).(func(context.Context, identity.Requester, bool, dtos.MetricRequest, ...queryDataOptions) *backend.QueryDataResponse); ok {
+		r0 = rf(ctx, user, skipDSCache, reqDTO, opts...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*backend.QueryDataResponse)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, identity.Requester, bool, dtos.MetricRequest, ...func(*QueryDataOption)) error); ok {
-		r1 = rf(ctx, user, skipDSCache, reqDTO, applyOptions...)
+	if rf, ok := ret.Get(1).(func(context.Context, identity.Requester, bool, dtos.MetricRequest, ...queryDataOptions) error); ok {
+		r1 = rf(ctx, user, skipDSCache, reqDTO, opts...)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -319,57 +319,6 @@ func TestQueryDataMultipleSources(t *testing.T) {
 		assert.Len(t, header.Values("test"), 2)
 	})
 
-	t.Run("forward headers are sent to the datasource", func(t *testing.T) {
-		tc := setup(t)
-		query1, err := simplejson.NewJson([]byte(`
-			{
-				"datasource": {
-					"type": "mysql",
-					"uid": "ds1"
-				},
-				"refId": "A"
-			}
-		`))
-		require.NoError(t, err)
-		query2, err := simplejson.NewJson([]byte(`
-			{
-				"datasource": {
-					"type": "mysql",
-					"uid": "ds2"
-				},
-				"refId": "B"
-			}
-		`))
-		require.NoError(t, err)
-		queries := []*simplejson.Json{query1, query2}
-		reqDTO := dtos.MetricRequest{
-			From:    "2022-01-01",
-			To:      "2022-01-02",
-			Queries: queries,
-			Debug:   false,
-		}
-
-		req, err := http.NewRequest("POST", "http://localhost:3000", nil)
-		require.NoError(t, err)
-		reqCtx := &contextmodel.ReqContext{
-			SkipQueryCache: false,
-			Context: &web.Context{
-				Resp: web.NewResponseWriter(http.MethodGet, httptest.NewRecorder()),
-				Req:  req,
-			},
-		}
-		ctx := ctxkey.Set(context.Background(), reqCtx)
-
-		_, err = tc.queryService.QueryData(ctx, tc.signedInUser, true, reqDTO, QueryDataOptionWithForwardHeaders(map[string]string{"X-forward-header": "some-val"}))
-		require.NoError(t, err)
-
-		// response headers should be merged
-		header := contexthandler.FromContext(ctx).Resp.Header()
-		assert.Len(t, header.Values("test"), 2)
-
-		assert.Len(t, header.Values("X-forward-header"), 1)
-	})
-
 	t.Run("can query multiple datasources with an expression present", func(t *testing.T) {
 		tc := setup(t)
 		query1, err := simplejson.NewJson([]byte(`
@@ -500,6 +449,41 @@ func TestQueryDataMultipleSources(t *testing.T) {
 		_, err = tc.queryService.QueryData(context.Background(), tc.signedInUser, true, reqDTO)
 
 		require.NoError(t, err)
+	})
+}
+
+func TestQueryDataHeaderForwarding(t *testing.T) {
+	t.Run("forward headers are sent to the datasource", func(t *testing.T) {
+		tc := setup(t)
+		query1, err := simplejson.NewJson([]byte(`{"datasource": {"type": "mysql","uid": "ds1"},"refId": "A"}`))
+		require.NoError(t, err)
+		queries := []*simplejson.Json{query1}
+		reqDTO := dtos.MetricRequest{
+			From:    "2022-01-01",
+			To:      "2022-01-02",
+			Queries: queries,
+			Debug:   false,
+		}
+
+		req, err := http.NewRequest("POST", "http://localhost:3000", nil)
+		require.NoError(t, err)
+		reqCtx := &contextmodel.ReqContext{
+			SkipQueryCache: false,
+			Context: &web.Context{
+				Resp: web.NewResponseWriter(http.MethodGet, httptest.NewRecorder()),
+				Req:  req,
+			},
+		}
+		ctx := ctxkey.Set(context.Background(), reqCtx)
+
+		headerKey := "X-forward-header"
+		headerVal := "headerVal"
+		_, err = tc.queryService.QueryData(ctx, tc.signedInUser, true, reqDTO, WithForwardHeaders(map[string]string{headerKey: headerVal}))
+		require.NoError(t, err)
+
+		header := contexthandler.FromContext(ctx).Resp.Header()
+		assert.Equal(t, len(header.Values(headerKey)), 1)
+		assert.Equal(t, header.Values(headerKey)[0], headerVal)
 	})
 }
 

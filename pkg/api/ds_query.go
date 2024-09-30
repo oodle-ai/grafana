@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/grafana/grafana/pkg/services/query"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-
 	"github.com/grafana/grafana/pkg/api/dtos"
 	"github.com/grafana/grafana/pkg/api/response"
 	"github.com/grafana/grafana/pkg/api/routing"
@@ -20,11 +18,13 @@ import (
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	"github.com/grafana/grafana/pkg/services/datasources"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
+	"github.com/grafana/grafana/pkg/services/query"
 	"github.com/grafana/grafana/pkg/util/errutil/errhttp"
 	"github.com/grafana/grafana/pkg/web"
 )
 
 const (
+	// TODO - Add documentation for GF_FORWARD_HEADERS_ALLOW_LIST
 	forwardHeadersAllowListEnvName   = "GF_FORWARD_HEADERS_ALLOW_LIST"
 	forwardHeadersAllowListSeparator = ","
 )
@@ -93,7 +93,7 @@ func (hs *HTTPServer) QueryMetricsV2(c *contextmodel.ReqContext) response.Respon
 		}
 	}
 
-	resp, err := hs.queryDataService.QueryData(c.Req.Context(), c.SignedInUser, c.SkipDSCache, reqDTO, query.QueryDataOptionWithForwardHeaders(forwardHeaders))
+	resp, err := hs.queryDataService.QueryData(c.Req.Context(), c.SignedInUser, c.SkipDSCache, reqDTO, query.WithForwardHeaders(forwardHeaders))
 	if err != nil {
 		return hs.handleQueryMetricsError(err)
 	}

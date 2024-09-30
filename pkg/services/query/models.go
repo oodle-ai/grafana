@@ -11,15 +11,16 @@ import (
 	"github.com/grafana/grafana/pkg/services/datasources"
 )
 
-// QueryDataOption are options for requests to QueryData.
-type QueryDataOption struct {
+type queryDataConf struct {
 	// forwardHeaders are header values that should be forwarded to the data source.
 	forwardHeaders map[string]string
 }
 
-// QueryDataOptionWithForwardHeaders is a helper function to set the forwardHeaders to QueryDataOption.
-func QueryDataOptionWithForwardHeaders(forwardHeaders map[string]string) func(options *QueryDataOption) {
-	return func(opts *QueryDataOption) {
+type queryDataOptions func(q *queryDataConf)
+
+// WithForwardHeaders is a helper function to set the forwardHeaders to queryDataConf.
+func WithForwardHeaders(forwardHeaders map[string]string) queryDataOptions {
+	return func(opts *queryDataConf) {
 		opts.forwardHeaders = forwardHeaders
 	}
 }
