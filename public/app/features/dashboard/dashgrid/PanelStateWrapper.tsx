@@ -13,6 +13,7 @@ import {
   FieldConfigSource,
   getDataSourceRef,
   getDefaultTimeRange,
+  rangeUtil,
   LoadingState,
   PanelData,
   PanelPlugin,
@@ -637,6 +638,9 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
                   value: '$__interval_ms',
                 }
 
+                let timeRange = rangeUtil.convertRawToRange(dashboard.time)
+                let rangeDurationMs = timeRange.to.valueOf() - timeRange.from.valueOf()
+
                 getDataSource(panel.datasource, variables)
                   .then(ds => {
                     if (ds.interpolateVariablesInQueries) {
@@ -649,6 +653,7 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
                         panel.key,
                         targets,
                         dashboard.time,
+                        rangeDurationMs,
                         panel?.fieldConfig?.defaults?.unit,
                       );
                     } else {
@@ -664,6 +669,7 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
                       panel.key,
                       panel.targets,
                       dashboard.time,
+                      rangeDurationMs,
                       panel?.fieldConfig?.defaults?.unit,
                     );
                   });
@@ -715,6 +721,7 @@ const sendOodleInsightEvent = (
   panelKey: string,
   expressionData: DataQuery[],
   dashboardTime: TimeRange,
+  rangeDurationMs: number,
   unit: string | undefined
 ) => {
   const eventData = {
@@ -725,6 +732,7 @@ const sendOodleInsightEvent = (
     panelKey: panelKey,
     expressionData: expressionData,
     dashboardTime: dashboardTime,
+    rangeDurationMs: rangeDurationMs,
     unit: unit
   }
 
