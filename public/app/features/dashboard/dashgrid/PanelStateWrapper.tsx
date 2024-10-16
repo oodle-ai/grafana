@@ -618,9 +618,7 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
       >
         {(innerWidth, innerHeight) => (
           <>
-          {(config.featureToggles.oodleInsight) &&
-            plugin.meta.id === 'timeseries' &&
-            !isPlayground(new URL(window.location.href)) && (
+            {(config.featureToggles.oodleInsight) && plugin.meta.id === 'timeseries' && (
             <Button
               style={{top: "-32px",right: "28px", position: "absolute", border: 0, padding: 0}}
               variant="secondary"
