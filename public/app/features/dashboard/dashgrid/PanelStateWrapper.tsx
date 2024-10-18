@@ -627,6 +627,7 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
               data-testid="send-query-button"
               tooltip={"Oodle insight"}
               tooltipPlacement="top"
+              hidden={panel.datasource?.type !== 'prometheus'}
               onClick={() => {
                 const variables = { ...panel?.scopedVars };
                 variables.__interval = {
