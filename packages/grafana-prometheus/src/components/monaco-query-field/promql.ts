@@ -103,6 +103,9 @@ const functions = [
   'minute',
   'month',
   'predict_linear',
+  'pdelta',
+  'pincrease',
+  'prate',
   'rate',
   'resets',
   'round',
@@ -113,6 +116,9 @@ const functions = [
   'time',
   'timestamp',
   'vector',
+  'xdelta',
+  'xincrease',
+  'xrate',
   'year',
 ];
 // PromQL specific functions: Aggregations over time
