@@ -105,7 +105,7 @@ function ExplorePageContent(props: GrafanaRouteComponentProps<{}, ExploreQueryPa
         {panes.map(([exploreId]) => {
           return (
             <ErrorBoundaryAlert key={exploreId} style="page">
-              <ExplorePaneContainer exploreId={exploreId} />
+              <ExplorePaneContainer exploreId={exploreId} queryBuilderOnly={true} />
             </ErrorBoundaryAlert>
           );
         })}

@@ -114,7 +114,7 @@ export function QueryOperationRow({
             <>
               <div ref={provided.innerRef} className={styles.wrapper} {...provided.draggableProps}>
                 <div>
-                  <QueryOperationRowHeader
+                  {<QueryOperationRowHeader
                     id={id}
                     actionsElement={actionsElement}
                     disabled={disabled}
@@ -127,7 +127,7 @@ export function QueryOperationRow({
                     reportDragMousePosition={reportDragMousePosition}
                     title={title}
                     expanderMessages={expanderMessages}
-                  />
+                  />}
                 </div>
                 {isContentVisible && <div className={styles.content}>{children}</div>}
               </div>
