@@ -362,7 +362,7 @@ export class Explore extends PureComponent<Props, ExploreState> {
   }
 
   renderGraphPanel(width: number) {
-    const { graphResult, timeZone, queryResponse, showFlameGraph, queryBuilderOnly } = this.props;
+    const { graphResult, timeZone, queryResponse, showFlameGraph } = this.props;
 
     return (
       <ContentOutlineItem panelId="Graph" title="Graph" icon="graph-bar">
@@ -377,7 +377,6 @@ export class Explore extends PureComponent<Props, ExploreState> {
           splitOpenFn={this.onSplitOpen('graph')}
           loadingState={queryResponse.state}
           eventBus={this.graphEventBus}
-          queryBuilderOnly={queryBuilderOnly}
         />
       </ContentOutlineItem>
     );
@@ -597,7 +596,7 @@ export class Explore extends PureComponent<Props, ExploreState> {
                     <ContentOutlineItem panelId="Queries" title="Queries" icon="arrow" mergeSingleChild={true}>
                       <PanelContainer className={styles.queryContainer}>
                         {correlationsBox}
-                        <QueryRows exploreId={exploreId} />
+                        <QueryRows exploreId={exploreId} queryBuilderOnly={queryBuilderOnly} />
                         {!queryBuilderOnly && <SecondaryActions
                           // do not allow people to add queries with potentially different datasources in correlations editor mode
                           addQueryRowButtonDisabled={

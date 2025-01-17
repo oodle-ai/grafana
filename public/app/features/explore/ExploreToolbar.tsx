@@ -295,7 +295,7 @@ export function ExploreToolbar({ exploreId, onChangeTime, onContentOutlineToogle
               onChangeFiscalYearStartMonth={onChangeFiscalYearStartMonth}
             />
           ),
-          !queryBuilderOnly && <RefreshPicker
+          <RefreshPicker
             key="refreshPicker"
             onIntervalChanged={onChangeRefreshInterval}
             value={refreshInterval}

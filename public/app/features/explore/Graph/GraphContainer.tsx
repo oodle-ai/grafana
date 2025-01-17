@@ -46,7 +46,6 @@ interface Props extends Pick<PanelChromeProps, 'statusMessage'> {
   loadingState: LoadingState;
   thresholdsConfig?: ThresholdsConfig;
   thresholdsStyle?: GraphThresholdsStyleConfig;
-  queryBuilderOnly?: boolean;
 }
 
 export const GraphContainer = ({
@@ -63,7 +62,6 @@ export const GraphContainer = ({
   thresholdsStyle,
   loadingState,
   statusMessage,
-  queryBuilderOnly,
 }: Props) => {
   const [showAllSeries, toggleShowAllSeries] = useToggle(false);
   const [graphStyle, setGraphStyle] = useState(loadGraphStyle);
