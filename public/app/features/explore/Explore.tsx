@@ -118,6 +118,7 @@ interface ExploreState {
   contentOutlineVisible: boolean;
   warnThreshold?: number;
   criticalThreshold?: number;
+  additionalFilters?: AdditionalFilters[];
 }
 
 export type Props = ExploreProps & ConnectedProps<typeof connector>;
@@ -147,6 +148,11 @@ export type Props = ExploreProps & ConnectedProps<typeof connector>;
  * `format`, to indicate eventual transformations by the datasources' result transformers.
  */
 
+interface AdditionalFilters {
+  labelName: string;
+  labelValue: string;
+}
+
 export class Explore extends PureComponent<Props, ExploreState> {
   scrollElement: HTMLDivElement | undefined;
   graphEventBus: EventBus;
@@ -162,6 +168,8 @@ export class Explore extends PureComponent<Props, ExploreState> {
     let warnThreshold = undefined;
     let criticalThreshold = undefined;
 
+    let additionalFilters: AdditionalFilters[] = [];
+
     const searchParams = new URLSearchParams(window.location.search);
     const paramCriticalThresh = searchParams.get('criticalThreshold');
     if (paramCriticalThresh) {
@@ -173,10 +181,16 @@ export class Explore extends PureComponent<Props, ExploreState> {
       warnThreshold = parseFloat(paramWarningThresh);
     }
 
+    const paramsAdditionalFilters = searchParams.get('additionalFilters');
+    if (paramsAdditionalFilters) {
+      additionalFilters = JSON.parse(paramsAdditionalFilters);
+    }
+
     this.state = {
       contentOutlineVisible: store.getBool(CONTENT_OUTLINE_LOCAL_STORAGE_KEYS.visible, true),
       criticalThreshold: criticalThreshold,
       warnThreshold: warnThreshold,
+      additionalFilters: additionalFilters,
     };
   }
 
@@ -400,13 +414,16 @@ export class Explore extends PureComponent<Props, ExploreState> {
 
     const eventCriticalThresh  = payload?.criticalThreshold;
     const eventWarningThresh = payload?.warningThreshold;
-    if (eventCriticalThresh || eventWarningThresh) {
-      if (eventWarningThresh) {
-        this.setState({warnThreshold: parseFloat(eventWarningThresh)});
-      }
-      if (eventCriticalThresh) {
-        this.setState({criticalThreshold: parseFloat(eventCriticalThresh)});
-      }
+    const additionalFilters: AdditionalFilters[] = payload?.additionalFilters;
+    if (eventWarningThresh) {
+      this.setState({warnThreshold: parseFloat(eventWarningThresh)});
+    }
+    if (eventCriticalThresh) {
+      this.setState({criticalThreshold: parseFloat(eventCriticalThresh)});
+    }
+
+    if (additionalFilters) {
+      this.setState({additionalFilters});
     }
   }
 
@@ -425,7 +442,7 @@ export class Explore extends PureComponent<Props, ExploreState> {
   ) {
     const { graphResult, timeZone, queryResponse, showFlameGraph, queryBuilderOnly } = this.props;
 
-    const { warnThreshold, criticalThreshold } = this.state;
+    const { warnThreshold, criticalThreshold, additionalFilters } = this.state;
 
     const searchParams = new URLSearchParams(window.location.search);
     let panelHeight = showFlameGraph ? 180 : 400;
@@ -450,11 +467,23 @@ export class Explore extends PureComponent<Props, ExploreState> {
     const hideQueryEditor = searchParams.has('hideQueryBuilder');
     const hideMiniOptions = searchParams.has('hideMiniOptions');
 
+    const graphResultToRender = !additionalFilters || additionalFilters?.length === 0 ? graphResult : graphResult!.filter((frame) => {
+      const valueField = frame.fields.filter((field) => field.name === 'Value')[0];
+      for (let i = 0; i < (additionalFilters.length || 0); i++) {
+        const filter = additionalFilters[i];
+        if (valueField.labels?.[filter.labelName] !== filter.labelValue) {
+          return false;
+        }
+      }
+
+      return true
+    });
+
     return (
       <ContentOutlineItem panelId="Graph" title={panelTitle} icon="graph-bar">
         <GraphContainer
           title={panelTitle}
-          data={graphResult!}
+          data={graphResultToRender!}
           height={panelHeight}
           width={panelWidth}
           timeRange={queryResponse.timeRange}
