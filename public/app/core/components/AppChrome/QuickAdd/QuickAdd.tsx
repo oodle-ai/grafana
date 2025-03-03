@@ -11,9 +11,13 @@ import { NavToolbarSeparator } from '../NavToolbar/NavToolbarSeparator';
 
 import { findCreateActions } from './utils';
 
-export interface Props {}
+export interface Props {
+  hideSeparator?: boolean;
+}
 
-export const QuickAdd = ({}: Props) => {
+export const QuickAdd = ({
+                           hideSeparator,
+                         }: Props) => {
   const styles = useStyles2(getStyles);
   const theme = useTheme2();
   const navBarTree = useSelector((state) => state.navBarTree);
@@ -57,7 +61,7 @@ export const QuickAdd = ({}: Props) => {
           aria-label="New"
         />
       </Dropdown>
-      <NavToolbarSeparator className={styles.separator} />
+      {!hideSeparator && <NavToolbarSeparator className={styles.separator} />}
     </>
   ) : null;
 };

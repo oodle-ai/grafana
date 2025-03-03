@@ -60,7 +60,7 @@ export function CommandPalette() {
               <div className={styles.searchContainer}>
                 <Icon name="search" size="md" />
                 <KBarSearch
-                  defaultPlaceholder={t('command-palette.search-box.placeholder', 'Search or jump to...')}
+                  defaultPlaceholder={t('command-palette.search-box.placeholder', 'Search')}
                   className={styles.search}
                 />
                 <div className={styles.loadingBarContainer}>

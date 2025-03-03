@@ -36,7 +36,7 @@ export function TopSearchBarCommandPaletteTrigger() {
   const searchDisabled = window.location.hostname === 'play.oodle.ai';
   const searchText =
     searchDisabled ? 'Search disabled' :
-      t('nav.search.placeholderCommandPalette', 'Search or jump to...');
+      t('nav.search.placeholderCommandPalette', 'Search');
   if (isSmallScreen) {
     return (
       <ToolbarButton

@@ -17,12 +17,10 @@ import { TopSearchBarCommandPaletteTrigger } from './TopSearchBarCommandPaletteT
 interface Props {
   sectionNav: NavModelItem;
   pageNav?: NavModelItem;
-  onToggleMegaMenu(): void;
-  onToggleKioskMode(): void;
+  onToggleKioskMode?(): void;
 }
 
 export const SingleTopBar = memo(function SingleTopBar({
-  onToggleMegaMenu,
   onToggleKioskMode,
   pageNav,
   sectionNav,
@@ -43,10 +41,10 @@ export const SingleTopBar = memo(function SingleTopBar({
 
       <Stack gap={0.5} alignItems="center">
         <TopSearchBarCommandPaletteTrigger />
-        <QuickAdd />
-        <ToolbarButton className={styles.kioskToggle} onClick={onToggleKioskMode} narrow aria-label="Enable kiosk mode">
+        <QuickAdd hideSeparator={!onToggleKioskMode}/>
+        {onToggleKioskMode && <ToolbarButton className={styles.kioskToggle} onClick={onToggleKioskMode} narrow aria-label="Enable kiosk mode">
           <Icon name="angle-up" size="xl" />
-        </ToolbarButton>
+        </ToolbarButton>}
       </Stack>
     </div>
   );

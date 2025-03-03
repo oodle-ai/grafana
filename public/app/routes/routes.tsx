@@ -170,6 +170,16 @@ export function getAppRoutes(): RouteDescriptor[] {
       chromeless: true,
     },
     {
+      path: '/search-nav',
+      pageClass: 'page-search-nav',
+      roles: () => contextSrv.evaluatePermission([AccessControlAction.DataSourcesExplore]),
+      component: SafeDynamicImport(() =>
+        import(/* webpackChunkName: "explore" */ '../features/explore/SearchNavPage')
+      ),
+      // Exiting kiosk mode is disabled in chromeless.
+      chromeless: true,
+    },
+    {
       path: '/apps',
       component: () => <NavLandingPage navId="apps" />,
     },

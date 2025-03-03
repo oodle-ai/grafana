@@ -101,7 +101,6 @@ export function AppChrome({ children }: Props) {
               <SingleTopBar
                 sectionNav={state.sectionNav.node}
                 pageNav={state.pageNav}
-                onToggleMegaMenu={handleMegaMenu}
                 onToggleKioskMode={chrome.onToggleKioskMode}
               />
             ) : (
