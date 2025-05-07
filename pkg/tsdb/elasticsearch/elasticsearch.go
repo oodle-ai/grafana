@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/httpclient"
@@ -84,6 +86,11 @@ func newInstanceSettings(httpClientProvider *httpclient.Provider) datasource.Ins
 		if err != nil {
 			return nil, fmt.Errorf("error getting http options: %w", err)
 		}
+
+		js, _ := jsoniter.Marshal(httpCliOpts.Header)
+		js2, _ := jsoniter.Marshal(httpCliOpts.BasicAuth)
+		fmt.Println("ASDASDASD HTTP CLIENT OPTIONS HEADER", string(js))
+		fmt.Println("ASDASDASD HTTP CLIENT OPTIONS AUTH", string(js2))
 
 		// Set SigV4 service namespace
 		if httpCliOpts.SigV4 != nil {
@@ -210,13 +217,64 @@ func (s *Service) CallResource(ctx context.Context, req *backend.CallResourceReq
 		logger.Error("Failed to create request url", "error", err, "url", ds.URL, "path", req.Path)
 	}
 
+	// Add detailed logging of the constructed URL
+	logger.Debug("Constructed Elasticsearch URL",
+		"url", esUrl,
+		"originalUrl", ds.URL,
+		"path", req.Path,
+		"method", req.Method)
+
 	request, err := http.NewRequestWithContext(ctx, req.Method, esUrl, bytes.NewBuffer(req.Body))
+
+	//var request *http.Request
+	//if req.Method == http.MethodGet {
+	//	request, err = http.NewRequestWithContext(ctx, req.Method, esUrl, nil)
+	//} else {
+	//	request, err = http.NewRequestWithContext(ctx, req.Method, esUrl, bytes.NewBuffer(req.Body))
+	//}
 	if err != nil {
 		logger.Error("Failed to create request", "error", err, "url", esUrl)
 		return err
 	}
 
+	// Log request details
+	logger.Debug("Request details",
+		"method", request.Method,
+		"url", request.URL.String(),
+		"headers", request.Header,
+		"contentLength", request.ContentLength)
+
+	pluginCtx, _ := jsoniter.Marshal(req.PluginContext)
+	fmt.Println("ASDASDASD PLUGIN CONTEXT", string(pluginCtx))
+
 	logger.Debug("Sending request to Elasticsearch", "resourcePath", req.Path)
+	oheaders, _ := jsoniter.Marshal(req.Headers)
+	headers, _ := jsoniter.Marshal(request.Header)
+	fmt.Println(
+		"ASDASDASD Received request for ElasticSearch",
+		"resourcePath", req.Path,
+		"body", req.Body,
+		"url", req.URL,
+		"method", req.Method,
+		"headers", string(oheaders),
+	)
+
+	fmt.Println(
+		"ASDASDASD Sending request to Elasticsearch",
+		ds.HTTPClient,
+		request.URL.String(),
+		"method", request.Method,
+		"contentLength", request.ContentLength,
+		"requestUri", request.RequestURI,
+		"remoteAddr", request.RemoteAddr,
+		"proto", request.Proto,
+		"protoMajor", request.ProtoMajor,
+		"protoMinor", request.ProtoMinor,
+		"trailer", request.Trailer,
+		"host", request.Host,
+		"referer", request.Referer(),
+		"headers", string(headers),
+	)
 	start := time.Now()
 	response, err := ds.HTTPClient.Do(request)
 	if err != nil {
@@ -235,6 +293,35 @@ func (s *Service) CallResource(ctx context.Context, req *backend.CallResourceReq
 		logger.Error("Error received from Elasticsearch", lp...)
 		return err
 	}
+
+	// Add retry logic for 400 Bad Request
+	if response.StatusCode == http.StatusBadRequest {
+		// Read the response body to get more details about the error
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			logger.Error("Failed to read error response body", "error", err)
+		} else {
+			logger.Error("Bad Request response from Elasticsearch",
+				"statusCode", response.StatusCode,
+				"body", string(body),
+				"url", request.URL.String())
+		}
+		response.Body.Close()
+
+		// Retry the request once after a short delay
+		time.Sleep(100 * time.Millisecond)
+		response, err = ds.HTTPClient.Do(request)
+		if err != nil {
+			logger.Error("Error on retry request", "error", err)
+			return err
+		}
+		if response.StatusCode == http.StatusBadRequest {
+			logger.Error("Bad Request persisted after retry",
+				"statusCode", response.StatusCode,
+				"url", request.URL.String())
+		}
+	}
+
 	logger.Info("Response received from Elasticsearch", "statusCode", response.StatusCode, "status", "ok", "duration", time.Since(start), "stage", es.StageDatabaseRequest, "contentLength", response.Header.Get("Content-Length"), "resourcePath", req.Path)
 
 	defer func() {
