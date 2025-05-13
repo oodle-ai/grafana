@@ -22,33 +22,27 @@ export const TextPanelEditor = ({ value, onChange, context }: StandardEditorProp
     if (!iframe) { return; }
 
     if (mutationObserverRef.current) {
-      console.log('DISCONNECTING');
       mutationObserverRef.current.disconnect();
       mutationObserverRef.current = undefined;
     }
 
-    console.log('setup callback');
     mutationObserverRef.current = setupLocationChangeCallback(
       iframe,
       (iframe: HTMLIFrameElement) => {
-        console.log('callback');
         if (typeof window === 'undefined') {
           return;
         }
 
         if (iframe.contentWindow) {
           const currentIFrameURL = iframe.contentWindow?.location?.href;
-          console.log('Current URL 2:', currentIFrameURL);
           if (currentIFrameURL !== lastUrl) {
             setLastUrl(currentIFrameURL);
             onChange(currentIFrameURL);
-            console.log('URL changed 2:', currentIFrameURL);
           }
         }
       });
   }
 
-  console.log(mutationObserverRef?.current);
   // useEffect(() => {
   //   const checkUrl = () => {
   //     const iframe = iframeRef.current;
@@ -89,7 +83,6 @@ export const TextPanelEditor = ({ value, onChange, context }: StandardEditorProp
   //   };
   // }, [onChange, lastUrl]);
   const onLoad = (event: React.SyntheticEvent<HTMLIFrameElement>) => {
-    console.log('ASDASDASD ON LOAD');
     injectLocationCallback();
   };
 
@@ -143,14 +136,12 @@ function setupLocationChangeCallback(
   const doc = iframe.contentDocument;
   const location = iframe.contentDocument?.location;
   if (!doc || !location) {
-    console.log('EARLY EXIT');
     return undefined;
   }
 
   let lastUrl = location.href;
   const observer = new MutationObserver(() => {
     const url = location.href;
-    console.log('CALLBACK 2', url);
     console.log(iframe);
     if (url !== lastUrl) {
       locationChangeCallback(iframe);
