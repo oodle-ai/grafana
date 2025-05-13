@@ -1,6 +1,5 @@
 import { css, cx } from '@emotion/css';
-import DangerouslySetHtmlContent from "dangerously-set-html-content";
-import { useEffect, useRef } from 'react';
+import { useRef, useState } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { GrafanaTheme2, StandardEditorProps } from '@grafana/data';
@@ -13,21 +12,84 @@ import { Options } from './panelcfg.gen';
 export const TextPanelEditor = ({ value, onChange, context }: StandardEditorProps<string, {}, Options>) => {
   const styles = useStyles2(getStyles);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [lastUrl, setLastUrl] = useState<string>(value);
+  const mutationObserverRef = useRef<MutationObserver | undefined>(
+    undefined
+  );
 
-  console.log(value);
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // Verify the message is from our iframe
-      if (event.source === iframeRef.current?.contentWindow) {
-        if (event.data?.type === 'urlChange' && event.data?.url) {
-          onChange(event.data.url);
+  const injectLocationCallback = () => {
+    const iframe = iframeRef.current;
+    if (!iframe) { return; }
+
+    if (mutationObserverRef.current) {
+      mutationObserverRef.current.disconnect();
+      mutationObserverRef.current = undefined;
+    }
+
+    console.log('setup callback');
+    mutationObserverRef.current = setupLocationChangeCallback(
+      iframe,
+      (iframe: HTMLIFrameElement) => {
+        console.log('callback');
+        if (typeof window === 'undefined') {
+          return;
         }
-      }
-    };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [onChange]);
+        if (iframe.contentWindow) {
+          const currentIFrameURL = iframe.contentWindow?.location?.href;
+          console.log('Current URL 2:', currentIFrameURL);
+          if (currentIFrameURL !== lastUrl) {
+            setLastUrl(currentIFrameURL);
+            onChange(currentIFrameURL);
+            console.log('URL changed 2:', currentIFrameURL);
+          }
+        }
+      });
+  }
+
+  console.log(mutationObserverRef?.current);
+  // useEffect(() => {
+  //   const checkUrl = () => {
+  //     const iframe = iframeRef.current;
+  //     if (iframe && iframe.contentWindow) {
+  //       try {
+  //         const currentUrl = iframe.contentWindow.location.href;
+  //         if (currentUrl !== lastUrl) {
+  //           setLastUrl(currentUrl);
+  //           onChange(currentUrl);
+  //           console.log('URL changed:', currentUrl);
+  //         }
+  //       } catch (e) {
+  //         // Handle cross-origin errors silently
+  //         console.debug('Cannot access iframe URL due to cross-origin restrictions');
+  //       }
+  //     }
+  //   };
+  //
+  //   // Check URL every 500ms
+  //   const intervalId = setInterval(checkUrl, 500);
+  //
+  //   // Also check on load
+  //   const handleLoad = () => {
+  //     checkUrl();
+  //     injectLocationCallback();
+  //   };
+  //
+  //   const iframe = iframeRef.current;
+  //   if (iframe) {
+  //     iframe.addEventListener('load', handleLoad);
+  //   }
+  //
+  //   return () => {
+  //     clearInterval(intervalId);
+  //     if (iframe) {
+  //       iframe.removeEventListener('load', handleLoad);
+  //     }
+  //   };
+  // }, [onChange, lastUrl]);
+  const onLoad = (event: React.SyntheticEvent<HTMLIFrameElement>) => {
+    injectLocationCallback();
+  };
 
   return (
     <div className={cx(styles.editorBox)}>
@@ -37,17 +99,18 @@ export const TextPanelEditor = ({ value, onChange, context }: StandardEditorProp
             return null;
           }
           return (
-            <DangerouslySetHtmlContent
-              allowRerender
-              html={`<iframe
-                  ref="${iframeRef}"
-                  width="100%"
-                  height="100%"
-                  src="${value}"
-                  onload="window.parent.postMessage({ type: 'urlChange', url: window.location.href }, '*')"
-                />`}
+            <iframe
+              id={"OodleLogs"}
+              key={value}
+              title="OodleLogs"
+              allow="clipboard-read; clipboard-write"
+              ref={iframeRef}
+              width="100%"
+              height="100%"
+              src={value}
               className={styles.markdown}
               data-testid="TextPanel-converted-content"
+              onLoad={onLoad}
             />
           );
         }}
@@ -71,3 +134,24 @@ const getStyles = (theme: GrafanaTheme2) => ({
     `
   ),
 });
+function setupLocationChangeCallback(
+  iframe: HTMLIFrameElement,
+  locationChangeCallback: (iframe: HTMLIFrameElement) => void
+): MutationObserver | undefined {
+  const doc = iframe.contentDocument;
+  const location = iframe.contentDocument?.location;
+  if (!doc || !location) { return undefined; }
+
+  let lastUrl = location.href;
+  const observer = new MutationObserver(() => {
+    const url = location.href;
+    console.log('CALLBACK 2', url);
+    console.log(iframe);
+    if (url !== lastUrl) {
+      locationChangeCallback(iframe);
+      lastUrl = url;
+    }
+  });
+  observer.observe(doc, { subtree: true, childList: true });
+  return observer;
+}

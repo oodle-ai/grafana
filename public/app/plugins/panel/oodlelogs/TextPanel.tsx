@@ -29,6 +29,7 @@ export function TextPanel(props: Props) {
     [props]
   );
 
+  console.log('TextPanel', processed.content);
   return (
     <CustomScrollbar autoHeightMin="100%" className={styles.containStrict}>
       <DangerouslySetHtmlContent

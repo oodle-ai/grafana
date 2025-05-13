@@ -48,5 +48,6 @@ export interface Options {
 }
 
 export const defaultOptions: Partial<Options> = {
-  content: `/internal-logs/app/discover`,
+  // content: `/internal-logs/app/discover`,
+  content: `/grafana-proxy/dashboards`,
 };
