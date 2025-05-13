@@ -22,6 +22,7 @@ export const TextPanelEditor = ({ value, onChange, context }: StandardEditorProp
     if (!iframe) { return; }
 
     if (mutationObserverRef.current) {
+      console.log('DISCONNECTING');
       mutationObserverRef.current.disconnect();
       mutationObserverRef.current = undefined;
     }
@@ -88,6 +89,7 @@ export const TextPanelEditor = ({ value, onChange, context }: StandardEditorProp
   //   };
   // }, [onChange, lastUrl]);
   const onLoad = (event: React.SyntheticEvent<HTMLIFrameElement>) => {
+    console.log('ASDASDASD ON LOAD');
     injectLocationCallback();
   };
 
@@ -140,7 +142,10 @@ function setupLocationChangeCallback(
 ): MutationObserver | undefined {
   const doc = iframe.contentDocument;
   const location = iframe.contentDocument?.location;
-  if (!doc || !location) { return undefined; }
+  if (!doc || !location) {
+    console.log('EARLY EXIT');
+    return undefined;
+  }
 
   let lastUrl = location.href;
   const observer = new MutationObserver(() => {
