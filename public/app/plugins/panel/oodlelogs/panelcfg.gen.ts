@@ -48,5 +48,5 @@ export interface Options {
 }
 
 export const defaultOptions: Partial<Options> = {
-  content: ``,
+  content: `/internal-logs/app/discover`,
 };

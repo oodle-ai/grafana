@@ -6,21 +6,19 @@ import { useDebounce } from 'react-use';
 import { GrafanaTheme2, PanelProps } from '@grafana/data';
 import { CustomScrollbar, useStyles2 } from '@grafana/ui';
 
-import { Options } from './panelcfg.gen';
+import { defaultOptions, Options } from './panelcfg.gen';
 
 export interface Props extends PanelProps<Options> {}
-
-const defaultContent = '/internal-logs/app/discover';
 
 export function TextPanel(props: Props) {
   const styles = useStyles2(getStyles);
   const [processed, setProcessed] = useState<Options>({
-    content: props.options?.content ?? defaultContent,
+    content: (props.options?.content?.length ?? 0) > 0 ? (props.options?.content || '') : defaultOptions.content || '',
   });
 
   useDebounce(
     () => {
-      const content = props?.options.content ?? defaultContent;
+      const content = (props.options?.content?.length ?? 0) > 0 ? (props.options?.content || '') : defaultOptions.content || '';
       if (content !== processed.content) {
         setProcessed({
           content,

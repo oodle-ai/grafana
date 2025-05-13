@@ -14,6 +14,7 @@ export const TextPanelEditor = ({ value, onChange, context }: StandardEditorProp
   const styles = useStyles2(getStyles);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  console.log(value);
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       // Verify the message is from our iframe
