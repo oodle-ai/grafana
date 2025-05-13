@@ -1,12 +1,12 @@
 {
   "type": "panel",
-  "name": "Text",
-  "id": "text",
+  "name": "Oodle Logs",
+  "id": "oodlelogs",
 
   "skipDataQuery": true,
 
   "info": {
-    "description": "Supports markdown and html content",
+    "description": "Oodle Logs",
     "author": {
       "name": "Grafana Labs",
       "url": "https://grafana.com"

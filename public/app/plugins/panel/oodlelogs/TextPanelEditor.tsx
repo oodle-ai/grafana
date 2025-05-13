@@ -1,5 +1,6 @@
 import { css, cx } from '@emotion/css';
 import DangerouslySetHtmlContent from "dangerously-set-html-content";
+import { useEffect, useRef } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { GrafanaTheme2, StandardEditorProps } from '@grafana/data';
@@ -11,6 +12,21 @@ import { Options } from './panelcfg.gen';
 
 export const TextPanelEditor = ({ value, onChange, context }: StandardEditorProps<string, {}, Options>) => {
   const styles = useStyles2(getStyles);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Verify the message is from our iframe
+      if (event.source === iframeRef.current?.contentWindow) {
+        if (event.data?.type === 'urlChange' && event.data?.url) {
+          onChange(event.data.url);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onChange]);
 
   return (
     <div className={cx(styles.editorBox)}>
@@ -20,12 +36,18 @@ export const TextPanelEditor = ({ value, onChange, context }: StandardEditorProp
             return null;
           }
           return (
-              <DangerouslySetHtmlContent
-                allowRerender
-                html={`<iframe width="100%" height="100%" src="${value}"/>`}
-                className={styles.markdown}
-                data-testid="TextPanel-converted-content"
-              />
+            <DangerouslySetHtmlContent
+              allowRerender
+              html={`<iframe
+                  ref="${iframeRef}"
+                  width="100%"
+                  height="100%"
+                  src="${value}"
+                  onload="window.parent.postMessage({ type: 'urlChange', url: window.location.href }, '*')"
+                />`}
+              className={styles.markdown}
+              data-testid="TextPanel-converted-content"
+            />
           );
         }}
       </AutoSizer>
