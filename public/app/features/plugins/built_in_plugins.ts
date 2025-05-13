@@ -57,6 +57,7 @@ const statusHistoryPanel = async () =>
   await import(/* webpackChunkName: "statusHistoryPanel" */ 'app/plugins/panel/status-history/module');
 const tablePanel = async () => await import(/* webpackChunkName: "tablePanel" */ 'app/plugins/panel/table/module');
 const textPanel = async () => await import(/* webpackChunkName: "textPanel" */ 'app/plugins/panel/text/module');
+const oodleLogsPanel = async () => await import(/* webpackChunkName: "textPanel" */ 'app/plugins/panel/oodlelogs/module');
 const timeseriesPanel = async () =>
   await import(/* webpackChunkName: "timeseriesPanel" */ 'app/plugins/panel/timeseries/module');
 const tracesPanel = async () => await import(/* webpackChunkName: "tracesPanel" */ 'app/plugins/panel/traces/module');
@@ -97,6 +98,7 @@ const builtInPlugins: Record<string, System.Module | (() => Promise<System.Modul
   'core:plugin/alertmanager': alertmanagerPlugin,
   // panels
   'core:plugin/text': textPanel,
+  'core:plugin/oodleLogsPanel': oodleLogsPanel,
   'core:plugin/timeseries': timeseriesPanel,
   'core:plugin/trend': trendPanel,
   'core:plugin/state-timeline': stateTimelinePanel,
