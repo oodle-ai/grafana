@@ -1,26 +1,16 @@
 import { css, cx } from '@emotion/css';
-import { useMemo } from 'react';
+import DangerouslySetHtmlContent from "dangerously-set-html-content";
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { GrafanaTheme2, StandardEditorProps } from '@grafana/data';
 import {
-  CodeEditor,
   useStyles2,
-  CodeEditorSuggestionItem,
-  variableSuggestionToCodeEditorSuggestion,
 } from '@grafana/ui';
 
-import { Options, TextMode } from './panelcfg.gen';
+import { Options } from './panelcfg.gen';
 
 export const TextPanelEditor = ({ value, onChange, context }: StandardEditorProps<string, {}, Options>) => {
   const styles = useStyles2(getStyles);
-
-  const getSuggestions = (): CodeEditorSuggestionItem[] => {
-    if (!context.getSuggestions) {
-      return [];
-    }
-    return context.getSuggestions().map((v) => variableSuggestionToCodeEditorSuggestion(v));
-  };
 
   return (
     <div className={cx(styles.editorBox)}>
@@ -30,17 +20,12 @@ export const TextPanelEditor = ({ value, onChange, context }: StandardEditorProp
             return null;
           }
           return (
-            <CodeEditor
-              value={value}
-              onBlur={onChange}
-              onSave={onChange}
-              language={language}
-              width={width}
-              showMiniMap={false}
-              showLineNumbers={false}
-              height="500px"
-              getSuggestions={getSuggestions}
-            />
+              <DangerouslySetHtmlContent
+                allowRerender
+                html={`<iframe width="100%" height="100%" src="${value}"/>`}
+                className={styles.markdown}
+                data-testid="TextPanel-converted-content"
+              />
           );
         }}
       </AutoSizer>
@@ -56,4 +41,10 @@ const getStyles = (theme: GrafanaTheme2) => ({
     margin: ${theme.spacing(0.5)} 0;
     width: 100%;
   `,
+  markdown: cx(
+    'markdown-html',
+    css`
+      height: 100%;
+    `
+  ),
 });
