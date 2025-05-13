@@ -44,14 +44,9 @@ export const defaultCodeOptions: Partial<CodeOptions> = {
 };
 
 export interface Options {
-  code?: CodeOptions;
   content: string;
-  mode: TextMode;
 }
 
 export const defaultOptions: Partial<Options> = {
-  content: `# Title
-
-For markdown syntax help: [commonmark.org/help](https://commonmark.org/help/)`,
-  mode: TextMode.Markdown,
+  content: ``,
 };
