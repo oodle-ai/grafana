@@ -3,9 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import * as React from 'react';
 
 import {
-    CoreApp,
     DataHoverClearEvent,
-    DataHoverEvent,
     DataQueryResponse,
     Field,
     GrafanaTheme2,
@@ -16,19 +14,12 @@ import {
     LogRowModel,
     LogsSortOrder,
     PanelProps,
-    TimeRange,
-    toUtc,
-    urlUtil,
     DataFrame,
     FieldType,
     guessFieldTypeForField,
     sortDataFrame,
     applyFieldOverrides,
     ValueLinkConfig,
-    DataTransformerConfig,
-    CustomTransformOperator,
-    transformDataFrame,
-    lastValueFrom,
 } from '@grafana/data';
 import { config } from '@grafana/runtime';
 import { AdHocFilterItem, CustomScrollbar, Table, usePanelContext, useStyles2 } from '@grafana/ui';
@@ -36,20 +27,11 @@ import { FILTER_FOR_OPERATOR, FILTER_OUT_OPERATOR } from '@grafana/ui/src/compon
 import { getFieldLinksForExplore } from 'app/features/explore/utils/links';
 import { LogRowContextModal } from 'app/features/logs/components/log-context/LogRowContextModal';
 import { PanelDataErrorView } from 'app/features/panel/components/PanelDataErrorView';
-import { parseLogsFrame } from 'app/features/logs/logsFrame';
 
-import { createAndCopyShortLink } from '../../../core/utils/shortLinks';
 import { LogLabels } from '../../../features/logs/components/LogLabels';
 import { COMMON_LABELS, dataFrameToLogsModel, dedupLogRows } from '../../../features/logs/logsModel';
 
 import {
-    isIsFilterLabelActive,
-    isOnClickFilterLabel,
-    isOnClickFilterOutLabel,
-    isOnClickFilterOutString,
-    isOnClickFilterString,
-    isOnClickHideField,
-    isOnClickShowField,
     Options,
 } from './types';
 import { useDatasourcesFromTargets } from './useDatasourcesFromTargets';
@@ -80,11 +62,6 @@ interface EventsPanelProps extends PanelProps<Options> {
      * Called from the "eye" icon in Log Details to request hiding the displayed field. If ommited, a default implementation is used.
      * onClickHideField?: (key: string) => void;
      */
-}
-interface LogsPermalinkUrlState {
-    logs?: {
-        id?: string;
-    };
 }
 
 const noCommonLabels: Labels = {};
@@ -117,6 +94,8 @@ export const EventsPanel = ({
         ...options
     },
     id,
+    width,
+    height,
 }: EventsPanelProps) => {
     const isAscending = sortOrder === LogsSortOrder.Ascending;
     const style = useStyles2(getStyles);
@@ -125,26 +104,11 @@ export const EventsPanel = ({
     const [contextRow, setContextRow] = useState<LogRowModel | null>(null);
     const timeRange = data.timeRange;
     const dataSourcesMap = useDatasourcesFromTargets(data.request?.targets);
-    const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
+    const [_ , setScrollElement] = useState<HTMLDivElement | null>(null);
     const [displayedFields, setDisplayedFields] = useState<string[]>(options.displayedFields ?? []);
     let closeCallback = useRef<() => void>();
 
     const { eventBus, onAddAdHocFilter } = usePanelContext();
-
-    const onLogRowHover = useCallback(
-        (row?: LogRowModel) => {
-            if (row) {
-                eventBus.publish(
-                    new DataHoverEvent({
-                        point: {
-                            time: row.timeEpochMs,
-                        },
-                    })
-                );
-            }
-        },
-        [eventBus]
-    );
 
     const onLogContainerMouseLeave = useCallback(() => {
         eventBus.publish(new DataHoverClearEvent());
@@ -156,48 +120,6 @@ export const EventsPanel = ({
             closeCallback.current();
         }
     }, [closeCallback]);
-
-    const onOpenContext = useCallback(
-        (row: LogRowModel, onClose: () => void) => {
-            setContextRow(row);
-            closeCallback.current = onClose;
-        },
-        [closeCallback]
-    );
-
-    const onPermalinkClick = useCallback(
-        async (row: LogRowModel) => {
-            return await copyDashboardUrl(row, timeRange);
-        },
-        [timeRange]
-    );
-
-    const showContextToggle = useCallback(
-        (row: LogRowModel): boolean => {
-            if (
-                !row.dataFrame.refId ||
-                !dataSourcesMap ||
-                (!showLogContextToggle &&
-                    data.request?.app !== CoreApp.Dashboard &&
-                    data.request?.app !== CoreApp.PanelEditor &&
-                    data.request?.app !== CoreApp.PanelViewer)
-            ) {
-                return false;
-            }
-
-            const dataSource = dataSourcesMap.get(row.dataFrame.refId);
-            return hasLogsContextSupport(dataSource);
-        },
-        [dataSourcesMap, showLogContextToggle, data.request?.app]
-    );
-
-    const showPermaLink = useCallback(() => {
-        return !(
-            data.request?.app !== CoreApp.Dashboard &&
-            data.request?.app !== CoreApp.PanelEditor &&
-            data.request?.app !== CoreApp.PanelViewer
-        );
-    }, [data.request?.app]);
 
     const getLogRowContext = useCallback(
         async (row: LogRowModel, origRow: LogRowModel, options: LogRowContextOptions): Promise<DataQueryResponse> => {
@@ -246,7 +168,7 @@ export const EventsPanel = ({
     );
 
     // Important to memoize stuff here, as panel rerenders a lot for example when resizing.
-    const [logRows, deduplicatedRows, commonLabels] = useMemo(() => {
+    const [logRows, , commonLabels] = useMemo(() => {
         const logs = data
             ? dataFrameToLogsModel(data.series, data.request?.intervalMs, undefined, data.request?.targets)
             : null;
@@ -263,26 +185,6 @@ export const EventsPanel = ({
             setScrollTop(0);
         }
     }, [isAscending, logRows]);
-
-    const getFieldLinks = useCallback(
-        (field: Field, rowIndex: number) => {
-            return getFieldLinksForExplore({ field, rowIndex, range: data.timeRange });
-        },
-        [data]
-    );
-
-    /**
-     * Scrolls the given row into view.
-     */
-    const scrollIntoView = useCallback(
-        (row: HTMLElement) => {
-            scrollElement?.scrollTo({
-                top: row.offsetTop,
-                behavior: 'smooth',
-            });
-        },
-        [scrollElement]
-    );
 
     const handleOnClickFilterLabel = useCallback(
         (key: string, value: string) => {
@@ -304,26 +206,6 @@ export const EventsPanel = ({
             });
         },
         [onAddAdHocFilter]
-    );
-
-    const showField = useCallback(
-        (key: string) => {
-            const index = displayedFields?.indexOf(key);
-            if (index === -1) {
-                setDisplayedFields(displayedFields?.concat(key));
-            }
-        },
-        [displayedFields]
-    );
-
-    const hideField = useCallback(
-        (key: string) => {
-            const index = displayedFields?.indexOf(key);
-            if (index !== undefined && index > -1) {
-                setDisplayedFields(displayedFields?.filter((k) => key !== k));
-            }
-        },
-        [displayedFields]
     );
 
     useEffect(() => {
@@ -418,7 +300,7 @@ export const EventsPanel = ({
         }
 
         const frame: DataFrame = {
-            name: 'Logs Table',
+            name: 'Events Table',
             fields,
             length: logRows.length,
             refId: 'events',
@@ -500,9 +382,6 @@ export const EventsPanel = ({
     const defaultOnClickFilterLabel = onAddAdHocFilter ? handleOnClickFilterLabel : undefined;
     const defaultOnClickFilterOutLabel = onAddAdHocFilter ? handleOnClickFilterOutLabel : undefined;
 
-    const onClickShowField = isOnClickShowField(options.onClickShowField) ? options.onClickShowField : showField;
-    const onClickHideField = isOnClickHideField(options.onClickHideField) ? options.onClickHideField : hideField;
-
     const onCellFilterAdded = (filter: AdHocFilterItem) => {
         const { value, key, operator } = filter;
         if (!defaultOnClickFilterLabel || !defaultOnClickFilterOutLabel) {
@@ -539,8 +418,8 @@ export const EventsPanel = ({
                     {preparedTableFrame && (
                         <Table
                             data={preparedTableFrame}
-                            width={data.width}
-                            height={data.height}
+                            width={width}
+                            height={height}
                             noHeader={!showHeader}
                             showTypeIcons={showTypeIcons}
                             resizable={true}
@@ -548,7 +427,7 @@ export const EventsPanel = ({
                             onCellFilterAdded={onCellFilterAdded}
                             footerOptions={footer}
                             enablePagination={footer?.enablePagination}
-                            cellHeight={cellHeight}
+                            cellHeight={cellHeight as any}
                             timeRange={timeRange}
                             fieldConfig={fieldConfig}
                         />
@@ -593,49 +472,3 @@ function getInitialFieldWidth(field: Field): number {
             return 150;
     }
 }
-
-function getLogsPanelState(): LogsPermalinkUrlState | undefined {
-    const urlParams = urlUtil.getUrlSearchParams();
-    const panelStateEncoded = urlParams?.panelState;
-    if (
-        panelStateEncoded &&
-        Array.isArray(panelStateEncoded) &&
-        panelStateEncoded?.length > 0 &&
-        typeof panelStateEncoded[0] === 'string'
-    ) {
-        try {
-            return JSON.parse(panelStateEncoded[0]);
-        } catch (e) {
-            console.error('error parsing logsPanelState', e);
-        }
-    }
-
-    return undefined;
-}
-
-async function copyDashboardUrl(row: LogRowModel, timeRange: TimeRange) {
-    // this is an extra check, to be sure that we are not
-    // creating permalinks for logs without an id-field.
-    // normally it should never happen, because we do not
-    // display the permalink button in such cases.
-    if (row.rowId === undefined || !row.dataFrame.refId) {
-        return;
-    }
-
-    // get panel state, add log-row-id
-    const panelState = {
-        logs: { id: row.uid },
-    };
-
-    // Grab the current dashboard URL
-    const currentURL = new URL(window.location.href);
-
-    // Add panel state containing the rowId, and absolute time range from the current query, but leave everything else the same, if the user is in edit mode when grabbing the link, that's what will be linked to, etc.
-    currentURL.searchParams.set('panelState', JSON.stringify(panelState));
-    currentURL.searchParams.set('from', toUtc(timeRange.from).valueOf().toString(10));
-    currentURL.searchParams.set('to', toUtc(timeRange.to).valueOf().toString(10));
-
-    await createAndCopyShortLink(currentURL.toString());
-
-    return Promise.resolve();
-} 
