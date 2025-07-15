@@ -1,0 +1,15 @@
+{
+    "type": "panel",
+    "name": "Events",
+    "id": "events",
+    "info": {
+        "author": {
+            "name": "Grafana Labs",
+            "url": "https://grafana.com"
+        },
+        "logos": {
+            "small": "img/icn-logs-panel.svg",
+            "large": "img/icn-logs-panel.svg"
+        }
+    }
+}
