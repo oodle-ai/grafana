@@ -157,20 +157,17 @@ class PromQueryFieldClass extends PureComponent<PromQueryFieldProps, PromQueryFi
    * TODO #33976: Remove this, add histogram group (query = `histogram_quantile(0.95, sum(rate(${metric}[5m])) by (le))`;)
    */
   onChangeLabelBrowser = (selector: string) => {
-    this.onChangeQuery(selector, true);
+    this.onChangeQuery(selector);
+    this.props.onRunQuery();
     this.setState({ labelBrowserVisible: false });
   };
 
-  onChangeQuery = (value: string, override?: boolean) => {
+  onChangeQuery = (value: string) => {
     // Send text change to parent
-    const { query, onChange, onRunQuery } = this.props;
-    if (onChange) {
+    const { query, onChange } = this.props;
+    if (query.expr !== value) {
       const nextQuery: PromQuery = { ...query, expr: value };
-      onChange(nextQuery);
-
-      if (override && onRunQuery) {
-        onRunQuery();
-      }
+      onChange?.(nextQuery);
     }
   };
 
