@@ -57,7 +57,13 @@ export const jsonDiff = (lhs: JSONValue, rhs: JSONValue): Diffs => {
         startLineNumber,
         endLineNumber,
       };
-    });
+    })
+    .filter((diff) => 
+      diff.value !== null && 
+      diff.value !== undefined && 
+      diff.originalValue !== null && 
+      diff.originalValue !== undefined
+    );
   };
 
   const sortByLineNumber = (diffs: Diff[]) => sortBy(diffs, 'startLineNumber');
