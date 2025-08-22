@@ -6,29 +6,13 @@ import { getDashboardChanges as getDashboardSaveModelChanges } from './getDashbo
 import { sortedDeepCloneWithoutNulls } from 'app/core/utils/object';
 
 export function getSortedPanels(panels: Panel[]): Panel[] {
-  const rowIdxs = panels.reduce((acc, panel, idx) => {
-    if (panel.type === 'row') {
-      return [...acc, idx];
+  return [...panels].sort((panelA, panelB) => {
+    if (panelA.gridPos?.y === panelB.gridPos?.y) {
+      return (panelA.gridPos?.x ?? 0) - (panelB.gridPos?.x ?? 0);
     } else {
-      return acc;
+      return (panelA.gridPos?.y ?? 0) - (panelB.gridPos?.y ?? 0);
     }
-  }, [0]).concat(panels.length-1);
-
-  let sortedPanels: Panel[] = [];
-  let tempPanels: Panel[] = [];
-
-  for(let i = 0; i < panels.length; i++) {
-    if(rowIdxs.includes(i)) {
-      sortedPanels.push(...tempPanels.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0)));
-      tempPanels = [];
-    } else {
-      tempPanels.push(panels[i]);
-    }
-  }
-
-  sortedPanels.push(...tempPanels.sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0)));
-  
-  return sortedPanels;
+  });
 }
 
 /**
