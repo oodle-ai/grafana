@@ -19,6 +19,7 @@ export type Diffs = {
 type JSONValue = string | Object;
 
 export const jsonDiff = (lhs: JSONValue, rhs: JSONValue): Diffs => {
+  console.log('jsonDiff', lhs, rhs);
   const diffs = compare(lhs, rhs);
   const lhsMap = jsonMap.stringify(lhs, null, 2);
   const rhsMap = jsonMap.stringify(rhs, null, 2);
@@ -63,7 +64,10 @@ export const jsonDiff = (lhs: JSONValue, rhs: JSONValue): Diffs => {
       diff.value !== undefined && 
       diff.originalValue !== null && 
       diff.originalValue !== undefined
-    );
+    ).map((diff) => {
+      console.log('getDiffInformation', diff);
+      return diff;
+    });
   };
 
   const sortByLineNumber = (diffs: Diff[]) => sortBy(diffs, 'startLineNumber');
