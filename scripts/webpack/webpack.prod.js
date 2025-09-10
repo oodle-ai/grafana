@@ -33,6 +33,7 @@ module.exports = (env = {}) => {
     devtool: 'source-map',
 
     entry: {
+      app: './public/app/index.ts',
       dark: './public/sass/grafana.dark.scss',
       light: './public/sass/grafana.light.scss',
     },
@@ -112,8 +113,6 @@ module.exports = (env = {}) => {
         });
       },
       new EnvironmentPlugin(envConfig),
-      // refer https://www.npmjs.com/package/react-dev-tools-iframe-webpack-plugin for details
-      new ReactDevToolsIFramePlugin(),
     ],
   });
 };

@@ -15,6 +15,7 @@ if (window.nonce) {
   __webpack_nonce__ = window.nonce;
 }
 
+// Import statements should be at the top of the file
 import 'swagger-ui-react/swagger-ui.css';
 
 import DOMPurify from 'dompurify';

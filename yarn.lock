@@ -19101,7 +19101,6 @@ __metadata:
     rc-tree: "npm:5.9.0"
     re-resizable: "npm:6.10.0"
     react: "npm:18.2.0"
-    react-dev-tools-iframe-webpack-plugin: "npm:^1.0.0"
     react-diff-viewer: "npm:^3.1.1"
     react-dom: "npm:18.2.0"
     react-draggable: "npm:4.4.6"
@@ -27208,13 +27207,6 @@ __metadata:
   peerDependencies:
     react: ^15.3.0 || 16 || 17 || 18
   checksum: 10/ada5846c6f2839da0847c94c6c7f6c1ba50e2fd883c9e9fbad473b8bb1995e0ec4ecacc2ea8e6e5ee569e06e45cb2e9a9c8f1c52aa79128fa32e4c2b3d66529a
-  languageName: node
-  linkType: hard
-
-"react-dev-tools-iframe-webpack-plugin@npm:^1.0.0":
-  version: 1.0.2
-  resolution: "react-dev-tools-iframe-webpack-plugin@npm:1.0.2"
-  checksum: 10/81aa437688c297c1e1a96287a33d2b07eb5424e6e095be29eb3f2a5cddf7709a6193c2d1a652ed274689fc4a53e94dd3b452b21a5aeb82a01a1da0215d4cc64b
   languageName: node
   linkType: hard
 
