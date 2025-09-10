@@ -21,6 +21,8 @@ const esbuildOptions = {
   target: esbuildTargets,
   format: undefined,
   jsx: 'automatic',
+  keepNames: true,
+  minifyIdentifiers: false,
 };
 
 const envConfig = getEnvConfig();
@@ -68,11 +70,6 @@ module.exports = (env = {}) => {
       minimizer: [
         new EsbuildPlugin({
           ...esbuildOptions,
-          // Preserve function names for better profiling experience when profiling is enabled
-          ...(enableProfiling && {
-            keepNames: true,
-            minifyIdentifiers: false,
-          }),
         }),
         new CssMinimizerPlugin(),
       ],
