@@ -25,8 +25,10 @@ const esbuildOptions = {
 
 const envConfig = getEnvConfig();
 
-module.exports = (env = {}) =>
-  merge(common, {
+module.exports = (env = {}) => {
+  const enableProfiling = parseInt(env.PROFILING, 10) === 1;
+  
+  return merge(common, {
     mode: 'production',
     devtool: 'source-map',
 
@@ -34,6 +36,14 @@ module.exports = (env = {}) =>
       dark: './public/sass/grafana.dark.scss',
       light: './public/sass/grafana.light.scss',
     },
+
+    resolve: enableProfiling ? {
+      alias: {
+        // Enable React DevTools profiling in production when profiling flag is set
+        'react-dom$': 'react-dom/profiling',
+        'scheduler/tracing': 'scheduler/tracing-profiling',
+      },
+    } : {},
 
     module: {
       // Note: order is bottom-to-top and/or right-to-left
@@ -54,7 +64,17 @@ module.exports = (env = {}) =>
     optimization: {
       nodeEnv: 'production',
       minimize: parseInt(env.noMinify, 10) !== 1,
-      minimizer: [new EsbuildPlugin(esbuildOptions), new CssMinimizerPlugin()],
+      minimizer: [
+        new EsbuildPlugin({
+          ...esbuildOptions,
+          // Preserve function names for better profiling experience when profiling is enabled
+          ...(enableProfiling && {
+            keepNames: true,
+            minifyIdentifiers: false,
+          }),
+        }),
+        new CssMinimizerPlugin(),
+      ],
     },
 
     // enable persistent cache for faster builds
@@ -96,3 +116,4 @@ module.exports = (env = {}) =>
       new ReactDevToolsIFramePlugin(),
     ],
   });
+};
