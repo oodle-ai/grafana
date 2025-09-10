@@ -92,5 +92,7 @@ module.exports = (env = {}) =>
         });
       },
       new EnvironmentPlugin(envConfig),
+      // refer https://www.npmjs.com/package/react-dev-tools-iframe-webpack-plugin for details
+      new ReactDevToolsIFramePlugin(),
     ],
   });

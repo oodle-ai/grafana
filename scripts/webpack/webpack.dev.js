@@ -5,6 +5,7 @@ const { resolveToEsbuildTarget } = require('esbuild-plugin-browserslist');
 const ESLintPlugin = require('eslint-webpack-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const ReactDevToolsIFramePlugin = require('react-dev-tools-iframe-webpack-plugin');
 const path = require('path');
 const { DefinePlugin, EnvironmentPlugin } = require('webpack');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
@@ -143,6 +144,8 @@ module.exports = (env = {}) => {
         name: 'Grafana',
       }),
       new EnvironmentPlugin(envConfig),
+      // refer https://www.npmjs.com/package/react-dev-tools-iframe-webpack-plugin for details
+      new ReactDevToolsIFramePlugin(),
     ],
 
     stats: 'minimal',

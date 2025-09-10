@@ -216,6 +216,7 @@
     "postcss-scss": "4.0.9",
     "prettier": "3.3.3",
     "pseudoizer": "^0.1.0",
+    "react-dev-tools-iframe-webpack-plugin": "^1.0.0",
     "react-refresh": "0.14.0",
     "react-select-event": "5.5.1",
     "react-test-renderer": "18.2.0",
