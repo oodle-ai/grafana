@@ -27,6 +27,9 @@ const esbuildOptions = {
 
 const envConfig = getEnvConfig();
 
+const DEPLOYMENT = process.env.DEPLOYMENT;
+const isProfilingEnabled = ['dev', 'staging'].includes(DEPLOYMENT);
+
 module.exports = (env = {}) => merge(common, {
   mode: 'production',
   devtool: 'source-map',
@@ -37,13 +40,13 @@ module.exports = (env = {}) => merge(common, {
     light: './public/sass/grafana.light.scss',
   },
 
-  resolve: {
+  resolve: isProfilingEnabled ? {
     alias: {
       // Enable React DevTools profiling in production when profiling flag is set
       'react-dom$': 'react-dom/profiling',
       'scheduler/tracing': 'scheduler/tracing-profiling',
     },
-  },
+  } : {},
 
   module: {
     // Note: order is bottom-to-top and/or right-to-left
