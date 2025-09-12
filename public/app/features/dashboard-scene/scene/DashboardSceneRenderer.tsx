@@ -82,6 +82,7 @@ export function DashboardSceneRenderer({ model }: SceneComponentProps<DashboardS
 
   return (
     <Page
+      navId={'dashboard-scene-renderer'}
       navModel={navModel}
       pageNav={pageNav}
       layout={PageLayoutType.Custom}

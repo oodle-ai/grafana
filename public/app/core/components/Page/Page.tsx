@@ -93,7 +93,7 @@ export const Page: PageType = ({
 
   return (
     <PageContext.Provider value={{ setToolbar }}>
-      <div className={cx(styles.wrapper, className)} {...otherProps}>
+      <div id={`page-${navId}`} className={cx(styles.wrapper, className)} {...otherProps}>
         {isSingleTopNav && toolbar && <PageToolbarActions>{toolbar}</PageToolbarActions>}
         {layout === PageLayoutType.Standard && (
           <NativeScrollbar
