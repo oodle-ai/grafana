@@ -391,6 +391,11 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
       if (width < 0) {
         return;
       }
+      
+      // Clear cached results if not the first refresh to free memory
+      if (panel.hasRefreshed) {
+        panel.getQueryRunner().clearLastResult();
+      }
 
       panel.refreshWhenInView = false;
       panel.runAllPanelQueries({
