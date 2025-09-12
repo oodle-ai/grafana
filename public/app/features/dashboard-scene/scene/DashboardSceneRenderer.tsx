@@ -145,7 +145,7 @@ function getStyles(theme: GrafanaTheme2, headerHeight: number) {
       },
     }),
     canvasContent: css({
-      label: 'canvas-content',
+      label: 'canvas-content-dashboard-scene-renderer',
       display: 'flex',
       flexDirection: 'column',
       padding: theme.spacing(0.5, 2),

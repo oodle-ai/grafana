@@ -175,7 +175,7 @@ const getStyles = (theme: GrafanaTheme2, hasToolbar: boolean) => {
       },
     }),
     canvasContent: css({
-      label: 'canvas-content',
+      label: 'canvas-content-page',
       display: 'flex',
       flexDirection: 'column',
       padding: theme.spacing(2),
