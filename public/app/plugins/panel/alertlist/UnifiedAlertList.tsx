@@ -210,7 +210,6 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
     () => filterRules(props, sortRules(order, flattenedCombinedRules)),
     [flattenedCombinedRules, order, props]
   );
-  console.log({ grafanaPromRules, combinedRules, flattenedCombinedRules , rules });
 
   const noAlertsMessage = rules.length === 0 ? 'No alerts matching filters' : undefined;
 
