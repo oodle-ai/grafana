@@ -136,6 +136,11 @@ export class UnthemedDashboardPage extends PureComponent<Props, State> {
       showLoadingState: false,
       panelNotFound: false,
       editPanelAccessDenied: false,
+      scrollElement: undefined,
+      updateScrollTop: undefined,
+      rememberScrollTop: undefined,
+      pageNav: undefined,
+      sectionNav: undefined,
     };
   }
 
@@ -149,12 +154,16 @@ export class UnthemedDashboardPage extends PureComponent<Props, State> {
     clearTimeout(this.liveTimerTimeout);
     this.liveTimerTimeout = undefined;
     
+    // Clear scroll element reference to prevent detached DOM nodes
+    this.state.scrollElement?.cleanup?.();
+    
     this.closeDashboard();
   }
 
   closeDashboard() {
     this.props.cleanUpDashboardAndVariables();
     this.setState(this.getCleanState());
+    this.state = this.getCleanState();
   }
 
   initDashboard() {
