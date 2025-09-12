@@ -7,7 +7,6 @@ import { config, useChromeHeaderHeight } from '@grafana/runtime';
 import { SceneComponentProps } from '@grafana/scenes';
 import { useStyles2 } from '@grafana/ui';
 import { TOP_BAR_LEVEL_HEIGHT } from 'app/core/components/AppChrome/types';
-import NativeScrollbar from 'app/core/components/NativeScrollbar';
 import { Page } from 'app/core/components/Page/Page';
 import { EntityNotFound } from 'app/core/components/PageNotFound/EntityNotFound';
 import { getNavModel } from 'app/core/selectors/navModel';
@@ -90,17 +89,15 @@ export function DashboardSceneRenderer({ model }: SceneComponentProps<DashboardS
     >
       {editPanel && <editPanel.Component model={editPanel} />}
       {!editPanel && (
-        <NativeScrollbar divId="page-scrollbar" onSetScrollRef={model.onSetScrollRef}>
-          <div className={cx(styles.pageContainer, hasControls && styles.pageContainerWithControls)}>
-            {!isSingleTopNav && <NavToolbarActions dashboard={model} />}
-            {controls && (
-              <div className={styles.controlsWrapper}>
-                <controls.Component model={controls} />
-              </div>
-            )}
-            <div className={cx(styles.canvasContent)}>{body}</div>
-          </div>
-        </NativeScrollbar>
+        <div className={cx(styles.pageContainer, hasControls && styles.pageContainerWithControls)}>
+          {!isSingleTopNav && <NavToolbarActions dashboard={model} />}
+          {controls && (
+            <div className={styles.controlsWrapper}>
+              <controls.Component model={controls} />
+            </div>
+          )}
+          <div className={cx(styles.canvasContent)}>{body}</div>
+        </div>
       )}
       {overlay && <overlay.Component model={overlay} />}
     </Page>
