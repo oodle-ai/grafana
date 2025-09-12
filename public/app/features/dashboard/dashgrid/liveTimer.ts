@@ -25,6 +25,12 @@ class LiveTimer {
   timeRange?: TimeRange;
   liveTimeOffset = 0;
 
+  interval: NodeJS.Timeout;
+
+  constructor() {
+    this.interval = setInterval(this.measure, interval);
+  }
+
   /** Called when the dashboard time range changes */
   setLiveTimeRange(v?: TimeRange) {
     this.timeRange = v;
@@ -118,4 +124,3 @@ export function getLiveTimerInterval(delta: number, width: number): number {
 }
 
 export const liveTimer = new LiveTimer();
-setInterval(liveTimer.measure, interval);
