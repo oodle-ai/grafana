@@ -75,6 +75,13 @@ export const Page: PageType = ({
   const navModel = usePageNav(navId, oldNavProp);
   const { chrome } = useGrafana();
 
+  // Cleanup toolbar state on unmount
+  useEffect(() => {
+    return () => {
+      setToolbar(undefined);
+    };
+  }, []);
+
   usePageTitle(navModel, pageNav);
 
   const pageHeaderNav = pageNav ?? navModel?.node;
