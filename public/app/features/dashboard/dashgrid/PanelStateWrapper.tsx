@@ -269,9 +269,7 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
     liveTimer.remove(this);
     
     // Clean up event bus to prevent memory leaks
-    if (this.eventBus && typeof this.eventBus.removeAllListeners === 'function') {
-      this.eventBus.removeAllListeners();
-    }
+    this.eventBus?.removeAllListeners();
     
     // Cancel debounced function to clear any pending timers
     this?.debouncedSetPanelAttention?.cancel?.();
