@@ -48,6 +48,12 @@ class LiveTimer {
   }
 
   listen(panel: PanelStateWrapper) {
+    // Prevent duplicate listeners for the same panel
+    const existingIndex = this.listeners.findIndex(listener => listener.panel === panel);
+    if (existingIndex !== -1) {
+      return;
+    }
+    
     this.listeners.push({
       last: this.lastUpdate,
       panel: panel,
