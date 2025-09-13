@@ -15,20 +15,25 @@ const getEnvConfig = require('./env-util.js');
 const common = require('./webpack.common.js');
 const esbuildTargets = resolveToEsbuildTarget(browserslist(), { printUnknownTargets: false });
 
+const DEPLOYMENT = process.env.DEPLOYMENT;
+const isProfilingEnabled = ['dev', 'staging'].includes(DEPLOYMENT);
+
 // esbuild-loader 3.0.0+ requires format to be set to prevent it
 // from defaulting to 'iife' which breaks monaco/loader once minified.
 const esbuildOptions = {
   target: esbuildTargets,
   format: undefined,
   jsx: 'automatic',
-  keepNames: true,
-  minifyIdentifiers: false,
+  ...(isProfilingEnabled ? {
+    sourcemap: 'linked',
+    keepNames: true,
+    minify: false,
+    mangleProps: false,
+    minifyIdentifiers: false,
+  } : {}),
 };
 
 const envConfig = getEnvConfig();
-
-const DEPLOYMENT = process.env.DEPLOYMENT;
-const isProfilingEnabled = ['dev', 'staging'].includes(DEPLOYMENT);
 
 module.exports = (env = {}) => merge(common, {
   mode: 'production',
