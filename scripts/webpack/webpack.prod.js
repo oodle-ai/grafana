@@ -21,6 +21,7 @@ const esbuildOptions = {
   target: esbuildTargets,
   format: undefined,
   jsx: 'automatic',
+  sourcemap: 'linked',
   keepNames: true,
   minifyIdentifiers: false,
 };
@@ -67,6 +68,8 @@ module.exports = (env = {}) => merge(common, {
   optimization: {
     nodeEnv: 'production',
     minimize: parseInt(env.noMinify, 10) !== 1,
+    chunkIds: isProfilingEnabled ? 'named' : 'deterministic',
+    moduleIds: isProfilingEnabled ? 'named' : 'deterministic',
     minimizer: [
       new EsbuildPlugin(esbuildOptions),
       new CssMinimizerPlugin(),
