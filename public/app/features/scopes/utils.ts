@@ -33,7 +33,11 @@ export function enterScopesReadOnly() {
   scopesDashboardsScene?.disable();
 }
 
+function scopesFacadeTypeCheckFn(sceneObject: SceneObject) {
+  return sceneObject instanceof ScopesFacade;
+}
+
 export function getClosestScopesFacade(scene: SceneObject): ScopesFacade | null {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return sceneGraph.findObject(scene, (obj) => obj instanceof ScopesFacade) as ScopesFacade | null;
+  return sceneGraph.findObject(scene, scopesFacadeTypeCheckFn) as ScopesFacade | null;
 }

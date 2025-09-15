@@ -2,7 +2,7 @@ import { ChangeEvent } from 'react';
 
 import { PageLayoutType } from '@grafana/data';
 import { config } from '@grafana/runtime';
-import { SceneComponentProps, SceneObjectBase, behaviors, sceneGraph } from '@grafana/scenes';
+import { SceneComponentProps, SceneObject, SceneObjectBase, behaviors, sceneGraph } from '@grafana/scenes';
 import { TimeZone } from '@grafana/schema';
 import {
   Box,
@@ -32,7 +32,7 @@ import { getDashboardSceneFor } from '../utils/utils';
 import { DeleteDashboardButton } from './DeleteDashboardButton';
 import { DashboardEditView, DashboardEditViewState, useDashboardEditPageNav } from './utils';
 
-export interface GeneralSettingsEditViewState extends DashboardEditViewState {}
+export interface GeneralSettingsEditViewState extends DashboardEditViewState { }
 
 const EDITABLE_OPTIONS = [
   { label: 'Editable', value: true },
@@ -45,10 +45,13 @@ const GRAPH_TOOLTIP_OPTIONS = [
   { value: 2, label: 'Shared Tooltip' },
 ];
 
+function liveNowTimerTypeCheckFn(sceneObject: SceneObject) {
+  return sceneObject instanceof behaviors.LiveNowTimer;
+}
+
 export class GeneralSettingsEditView
   extends SceneObjectBase<GeneralSettingsEditViewState>
-  implements DashboardEditView
-{
+  implements DashboardEditView {
   private get _dashboard(): DashboardScene {
     return getDashboardSceneFor(this);
   }
@@ -74,7 +77,7 @@ export class GeneralSettingsEditView
   }
 
   public getLiveNowTimer(): behaviors.LiveNowTimer {
-    const liveNowTimer = sceneGraph.findObject(this._dashboard, (s) => s instanceof behaviors.LiveNowTimer);
+    const liveNowTimer = sceneGraph.findObject(this._dashboard, liveNowTimerTypeCheckFn);
     if (liveNowTimer instanceof behaviors.LiveNowTimer) {
       return liveNowTimer;
     } else {
@@ -166,7 +169,7 @@ export class GeneralSettingsEditView
     this._dashboard.setState({ preload });
   };
 
-  public onDeleteDashboard = () => {};
+  public onDeleteDashboard = () => { };
 
   static Component = ({ model }: SceneComponentProps<GeneralSettingsEditView>) => {
     const dashboard = model.getDashboard();
