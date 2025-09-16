@@ -145,6 +145,14 @@ module.exports = {
           priority: 50,
           enforce: true,
         },
+        scheduler: {
+          test: /[\\/]node_modules[\\/]scheduler[\\/].*[jt]sx?$/,
+          chunks: 'all',
+          name: 'vendor-scheduler-react',
+          priority: 20,
+          reuseExistingChunk: true,
+          enforce: true,
+        },
         defaultVendors: {
           test: /[\\/]node_modules[\\/].*[jt]sx?$/,
           chunks: 'initial',
