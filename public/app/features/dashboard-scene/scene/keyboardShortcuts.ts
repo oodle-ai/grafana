@@ -30,12 +30,8 @@ export function setupKeyboardShortcuts(scene: DashboardScene) {
 
   function withFocusedPanel(scene: DashboardScene, fn: (vizPanel: VizPanel) => void) {
     return () => {
-      if (!vizPanelKey) {
-        return;
-      }
-
-      const vizPanel = sceneGraph.findByKey(scene, vizPanelKey);
-      if (vizPanel && vizPanel.state.key === vizPanelKey && vizPanel instanceof VizPanel) {
+      const vizPanel = sceneGraph.findObject(scene, (o) => o.state.key === vizPanelKey);
+      if (vizPanel && vizPanel instanceof VizPanel) {
         fn(vizPanel);
         return;
       }
