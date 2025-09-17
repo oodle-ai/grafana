@@ -1,5 +1,6 @@
 import { Scope } from '@grafana/data';
 import { sceneGraph, SceneObject } from '@grafana/scenes';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 
 import { ScopesFacade } from './ScopesFacadeScene';
 import { scopesDashboardsScene, scopesSelectorScene } from './instance';
@@ -35,5 +36,8 @@ export function enterScopesReadOnly() {
 
 export function getClosestScopesFacade(scene: SceneObject): ScopesFacade | null {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return sceneGraph.findObject(scene, (obj) => obj instanceof ScopesFacade) as ScopesFacade | null;
+  startGPerformanceMeasure('getClosestScopesFacade');
+  const result = sceneGraph.findObject(scene, (obj) => obj instanceof ScopesFacade) as ScopesFacade | null;
+  stopGPerformanceMeasure('getClosestScopesFacade');
+  return result;
 }

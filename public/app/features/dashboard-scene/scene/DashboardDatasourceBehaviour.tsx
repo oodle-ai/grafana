@@ -1,6 +1,7 @@
 import { Unsubscribable } from 'rxjs';
 
 import { SceneObjectBase, SceneObjectState, SceneQueryRunner, VizPanel } from '@grafana/scenes';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { SHARED_DASHBOARD_QUERY } from 'app/plugins/datasource/dashboard';
 
 import {
@@ -51,7 +52,9 @@ export class DashboardDatasourceBehaviour extends SceneObjectBase<DashboardDatas
     // find the source panel referenced in the the dashboard ds query
     const panelId = dashboardQuery.panelId;
     const vizKey = getVizPanelKeyForPanelId(panelId);
+    startGPerformanceMeasure(`DashboardDatasourceBehaviour:_activationHandler:vizKey:${vizKey}`);
     const sourcePanel = findVizPanelByKey(dashboard, vizKey);
+    stopGPerformanceMeasure(`DashboardDatasourceBehaviour:_activationHandler:vizKey:${vizKey}`);
 
     if (!(sourcePanel instanceof VizPanel)) {
       return;

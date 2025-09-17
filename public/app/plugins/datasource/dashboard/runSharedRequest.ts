@@ -10,6 +10,7 @@ import {
   PanelData,
   DataTopic,
 } from '@grafana/data';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { getDashboardSrv } from 'app/features/dashboard/services/DashboardSrv';
 import { PanelModel } from 'app/features/dashboard/state';
 import { QueryRunnerOptions } from 'app/features/query/state/PanelQueryRunner';
@@ -45,7 +46,9 @@ export function runSharedRequest(options: QueryRunnerOptions, query: DashboardQu
 
     // Source panel might be contained in a collapsed row, in which
     // case we need to create a PanelModel
+    startGPerformanceMeasure(`runSharedRequest:getPanelById:${listenToPanelId}`);
     let listenToPanel = dashboard?.getPanelById(listenToPanelId, true);
+    stopGPerformanceMeasure(`runSharedRequest:getPanelById:${listenToPanelId}`);
     if (!(listenToPanel instanceof PanelModel)) {
       listenToPanel = new PanelModel(listenToPanel);
     }

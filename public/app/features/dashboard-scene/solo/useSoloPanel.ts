@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 import { VizPanel, UrlSyncManager } from '@grafana/scenes';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 
 import { DashboardScene } from '../scene/DashboardScene';
 import { DashboardRepeatsProcessedEvent } from '../scene/types';
@@ -18,7 +19,9 @@ export function useSoloPanel(dashboard: DashboardScene, panelId: string): [VizPa
 
     let panel: VizPanel | null = null;
     try {
+      startGPerformanceMeasure(`useSoloPanel:findVizPanelByKey:${panelId}`);
       panel = findVizPanelByKey(dashboard, panelId);
+      stopGPerformanceMeasure(`useSoloPanel:findVizPanelByKey:${panelId}`);
     } catch (e) {
       // do nothing, just the panel is not found or not a VizPanel
     }
@@ -56,7 +59,9 @@ function activateParents(panel: VizPanel) {
 function findRepeatClone(dashboard: DashboardScene, panelId: string): Promise<VizPanel | undefined> {
   return new Promise((resolve) => {
     dashboard.subscribeToEvent(DashboardRepeatsProcessedEvent, () => {
+      startGPerformanceMeasure(`findRepeatClone:findVizPanelByKey:${panelId}`);
       const panel = findVizPanelByKey(dashboard, panelId);
+      stopGPerformanceMeasure(`findRepeatClone:findVizPanelByKey:${panelId}`);
       if (panel) {
         resolve(panel);
       } else {

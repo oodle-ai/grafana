@@ -12,6 +12,7 @@ import {
   DataFrame,
 } from '@grafana/data';
 import { SceneDataProvider, SceneDataTransformer, SceneObject } from '@grafana/scenes';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { findVizPanelByKey, getVizPanelKeyForPanelId } from 'app/features/dashboard-scene/utils/utils';
 
 import { DashboardQuery } from './types';
@@ -105,7 +106,10 @@ export class DashboardDatasource extends DataSourceApi<DashboardQuery> {
   }
 
   private findSourcePanel(scene: SceneObject, panelId: number) {
-    return findVizPanelByKey(scene, getVizPanelKeyForPanelId(panelId));
+    startGPerformanceMeasure(`findSourcePanel:findVizPanelByKey:${panelId}`);
+    const panel = findVizPanelByKey(scene, getVizPanelKeyForPanelId(panelId));
+    stopGPerformanceMeasure(`findSourcePanel:findVizPanelByKey:${panelId}`);
+    return panel;
   }
 
   testDatasource(): Promise<TestDataSourceResponse> {

@@ -3,6 +3,7 @@ import { Subscription } from 'rxjs';
 import { AnnotationQuery, DashboardCursorSync, dateTimeFormat, DateTimeInput, EventBusSrv } from '@grafana/data';
 import { TimeRangeUpdatedEvent } from '@grafana/runtime';
 import { behaviors, SceneDataLayerSet, sceneGraph, SceneObject, VizPanel } from '@grafana/scenes';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 
 import { DashboardScene } from '../scene/DashboardScene';
 import { dataLayersToAnnotations } from '../serialization/dataLayersToAnnotations';
@@ -148,7 +149,9 @@ export class DashboardModelCompatibilityWrapper {
   }
 
   public getPanelById(id: number): PanelModelCompatibilityWrapper | null {
+    startGPerformanceMeasure(`DashboardModelCompatibilityWrapper:getPanelById:${id}`);
     const vizPanel = findVizPanelByKey(this._scene, getVizPanelKeyForPanelId(id));
+    stopGPerformanceMeasure(`DashboardModelCompatibilityWrapper:getPanelById:${id}`);
     if (vizPanel) {
       return new PanelModelCompatibilityWrapper(vizPanel);
     }
@@ -160,7 +163,9 @@ export class DashboardModelCompatibilityWrapper {
    * Mainly implemented to support Getting started panel's dissmis button.
    */
   public removePanel(panel: PanelModelCompatibilityWrapper) {
+    startGPerformanceMeasure(`DashboardModelCompatibilityWrapper:removePanel:${panel.id}`);
     const vizPanel = findVizPanelByKey(this._scene, getVizPanelKeyForPanelId(panel.id));
+    stopGPerformanceMeasure(`DashboardModelCompatibilityWrapper:removePanel:${panel.id}`);
     if (!vizPanel) {
       console.error('Trying to remove a panel that was not found in scene', panel);
       return;

@@ -4,6 +4,7 @@ import { StateManagerBase } from 'app/core/services/StateManagerBase';
 import { default as localStorageStore } from 'app/core/store';
 import { getMessageFromError } from 'app/core/utils/errors';
 import { startMeasure, stopMeasure } from 'app/core/utils/metrics';
+import { addGPerformanceMarker } from 'app/core/utils/performance';
 import { dashboardLoaderSrv } from 'app/features/dashboard/services/DashboardLoaderSrv';
 import { getDashboardSrv } from 'app/features/dashboard/services/DashboardSrv';
 import { emitDashboardViewEvent } from 'app/features/dashboard/state/analyticsProcessor';
@@ -305,6 +306,24 @@ let stateManager: DashboardScenePageStateManager | null = null;
 export function getDashboardScenePageStateManager(): DashboardScenePageStateManager {
   if (!stateManager) {
     stateManager = new DashboardScenePageStateManager({});
+
+    // temp code to be cleaned up
+    let eventCount = BigInt(0);
+    stateManager.subscribeToState({
+      next: (_state) => {
+        eventCount++;
+      },
+    });
+
+    setInterval(() => {
+      try {
+        addGPerformanceMarker('DashboardScenePageStateManager.state', {
+          eventCount: eventCount.toString(),
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }, 1000);
   }
 
   return stateManager;

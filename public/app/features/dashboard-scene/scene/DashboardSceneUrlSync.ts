@@ -5,6 +5,7 @@ import { config, locationService } from '@grafana/runtime';
 import { SceneObjectUrlSyncHandler, SceneObjectUrlValues, VizPanel } from '@grafana/scenes';
 import appEvents from 'app/core/app_events';
 import { contextSrv } from 'app/core/core';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { KioskMode } from 'app/types';
 
 import { PanelInspectDrawer } from '../inspect/PanelInspectDrawer';
@@ -75,7 +76,9 @@ export class DashboardSceneUrlSync implements SceneObjectUrlSyncHandler {
 
     // Handle inspect object state
     if (typeof values.inspect === 'string') {
+      startGPerformanceMeasure(`DashboardSceneUrlSync:_updateFromUrl:inspect:${values.inspect}`);
       let panel = findVizPanelByKey(this._scene, values.inspect);
+      stopGPerformanceMeasure(`DashboardSceneUrlSync:_updateFromUrl:inspect:${values.inspect}`);
       if (!panel) {
         appEvents.emit(AppEvents.alertError, ['Panel not found']);
         locationService.partial({ inspect: null });
@@ -91,7 +94,9 @@ export class DashboardSceneUrlSync implements SceneObjectUrlSyncHandler {
 
     // Handle view panel state
     if (typeof values.viewPanel === 'string') {
+      startGPerformanceMeasure(`DashboardSceneUrlSync:_updateFromUrl:viewPanel:${values.viewPanel}`);
       const panel = findVizPanelByKey(this._scene, values.viewPanel);
+      stopGPerformanceMeasure(`DashboardSceneUrlSync:_updateFromUrl:viewPanel:${values.viewPanel}`);
 
       if (!panel) {
         // // If we are trying to view a repeat clone that can't be found it might be that the repeats have not been processed yet
@@ -112,7 +117,9 @@ export class DashboardSceneUrlSync implements SceneObjectUrlSyncHandler {
 
     // Handle edit panel state
     if (typeof values.editPanel === 'string') {
+      startGPerformanceMeasure(`DashboardSceneUrlSync:_updateFromUrl:editPanel:${values.editPanel}`);
       const panel = findVizPanelByKey(this._scene, values.editPanel);
+      stopGPerformanceMeasure(`DashboardSceneUrlSync:_updateFromUrl:editPanel:${values.editPanel}`);
 
       if (!panel) {
         console.warn(`Panel ${values.editPanel} not found`);
@@ -179,7 +186,9 @@ export class DashboardSceneUrlSync implements SceneObjectUrlSyncHandler {
   private _handleViewRepeatClone(viewPanel: string) {
     if (!this._eventSub) {
       this._eventSub = this._scene.subscribeToEvent(DashboardRepeatsProcessedEvent, () => {
+        startGPerformanceMeasure(`DashboardSceneUrlSync:_handleViewRepeatClone:viewPanel:${viewPanel}`);
         const panel = findVizPanelByKey(this._scene, viewPanel);
+        stopGPerformanceMeasure(`DashboardSceneUrlSync:_handleViewRepeatClone:viewPanel:${viewPanel}`);
         if (panel) {
           this._eventSub?.unsubscribe();
           this._scene.setState({ viewPanelScene: new ViewPanelScene({ panelRef: panel.getRef() }) });

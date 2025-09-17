@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
 import { css } from '@emotion/css';
+import { useMemo } from 'react';
 
 import {
   CoreApp,
@@ -14,6 +14,7 @@ import { usePanelContext, useStyles2 } from '@grafana/ui';
 import { CardButton } from 'app/core/components/CardButton';
 import { LS_VISUALIZATION_SELECT_TAB_KEY } from 'app/core/constants';
 import store from 'app/core/store';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { toggleVizPicker } from 'app/features/dashboard/components/PanelEditor/state/reducers';
 import { VisualizationSelectPaneTab } from 'app/features/dashboard/components/PanelEditor/types';
 import { getDashboardSrv } from 'app/features/dashboard/services/DashboardSrv';
@@ -29,7 +30,12 @@ export function PanelDataErrorView(props: PanelDataErrorViewProps) {
   const { dataSummary } = builder;
   const message = getMessageFor(props, dataSummary);
   const dispatch = useDispatch();
-  const panel = useMemo(() => getDashboardSrv().getCurrent()?.getPanelById(props.panelId), [props.panelId]);
+  const panel = useMemo(() => {
+    startGPerformanceMeasure(`PanelDataErrorView:getPanelById:${props.panelId}`);
+    const panel = getDashboardSrv().getCurrent()?.getPanelById(props.panelId);
+    stopGPerformanceMeasure(`PanelDataErrorView:getPanelById:${props.panelId}`);
+    return panel;
+  }, [props.panelId]);
 
   const openVizPicker = () => {
     store.setObject(LS_VISUALIZATION_SELECT_TAB_KEY, VisualizationSelectPaneTab.Suggestions);

@@ -24,6 +24,7 @@ import { DEFAULT_ANNOTATION_COLOR } from '@grafana/ui';
 import { GRID_CELL_HEIGHT, GRID_CELL_VMARGIN, GRID_COLUMN_COUNT, REPEAT_DIR_VERTICAL } from 'app/core/constants';
 import { contextSrv } from 'app/core/services/context_srv';
 import { sortedDeepCloneWithoutNulls } from 'app/core/utils/object';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { isAngularDatasourcePluginAndNotHidden } from 'app/features/plugins/angularDeprecation/utils';
 import { variableAdapters } from 'app/features/variables/adapters';
 import { onTimeRangeUpdated } from 'app/features/variables/state/actions';
@@ -528,19 +529,23 @@ export class DashboardModel implements TimeModel {
   }
 
   getPanelById(id: number, includeCollapsed = false): PanelModel | null {
+    startGPerformanceMeasure(`DashboardModel:getPanelById:${id}`);
     if (this.panelInEdit && this.panelInEdit.id === id) {
+      stopGPerformanceMeasure(`DashboardModel:getPanelById:${id}`);
       return this.panelInEdit;
     }
 
     if (includeCollapsed) {
       for (const panel of this.panelIterator()) {
         if (panel.id === id) {
+          stopGPerformanceMeasure(`DashboardModel:getPanelById:${id}`);
           return panel;
         }
       }
 
       return null;
     } else {
+      stopGPerformanceMeasure(`DashboardModel:getPanelById:${id}`);
       return this.panels.find((p) => p.id === id) ?? null;
     }
   }
@@ -550,7 +555,10 @@ export class DashboardModel implements TimeModel {
   }
 
   canEditPanelById(id: number): boolean | undefined | null {
-    return this.canEditPanel(this.getPanelById(id));
+    startGPerformanceMeasure(`canEditPanelById:${id}`);
+    const panel = this.getPanelById(id);
+    stopGPerformanceMeasure(`canEditPanelById:${id}`);
+    return this.canEditPanel(panel);
   }
 
   addPanel(panelData: any) {
@@ -1158,7 +1166,10 @@ export class DashboardModel implements TimeModel {
       hasPanel && this.toggleRow(panel);
     }
 
-    return this.getPanelById(panelId);
+    startGPerformanceMeasure(`getPanelByUrlId:${panelId}`);
+    const p = this.getPanelById(panelId);
+    stopGPerformanceMeasure(`getPanelByUrlId:${panelId}`);
+    return p;
   }
 
   toggleLegendsForAll() {

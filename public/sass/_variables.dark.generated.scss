@@ -105,7 +105,7 @@ $text-color-strong: #FFFFFF;
 $text-color: rgb(204, 204, 220);
 $text-color-semi-weak: rgba(204, 204, 220, 0.65);
 $text-color-weak: rgba(204, 204, 220, 0.65);
-$text-color-faint: rgba(204, 204, 220, 0.6);
+$text-color-faint: rgba(204, 204, 220, 0.4);
 $text-color-emphasis: #FFFFFF;
 $text-blue: #00B7FF;
 
@@ -119,7 +119,7 @@ $brand-gradient-vertical: linear-gradient(0.01deg, #F55F3E 0.01%, #FF8833 99.99%
 // Links
 // -------------------------
 $link-color: rgb(204, 204, 220);
-$link-color-disabled: rgba(204, 204, 220, 0.6);
+$link-color-disabled: rgba(204, 204, 220, 0.4);
 $link-hover-color: #FFFFFF;
 $external-link-color: #00B7FF;
 
@@ -220,7 +220,7 @@ $input-border-color: rgba(204, 204, 220, 0.20);
 $input-box-shadow: none;
 $input-border-focus: #00B7FF;
 $input-box-shadow-focus: #00B7FF !default;
-$input-color-placeholder: rgba(204, 204, 220, 0.6);
+$input-color-placeholder: rgba(204, 204, 220, 0.4);
 $input-label-bg: #22252b;
 $input-color-select-arrow: $white;
 

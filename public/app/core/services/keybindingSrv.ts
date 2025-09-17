@@ -21,6 +21,7 @@ import { AppChromeService } from '../components/AppChrome/AppChromeService';
 import { HelpModal } from '../components/help/HelpModal';
 import { contextSrv } from '../core';
 import { RouteDescriptor } from '../navigation/types';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from '../utils/performance';
 
 import { mousetrap } from './mousetrap';
 import { toggleTheme } from './theme';
@@ -265,7 +266,9 @@ export class KeybindingSrv {
 
     //toggle legend
     this.bindWithPanelId('p l', (panelId) => {
+      startGPerformanceMeasure(`KeybindingSrv:getPanelById:${panelId}`);
       const panel = dashboard.getPanelById(panelId)!;
+      stopGPerformanceMeasure(`KeybindingSrv:getPanelById:${panelId}`);
       const newOptions = { ...panel.options };
 
       newOptions.legend.showLegend ? (newOptions.legend.showLegend = false) : (newOptions.legend.showLegend = true);
@@ -280,7 +283,9 @@ export class KeybindingSrv {
     // jump to explore if permissions allow
     if (contextSrv.hasAccessToExplore()) {
       this.bindWithPanelId('p x', async (panelId) => {
+        startGPerformanceMeasure(`KeybindingSrv:getPanelById:${panelId}`);
         const panel = dashboard.getPanelById(panelId)!;
+        stopGPerformanceMeasure(`KeybindingSrv:getPanelById:${panelId}`);
         const url = await getExploreUrl({
           queries: panel.targets,
           dsRef: panel.datasource,

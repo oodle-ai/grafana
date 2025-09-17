@@ -4,6 +4,7 @@ import { Dashboard } from '@grafana/schema';
 import { appEvents } from 'app/core/app_events';
 import { t } from 'app/core/internationalization';
 import { getBackendSrv } from 'app/core/services/backend_srv';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { getDashboardAPI } from 'app/features/dashboard/api/dashboard_api';
 import { DashboardMeta } from 'app/types';
 
@@ -48,7 +49,10 @@ export class DashboardSrv {
   onRemovePanel = (panelId: number) => {
     const dashboard = this.getCurrent();
     if (dashboard) {
-      removePanel(dashboard, dashboard.getPanelById(panelId)!, true);
+      startGPerformanceMeasure(`DashboardSrv:getPanelById:${panelId}`);
+      const panel = dashboard.getPanelById(panelId);
+      stopGPerformanceMeasure(`DashboardSrv:getPanelById:${panelId}`);
+      removePanel(dashboard, panel!, true);
     }
   };
 

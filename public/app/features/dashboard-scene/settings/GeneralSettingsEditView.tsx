@@ -19,6 +19,7 @@ import {
 import { Page } from 'app/core/components/Page/Page';
 import { FolderPicker } from 'app/core/components/Select/FolderPicker';
 import { t, Trans } from 'app/core/internationalization';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { TimePickerSettings } from 'app/features/dashboard/components/DashboardSettings/TimePickerSettings';
 import { GenAIDashDescriptionButton } from 'app/features/dashboard/components/GenAI/GenAIDashDescriptionButton';
 import { GenAIDashTitleButton } from 'app/features/dashboard/components/GenAI/GenAIDashTitleButton';
@@ -74,7 +75,9 @@ export class GeneralSettingsEditView
   }
 
   public getLiveNowTimer(): behaviors.LiveNowTimer {
+    startGPerformanceMeasure('getLiveNowTimer');
     const liveNowTimer = sceneGraph.findObject(this._dashboard, (s) => s instanceof behaviors.LiveNowTimer);
+    stopGPerformanceMeasure('getLiveNowTimer');
     if (liveNowTimer instanceof behaviors.LiveNowTimer) {
       return liveNowTimer;
     } else {

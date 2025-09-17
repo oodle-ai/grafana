@@ -1,11 +1,11 @@
 import { css } from '@emotion/css';
+import { cx } from '@emotion/css';
 import { useEffect, useMemo, useRef, useCallback, useState, CSSProperties } from 'react';
 import * as React from 'react';
 import { useTable, Column, TableOptions, Cell } from 'react-table';
 import { FixedSizeList } from 'react-window';
 import InfiniteLoader from 'react-window-infinite-loader';
 import { Observable } from 'rxjs';
-import { cx } from '@emotion/css';
 
 import { Field, GrafanaTheme2 } from '@grafana/data';
 import { TableCellHeight } from '@grafana/schema';

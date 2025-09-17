@@ -7,6 +7,7 @@ import { config, reportInteraction } from '@grafana/runtime';
 import { Button, Spinner, stylesFactory } from '@grafana/ui';
 import { contextSrv } from 'app/core/core';
 import { backendSrv } from 'app/core/services/backend_srv';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { getDashboardSrv } from 'app/features/dashboard/services/DashboardSrv';
 
 import { Step } from './components/Step';
@@ -69,7 +70,9 @@ export class GettingStarted extends PureComponent<PanelProps, State> {
   dismiss = () => {
     const { id } = this.props;
     const dashboard = getDashboardSrv().getCurrent();
+    startGPerformanceMeasure(`GettingStarted:getPanelById:${id}`);
     const panel = dashboard?.getPanelById(id);
+    stopGPerformanceMeasure(`GettingStarted:getPanelById:${id}`);
 
     reportInteraction('grafana_getting_started_remove_panel');
 

@@ -11,6 +11,7 @@ import {
   VizPanel,
   VizPanelMenu,
 } from '@grafana/scenes';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { initialIntervalVariableModelState } from 'app/features/variables/interval/reducer';
 
 import { DashboardDatasourceBehaviour } from '../scene/DashboardDatasourceBehaviour';
@@ -40,7 +41,10 @@ export function findVizPanelByKey(scene: SceneObject, key: string | undefined): 
     return null;
   }
 
+  startGPerformanceMeasure(`findVizPanelByKey:key:${key}`);
   const panel = findVizPanelInternal(scene, key);
+  stopGPerformanceMeasure(`findVizPanelByKey:key:${key}`);
+
   if (panel) {
     return panel;
   }
@@ -51,14 +55,17 @@ export function findVizPanelByKey(scene: SceneObject, key: string | undefined): 
     return null;
   }
 
-  return findVizPanelInternal(scene, getVizPanelKeyForPanelId(id));
+  startGPerformanceMeasure(`findVizPanelInternal:id:${id}`);
+  const panel2 = findVizPanelInternal(scene, getVizPanelKeyForPanelId(id));
+  stopGPerformanceMeasure(`findVizPanelInternal:id:${id}`);
+
+  return panel2;
 }
 
 function findVizPanelInternal(scene: SceneObject, key: string | undefined): VizPanel | null {
   if (!key) {
     return null;
   }
-
   const panel = sceneGraph.findObject(scene, (obj) => {
     const objKey = obj.state.key!;
 

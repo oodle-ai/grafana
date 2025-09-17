@@ -48,6 +48,7 @@ import { DashboardPageRouteParams, DashboardPageRouteSearchParams } from './type
 
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 
 export const mapStateToProps = (state: StoreState) => ({
   initPhase: state.dashboard.initPhase,
@@ -343,7 +344,9 @@ export class UnthemedDashboardPage extends PureComponent<Props, State> {
       return null;
     }
 
+    startGPerformanceMeasure(`DashboardPage:getPanelById:${inspectPanelId}`);
     const inspectPanel = dashboard.getPanelById(parseInt(inspectPanelId, 10));
+    stopGPerformanceMeasure(`DashboardPage:getPanelById:${inspectPanelId}`);
 
     // cannot inspect panels plugin is not already loaded
     if (!inspectPanel) {

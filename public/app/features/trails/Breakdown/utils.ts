@@ -1,5 +1,6 @@
 import { SelectableValue } from '@grafana/data';
 import { AdHocFiltersVariable, QueryVariable, sceneGraph, SceneObject } from '@grafana/scenes';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 
 import { VAR_FILTERS } from '../shared';
 
@@ -33,7 +34,9 @@ interface Type<T> extends Function {
   new (...args: any[]): T;
 }
 export function findSceneObjectByType<T extends SceneObject>(scene: SceneObject, sceneType: Type<T>) {
+  startGPerformanceMeasure('findSceneObjectByType');
   const targetScene = sceneGraph.findObject(scene, (obj) => obj instanceof sceneType);
+  stopGPerformanceMeasure('findSceneObjectByType');
 
   if (targetScene instanceof sceneType) {
     return targetScene;

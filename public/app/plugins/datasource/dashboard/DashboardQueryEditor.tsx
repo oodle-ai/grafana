@@ -8,6 +8,7 @@ import { DataQuery, GrafanaTheme2, SelectableValue, DataTopic, QueryEditorProps 
 import { OperationsEditorRow } from '@grafana/experimental';
 import { Field, Select, useStyles2, Spinner, RadioButtonGroup, Stack, InlineSwitch } from '@grafana/ui';
 import config from 'app/core/config';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { getDashboardSrv } from 'app/features/dashboard/services/DashboardSrv';
 import { PanelModel } from 'app/features/dashboard/state';
 import { DashboardScene } from 'app/features/dashboard-scene/scene/DashboardScene';
@@ -43,7 +44,10 @@ export function DashboardQueryEditor({ data, query, onChange, onRunQuery }: Prop
 
   const panel = useMemo(() => {
     const dashboard = getDashboardSrv().getCurrent();
-    return dashboard?.getPanelById(query.panelId ?? -124134);
+    startGPerformanceMeasure(`DashboardQueryEditor:getPanelById:${query.panelId}`);
+    const panel = dashboard?.getPanelById(query.panelId ?? -124134);
+    stopGPerformanceMeasure(`DashboardQueryEditor:getPanelById:${query.panelId}`);
+    return panel;
   }, [query.panelId]);
 
   const { value: results, loading: loadingResults } = useAsync(async (): Promise<ResultInfo[]> => {

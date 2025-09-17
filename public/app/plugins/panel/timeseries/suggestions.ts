@@ -12,6 +12,7 @@ import {
   LineInterpolation,
   StackingMode,
 } from '@grafana/schema';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 import { getDashboardSrv } from 'app/features/dashboard/services/DashboardSrv';
 import { SuggestionName } from 'app/types/suggestions';
 
@@ -219,7 +220,9 @@ export class TimeSeriesSuggestionsSupplier {
 
 // This will try to get a suggestion that will add a long to wide conversion
 export function getPrepareTimeseriesSuggestion(panelId: number): VisualizationSuggestion | undefined {
+  startGPerformanceMeasure(`getPrepareTimeseriesSuggestion:getPanelById:${panelId}`);
   const panel = getDashboardSrv().getCurrent()?.getPanelById(panelId);
+  stopGPerformanceMeasure(`getPrepareTimeseriesSuggestion:getPanelById:${panelId}`);
   if (panel) {
     const transformations = panel.transformations ? [...panel.transformations] : [];
     transformations.push({

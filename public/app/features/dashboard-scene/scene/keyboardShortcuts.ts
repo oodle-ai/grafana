@@ -4,6 +4,7 @@ import { sceneGraph, VizPanel } from '@grafana/scenes';
 import appEvents from 'app/core/app_events';
 import { KeybindingSet } from 'app/core/services/KeybindingSet';
 import { contextSrv } from 'app/core/services/context_srv';
+import { startGPerformanceMeasure, stopGPerformanceMeasure } from 'app/core/utils/performance';
 
 import { shareDashboardType } from '../../dashboard/components/ShareModal/utils';
 import { ShareDrawer } from '../sharing/ShareDrawer/ShareDrawer';
@@ -30,7 +31,9 @@ export function setupKeyboardShortcuts(scene: DashboardScene) {
 
   function withFocusedPanel(scene: DashboardScene, fn: (vizPanel: VizPanel) => void) {
     return () => {
+      startGPerformanceMeasure('withFocusedPanel');
       const vizPanel = sceneGraph.findObject(scene, (o) => o.state.key === vizPanelKey);
+      stopGPerformanceMeasure('withFocusedPanel');
       if (vizPanel && vizPanel instanceof VizPanel) {
         fn(vizPanel);
         return;

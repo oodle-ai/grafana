@@ -1,9 +1,10 @@
 import { Panel } from '@grafana/schema';
+import { sortedDeepCloneWithoutNulls } from 'app/core/utils/object';
+
 import { DashboardScene } from '../scene/DashboardScene';
 import { transformSceneToSaveModel } from '../serialization/transformSceneToSaveModel';
 
 import { getDashboardChanges as getDashboardSaveModelChanges } from './getDashboardChanges';
-import { sortedDeepCloneWithoutNulls } from 'app/core/utils/object';
 
 export function getSortedPanels(panels: Panel[]): Panel[] {
   return [...panels].sort((panelA, panelB) => {
