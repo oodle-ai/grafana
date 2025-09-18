@@ -21,6 +21,7 @@ import { useDispatch } from 'app/types';
 
 import { changePanelPlugin } from '../state/actions';
 
+
 export function PanelDataErrorView(props: PanelDataErrorViewProps) {
   const styles = useStyles2(getStyles);
   const context = usePanelContext();
