@@ -23,6 +23,8 @@ function DashboardPageProxy(props: DashboardPageProxyProps) {
   const params = useParams<DashboardPageParams>();
   const location = useLocation();
 
+  console.log('DashboardPageProxy:app/features/dashboard/containers:DashboardPageProxy', config.featureToggles.dashboardScene);
+
   if (forceScenes || (config.featureToggles.dashboardScene && !forceOld)) {
     return <DashboardScenePage {...props} />;
   }
