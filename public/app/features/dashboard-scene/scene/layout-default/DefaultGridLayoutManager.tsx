@@ -180,7 +180,7 @@ export class DefaultGridLayoutManager
       repeatDirection: gridItem.state.repeatDirection,
       maxPerRow: gridItem.state.maxPerRow,
       key: `grid-item-${newPanelId}`,
-      body: new VizPanel({ ...panelState, $data: panelData, key: getVizPanelKeyForPanelId(newPanelId) }),
+      body: new DeferredVizPanel({ ...panelState, $data: panelData, key: getVizPanelKeyForPanelId(newPanelId) }),
     });
 
     if (gridItem.parent instanceof SceneGridRow) {

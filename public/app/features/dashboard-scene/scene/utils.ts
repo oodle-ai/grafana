@@ -1,4 +1,5 @@
 import { startTransition, useCallback, useEffect, useState } from "react";
+
 import { CancelActivationHandler, SceneObject, SceneObjectState, UseStateHookOptions } from "@grafana/scenes";
 
 export function useDeferredSceneObjectState<TState extends SceneObjectState>(

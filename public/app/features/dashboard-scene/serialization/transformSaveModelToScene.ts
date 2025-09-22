@@ -31,6 +31,7 @@ import { DashboardGridItem, RepeatDirection } from '../scene/DashboardGridItem';
 import { registerDashboardMacro } from '../scene/DashboardMacro';
 import { DashboardScene } from '../scene/DashboardScene';
 import { DashboardScopesFacade } from '../scene/DashboardScopesFacade';
+import { DeferredVizPanel } from '../scene/DeferredVizPanel';
 import { LibraryPanelBehavior } from '../scene/LibraryPanelBehavior';
 import { VizPanelLinks, VizPanelLinksMenu } from '../scene/PanelLinks';
 import { panelLinksBehavior, panelMenuBehavior } from '../scene/PanelMenuBehavior';
@@ -332,7 +333,7 @@ export function buildGridItemForPanel(panel: PanelModel): DashboardGridItem {
     });
   }
 
-  const body = new VizPanel(vizPanelState);
+  const body = new DeferredVizPanel(vizPanelState);
 
   return new DashboardGridItem({
     key: `grid-item-${panel.id}`,
