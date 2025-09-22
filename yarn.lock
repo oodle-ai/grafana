@@ -4092,10 +4092,10 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@grafana/scenes@git+https://github.com/oodle-ai/scenes.git#f773ffbc23edc7f7cb43dfe34298f1c2d61e76c4":
+"@grafana/scenes@git+https://github.com/oodle-ai/scenes.git#3d69fc411d8f451c86784574cc9d9361240399d3":
   version: 0.15.0
-  resolution: "@grafana/scenes@https://github.com/oodle-ai/scenes.git#commit=f773ffbc23edc7f7cb43dfe34298f1c2d61e76c4"
-  checksum: 10/beef101bee0699e155e320816df5b78493aabc3a89ac8f525c24837d7a83f77a0c38637db9a1e5ecfc46e10b71d81aebc4d2ef5014745c6d4e8a86537c57b432
+  resolution: "@grafana/scenes@https://github.com/oodle-ai/scenes.git#commit=3d69fc411d8f451c86784574cc9d9361240399d3"
+  checksum: 10/6624e83939fb64d04d4ecfb170b0a233a0c00f6dc928e39a133e773f01c445abdbe2f386db16ce68f5ec92552646c41609d28176a7cc281455dc1e2ca940e032
   languageName: node
   linkType: hard
 
@@ -18874,7 +18874,7 @@ __metadata:
     "@grafana/prometheus": "workspace:*"
     "@grafana/runtime": "workspace:*"
     "@grafana/saga-icons": "workspace:*"
-    "@grafana/scenes": "git+https://github.com/oodle-ai/scenes.git#f773ffbc23edc7f7cb43dfe34298f1c2d61e76c4"
+    "@grafana/scenes": "git+https://github.com/oodle-ai/scenes.git#3d69fc411d8f451c86784574cc9d9361240399d3"
     "@grafana/schema": "workspace:*"
     "@grafana/sql": "workspace:*"
     "@grafana/tsconfig": "npm:^2.0.0"
