@@ -27,6 +27,7 @@ import { getMultiVariableValues, getQueryRunnerFor } from '../utils/utils';
 
 import { repeatPanelMenuBehavior } from './PanelMenuBehavior';
 import { DashboardRepeatsProcessedEvent } from './types';
+import { useDeferredSceneObjectState } from './utils';
 
 export interface DashboardGridItemState extends SceneGridItemStateLike {
   body: VizPanel;
@@ -270,6 +271,14 @@ export class DashboardGridItem extends SceneObjectBase<DashboardGridItemState> i
       </div>
     );
   };
+
+  /**
+   * Utility hook to get and subscribe to state
+   */
+  public useState(): DashboardGridItemState {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    return useDeferredSceneObjectState(this);
+  }
 }
 
 export class DashboardGridItemVariableDependencyHandler implements SceneVariableDependencyConfigLike {

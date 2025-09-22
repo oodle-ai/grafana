@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { startTransition, useCallback, useEffect } from 'react';
 import { Observer, Subject, Subscription } from 'rxjs';
 
 import { useForceUpdate } from '@grafana/ui';
@@ -42,10 +42,14 @@ export class StateManagerBase<TState> {
 function useLatestState<TState>(model: StateManagerBase<TState>): TState {
   const forceUpdate = useForceUpdate();
 
+  const handleNext = useCallback((_state: TState) => {
+    startTransition(forceUpdate);
+  }, [forceUpdate]);
+
   useEffect(() => {
-    const s = model.subscribeToState({ next: forceUpdate });
+    const s = model.subscribeToState({ next: handleNext });
     return () => s.unsubscribe();
-  }, [model, forceUpdate]);
+  }, [model, handleNext]);
 
   return model.state;
 }

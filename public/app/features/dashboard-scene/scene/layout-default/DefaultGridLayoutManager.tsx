@@ -18,9 +18,11 @@ import {
   getVizPanelKeyForPanelId,
 } from '../../utils/utils';
 import { DashboardGridItem } from '../DashboardGridItem';
+import { DeferredVizPanel } from '../DeferredVizPanel';
 import { RowRepeaterBehavior } from '../RowRepeaterBehavior';
 import { RowActions } from '../row-actions/RowActions';
 import { DashboardLayoutManager } from '../types';
+import { useDeferredSceneObjectState } from '../utils';
 
 interface DefaultGridLayoutManagerState extends SceneObjectState {
   grid: SceneGridLayout;
@@ -352,4 +354,9 @@ export class DefaultGridLayoutManager
   public static Component = ({ model }: SceneComponentProps<DefaultGridLayoutManager>) => {
     return <model.state.grid.Component model={model.state.grid} />;
   };
+
+  public useState(): DefaultGridLayoutManagerState {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    return useDeferredSceneObjectState(this);
+  }
 }
