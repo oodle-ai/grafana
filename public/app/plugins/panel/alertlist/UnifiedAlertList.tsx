@@ -26,7 +26,11 @@ import {
 } from 'app/features/alerting/unified/state/actions';
 import { labelsMatchMatchers } from 'app/features/alerting/unified/utils/alertmanager';
 import { Annotation } from 'app/features/alerting/unified/utils/constants';
-import { getOodleRulesSources, GRAFANA_DATASOURCE_NAME, GRAFANA_RULES_SOURCE_NAME } from 'app/features/alerting/unified/utils/datasource';
+import {
+  getOodleRulesSources,
+  GRAFANA_DATASOURCE_NAME,
+  GRAFANA_RULES_SOURCE_NAME,
+} from 'app/features/alerting/unified/utils/datasource';
 import { parsePromQLStyleMatcherLooseSafe } from 'app/features/alerting/unified/utils/matchers';
 import {
   isAsyncRequestMapSlicePartiallyDispatched,
@@ -50,7 +54,9 @@ import UngroupedModeView from './unified-alerting/UngroupedView';
 
 function getStateList(state: StateFilter) {
   const reducer = (list: string[], [stateKey, value]: [string, boolean]) => {
-    if (Boolean(value)) {
+    // Only include standard Prometheus states, not severity-based filters
+    const standardStates = ['firing', 'pending', 'normal', 'error'];
+    if (Boolean(value) && standardStates.includes(stateKey)) {
       return [...list, stateKey];
     } else {
       return list;
@@ -83,11 +89,15 @@ const fetchPromAndRuler = ({
     );
   } else {
     dispatch(
-      fetchAllPromAndRulerRulesAction(false, {
-        limitAlerts: limitInstances ? INSTANCES_DISPLAY_LIMIT : undefined,
-        matcher: matcherList,
-        state: stateList,
-      }, getOodleRulesSources().map((ds) => ds.name))
+      fetchAllPromAndRulerRulesAction(
+        false,
+        {
+          limitAlerts: limitInstances ? INSTANCES_DISPLAY_LIMIT : undefined,
+          matcher: matcherList,
+          state: stateList,
+        },
+        getOodleRulesSources().map((ds) => ds.name)
+      )
     );
   }
 };
@@ -143,9 +153,7 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
   //See https://github.com/grafana/grafana/pull/70482
   const oodleSources = getOodleRulesSources();
   const oodleSourcesToFetchFrom = useMemo(
-    () => !dataSourceName
-      ? oodleSources
-      : oodleSources.filter((ds) => ds.name === dataSourceName),
+    () => (!dataSourceName ? oodleSources : oodleSources.filter((ds) => ds.name === dataSourceName)),
     [dataSourceName, oodleSources]
   );
   const shouldFetchOodleRules = oodleSourcesToFetchFrom.length > 0;
@@ -157,12 +165,15 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
   } = usePrometheusRulesByNamespaceQuery(
     {
       limitAlerts: limitInstances ? INSTANCES_DISPLAY_LIMIT : undefined,
-      matcher: [{
-        name: 'name',
-        value: `.*${props.options.alertName}.*`,
-        isRegex: true,
-        isEqual: true
-      }, ...matcherList],
+      matcher: [
+        {
+          name: 'name',
+          value: `.*${props.options.alertName}.*`,
+          isRegex: true,
+          isEqual: true,
+        },
+        ...matcherList,
+      ],
       state: stateList,
       sourceUID: oodleSourcesToFetchFrom.map((ds) => ds.uid)[0],
     },
@@ -213,6 +224,7 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
     shouldFetchGrafanaRules,
     shouldFetchOodleRules,
     promRulesRequests.loading,
+    refetchOodlePromRules,
   ]);
 
   const handleInstancesLimit = (limit: boolean) => {
@@ -225,10 +237,7 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
     }
   };
 
-  const combinedRules = useCombinedRuleNamespaces(
-    undefined,
-    [...grafanaPromRules, ...oodlePromRules]
-  );
+  const combinedRules = useCombinedRuleNamespaces(undefined, [...grafanaPromRules, ...oodlePromRules]);
   console.log({ combinedRules });
 
   const someRulerRulesDispatched = isAsyncRequestMapSlicePartiallyDispatched(rulerRulesRequests);
@@ -242,19 +251,77 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
   const flattenedCombinedRules = flattenCombinedRules(combinedRules);
   const order = props.options.sortOrder;
 
-  const rules = useMemo(
-    () => filterRules(props, sortRules(order, flattenedCombinedRules)),
-    [flattenedCombinedRules, order, props]
+  const firingRules = useMemo(() => {
+    const deduplicatedRules = deduplicateRules(flattenedCombinedRules);
+    return filterRules(props, sortRules(order, deduplicatedRules));
+  }, [flattenedCombinedRules, order, props]);
+
+  const normalRules = useMemo(
+    () => deduplicateRules(flattenedCombinedRules).filter((rule) => rule.promRule?.health === 'ok'),
+    [flattenedCombinedRules]
   );
 
-  const noAlertsMessage = rules.length === 0 ? 'No alerts matching filters' : undefined;
+  const noAlertsMessage = firingRules.length === 0 ? 'No alerts matching filters' : undefined;
 
   const renderLoading = grafanaRulesLoading || oodleRulesLoading || (dispatched && loading && !haveResults);
 
   const havePreviousResults = Object.values(promRulesRequests).some((state) => state.result);
 
+  // Calculate counts based on the filtered rules that are actually displayed
+  // Use the same filtering logic as the display to ensure counts match what's shown
+  const criticalRules = firingRules.filter((rule) => {
+    const alertingRule = getAlertingRule(rule);
+    return alertingRule?.labels?.['severity'] === 'critical' && alertingRule?.state === PromAlertingRuleState.Firing;
+  });
+  const warnRules = firingRules.filter((rule) => {
+    const alertingRule = getAlertingRule(rule);
+    return alertingRule?.labels?.['severity'] === 'warn' && alertingRule?.state === PromAlertingRuleState.Firing;
+  });
+  const noDataRules = firingRules.filter((rule) => {
+    const alertingRule = getAlertingRule(rule);
+    return alertingRule?.labels?.['severity'] === 'no_data' && alertingRule?.state === PromAlertingRuleState.Firing;
+  });
+
+  // Check if there are any firing alerts with severity labels
+  const hasFiringAlerts = criticalRules.length > 0 || warnRules.length > 0 || noDataRules.length > 0;
+
   return (
     <CustomScrollbar autoHeightMin="100%" autoHeightMax="100%">
+      {hasFiringAlerts || normalRules.length > 0 ? (
+        <div className={styles.alertCountContainer}>
+          {hasFiringAlerts && (
+            <div className={styles.firingAlertCountContainer}>
+              <div className={styles.firingAlertCountTitle}>Firing</div>
+              <div className={styles.firingAlertCountItems}>
+                {criticalRules.length > 0 && (
+                  <div className={styles.alertCountItem}>
+                    <div className={styles.alertCountItemTitle}>Critical</div>
+                    <div className={styles.alertCountItemValueCritical}>{criticalRules.length}</div>
+                  </div>
+                )}
+                {warnRules.length > 0 && (
+                  <div className={styles.alertCountItem}>
+                    <div className={styles.alertCountItemTitle}>Warn</div>
+                    <div className={styles.alertCountItemValueWarning}>{warnRules.length}</div>
+                  </div>
+                )}
+                {noDataRules.length > 0 && (
+                  <div className={styles.alertCountItem}>
+                    <div className={styles.alertCountItemTitle}>No data</div>
+                    <div className={styles.alertCountItemValue}>{noDataRules.length}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {props.options.stateFilter.normal && normalRules.length > 0 && (
+            <div className={styles.alertCountItem}>
+              <div className={styles.alertCountItemTitle}>OK</div>
+              <div className={styles.alertCountItemValueNormal}>{normalRules.length}</div>
+            </div>
+          )}
+        </div>
+      ) : null}
       <div className={styles.container}>
         {havePreviousResults && noAlertsMessage && <div className={styles.noAlertsMessage}>{noAlertsMessage}</div>}
         {havePreviousResults && (
@@ -267,15 +334,15 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
                 textMode={BigValueTextMode.Auto}
                 justifyMode={BigValueJustifyMode.Auto}
                 theme={config.theme2}
-                value={{ text: `${rules.length}`, numeric: rules.length }}
+                value={{ text: `${firingRules.length}`, numeric: firingRules.length }}
               />
             )}
             {props.options.viewMode === ViewMode.List && props.options.groupMode === GroupMode.Custom && (
-              <GroupedModeView rules={rules} options={parsedOptions} />
+              <GroupedModeView rules={firingRules} options={parsedOptions} />
             )}
             {props.options.viewMode === ViewMode.List && props.options.groupMode === GroupMode.Default && (
               <UngroupedModeView
-                rules={rules}
+                rules={firingRules}
                 options={parsedOptions}
                 handleInstancesLimit={handleInstancesLimit}
                 limitInstances={limitInstances}
@@ -291,6 +358,111 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
   );
 }
 
+function deduplicateRules(rules: CombinedRuleWithLocation[]): CombinedRuleWithLocation[] {
+  const rulesByMonitorId = new Map<string, CombinedRuleWithLocation[]>();
+
+  // Group rules by _oodle_monitor_id
+  rules.forEach((rule) => {
+    const monitorId = rule.labels?.['_oodle_monitor_id'];
+    if (monitorId) {
+      if (!rulesByMonitorId.has(monitorId)) {
+        rulesByMonitorId.set(monitorId, []);
+      }
+      rulesByMonitorId.get(monitorId)!.push(rule);
+    }
+  });
+
+  const deduplicatedRules: CombinedRuleWithLocation[] = [];
+
+  // For each group, select the best rule based on criteria
+  rulesByMonitorId.forEach((ruleGroup) => {
+    if (ruleGroup.length === 1) {
+      deduplicatedRules.push(ruleGroup[0]);
+      return;
+    }
+
+    // Sort by priority: firing > inactive > other states, then critical > warn > no_data > other severities
+    const sortedRules = ruleGroup.sort((a, b) => {
+      const alertingRuleA = getAlertingRule(a);
+      const alertingRuleB = getAlertingRule(b);
+
+      if (!alertingRuleA || !alertingRuleB) {
+        return 0;
+      }
+
+      // Priority 1: State (firing > inactive > other)
+      const statePriority = (state: string) => {
+        switch (state) {
+          case PromAlertingRuleState.Firing:
+            return 1;
+          case PromAlertingRuleState.Inactive:
+            return 2;
+          case PromAlertingRuleState.Pending:
+            return 3;
+          default:
+            return 4;
+        }
+      };
+
+      const stateComparison = statePriority(alertingRuleA.state) - statePriority(alertingRuleB.state);
+      if (stateComparison !== 0) {
+        return stateComparison;
+      }
+
+      // Priority 2: Severity (critical > warn > no_data > other)
+      const severityPriority = (severity: string | undefined) => {
+        switch (severity) {
+          case 'critical':
+            return 1;
+          case 'warn':
+            return 2;
+          case 'no_data':
+            return 3;
+          default:
+            return 4;
+        }
+      };
+
+      const severityA = alertingRuleA.labels?.['severity'];
+      const severityB = alertingRuleB.labels?.['severity'];
+
+      return severityPriority(severityA) - severityPriority(severityB);
+    });
+
+    // Take the first (highest priority) rule and merge alerts from all other rules
+    const selectedRule = { ...sortedRules[0] };
+
+    // Merge alerts from all rules in the group
+    const allAlerts: any[] = [];
+    sortedRules.forEach((rule) => {
+      const alertingRule = getAlertingRule(rule);
+      if (alertingRule?.alerts) {
+        allAlerts.push(...alertingRule.alerts);
+      }
+    });
+
+    // Update the selected rule with merged alerts
+    if (selectedRule.promRule && allAlerts.length > 0 && selectedRule.promRule.type === 'alerting') {
+      selectedRule.promRule = {
+        ...selectedRule.promRule,
+        alerts: allAlerts,
+      };
+    }
+
+    deduplicatedRules.push(selectedRule);
+  });
+
+  // Add rules without _oodle_monitor_id (they don't need deduplication)
+  rules.forEach((rule) => {
+    const monitorId = rule.labels?.['_oodle_monitor_id'];
+    if (!monitorId) {
+      deduplicatedRules.push(rule);
+    }
+  });
+
+  return deduplicatedRules;
+}
+
 function sortRules(sortOrder: SortOrder, rules: CombinedRuleWithLocation[]) {
   if (sortOrder === SortOrder.Importance) {
     // Enhanced importance sorting: Critical (Firing) first, then Warning (Pending), then Normal (Inactive)
@@ -300,14 +472,32 @@ function sortRules(sortOrder: SortOrder, rules: CombinedRuleWithLocation[]) {
         return 999; // Put rules without alerting data at the end
       }
 
+      // Get severity priority
+      const severityPriority = (severity: string | undefined) => {
+        switch (severity) {
+          case 'critical':
+            return 1;
+          case 'warn':
+            return 2;
+          case 'no_data':
+            return 3;
+          default:
+            return 4;
+        }
+      };
+
+      const severity = alertingRule.labels?.['severity'];
+      const severityScore = severityPriority(severity);
+
       // Priority order: Firing (Critical) = 1, Pending (Warning) = 2, Inactive (Normal) = 3
+      // Within each state, sort by severity: critical > warn > no_data > other
       switch (alertingRule.state) {
         case PromAlertingRuleState.Firing:
-          return 1; // Highest priority - Critical alerts
+          return 100 + severityScore; // Firing alerts with severity priority
         case PromAlertingRuleState.Pending:
-          return 2; // Medium priority - Warning alerts
+          return 200 + severityScore; // Pending alerts with severity priority
         case PromAlertingRuleState.Inactive:
-          return 3; // Lowest priority - Normal/OK alerts
+          return 300 + severityScore; // Inactive alerts with severity priority
         default:
           return 999; // Unknown states at the end
       }
@@ -355,11 +545,44 @@ function filterRules(props: PanelProps<UnifiedAlertListOptions>, rules: Combined
     if (!alertingRule) {
       return false;
     }
-    return (
+
+    // Check standard state filters
+    const matchesStateFilter =
       (options.stateFilter.firing && alertingRule.state === PromAlertingRuleState.Firing) ||
       (options.stateFilter.pending && alertingRule.state === PromAlertingRuleState.Pending) ||
-      (options.stateFilter.normal && alertingRule.state === PromAlertingRuleState.Inactive)
-    );
+      (options.stateFilter.normal && alertingRule.state === PromAlertingRuleState.Inactive);
+
+    // Check severity-based filters
+    const severity = alertingRule.labels?.['severity'];
+    const matchesSeverityFilter =
+      (options.stateFilter.critical && severity === 'critical') ||
+      (options.stateFilter.warn && severity === 'warn') ||
+      (options.stateFilter.noData && severity === 'no_data');
+
+    // Check if any severity filters are enabled
+    const hasSeverityFilters = options.stateFilter.critical || options.stateFilter.warn || options.stateFilter.noData;
+    const hasStateFilters = options.stateFilter.firing || options.stateFilter.pending || options.stateFilter.normal;
+
+    if (hasSeverityFilters && hasStateFilters) {
+      // If both severity and state filters are enabled, rule must match BOTH
+      return matchesSeverityFilter && matchesStateFilter;
+    } else if (hasSeverityFilters) {
+      // If only severity filters are enabled, use only severity filters
+      return matchesSeverityFilter;
+    } else if (hasStateFilters) {
+      // If only state filters are enabled, exclude all alerts with severity labels
+      const severity = alertingRule.labels?.['severity'];
+      const hasSeverityLabel = severity !== undefined && severity !== null && severity !== '';
+      if (hasSeverityLabel) {
+        return false; // Hide alerts with severity labels when no severity filters are enabled
+      }
+      return matchesStateFilter;
+    } else {
+      // If no filters are enabled, exclude all alerts with severity labels
+      const severity = alertingRule.labels?.['severity'];
+      const hasSeverityLabel = severity !== undefined && severity !== null && severity !== '';
+      return !hasSeverityLabel; // Show only alerts without severity labels
+    }
   });
 
   if (options.folder) {
@@ -391,7 +614,7 @@ function filterRules(props: PanelProps<UnifiedAlertListOptions>, rules: Combined
         // filter.
         const labelDicts = [
           ...(alertingRule.labels ? [alertingRule.labels] : []),
-          ...(alertingRule.alerts ? alertingRule.alerts.map((alert) => alert.labels) : [])
+          ...(alertingRule.alerts ? alertingRule.alerts.map((alert) => alert.labels) : []),
         ];
         if (labelDicts.length === 0) {
           return false;
@@ -565,6 +788,60 @@ export const getStyles = (theme: GrafanaTheme2) => ({
     letter-spacing: 0.5px;
     white-space: nowrap;
     flex-shrink: 0;
+  `,
+  alertCountContainer: css`
+    display: flex;
+    gap: ${theme.spacing(1)};
+    margin-bottom: ${theme.spacing(1)};
+  `,
+  alertCountItem: css`
+    background: ${theme.colors.background.secondary};
+    border-radius: ${theme.shape.radius.default};
+    padding: ${theme.spacing(0.5)} ${theme.spacing(1)};
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    align-items: center;
+  `,
+  alertCountItemTitle: css`
+    font-size: ${theme.typography.body.fontSize};
+  `,
+  alertCountItemValue: css`
+    font-size: ${theme.typography.pxToRem(38)};
+    color: ${theme.typography.fontWeightBold};
+    font-weight: ${theme.typography.fontWeightBold};
+  `,
+  alertCountItemValueCritical: css`
+    font-size: ${theme.typography.pxToRem(38)};
+    font-weight: ${theme.typography.fontWeightBold};
+    color: ${theme.colors.error.main};
+  `,
+  alertCountItemValueWarning: css`
+    font-size: ${theme.typography.pxToRem(38)};
+    font-weight: ${theme.typography.fontWeightBold};
+    color: ${theme.colors.warning.main};
+  `,
+  alertCountItemValueNormal: css`
+    font-size: ${theme.typography.pxToRem(60)};
+    font-weight: ${theme.typography.fontWeightBold};
+    color: ${theme.colors.success.main};
+  `,
+  firingAlertCountContainer: css`
+    border-radius: ${theme.shape.radius.default};
+    padding: ${theme.spacing(0.5)} ${theme.spacing(1)};
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    gap: ${theme.spacing(1)};
+  `,
+  firingAlertCountTitle: css`
+    background: ${theme.colors.warning.main};
+    font-size: ${theme.typography.body.fontSize};
+    text-align: center;
+  `,
+  firingAlertCountItems: css`
+    display: flex;
+    gap: ${theme.spacing(1)};
   `,
 });
 
