@@ -113,21 +113,21 @@ const unifiedAlertList = new PanelPlugin<UnifiedAlertListOptions>(UnifiedAlertLi
       path: 'stateFilter.critical',
       name: 'Show Critical',
       defaultValue: true,
-      category: ['Filter firing alert by severity (All firing alerts are shown if no severity filters are enabled)'],
+      category: ['Filter firing alert by severity (shows all when none enabled)'],
       showIf: ({ stateFilter }) => stateFilter.firing,
     })
     .addBooleanSwitch({
       path: 'stateFilter.warn',
       name: 'Show Warn',
       defaultValue: true,
-      category: ['Filter firing alert by severity (All firing alerts are shown if no severity filters are enabled)'],
+      category: ['Filter firing alert by severity (shows all when none enabled)'],
       showIf: ({ stateFilter }) => stateFilter.firing,
     })
     .addBooleanSwitch({
       path: 'stateFilter.noData',
       name: 'Show No Data',
       defaultValue: true,
-      category: ['Filter firing alert by severity (All firing alerts are shown if no severity filters are enabled)'],
+      category: ['Filter firing alert by severity (shows all when none enabled)'],
       showIf: ({ stateFilter }) => stateFilter.firing,
     });
 });

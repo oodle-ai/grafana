@@ -265,7 +265,7 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
 
   const renderLoading = grafanaRulesLoading || oodleRulesLoading || (dispatched && loading && !haveResults);
 
-  const havePreviousResults = Object.values(promRulesRequests).some((state) => state.result);
+  const havePreviousResults = Object.values(promRulesRequests).some((state: any) => state.result);
 
   // Calculate counts based on the filtered rules that are actually displayed
   // Use the same filtering logic as the display to ensure counts match what's shown
