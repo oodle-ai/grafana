@@ -46,9 +46,9 @@ export interface StateFilter {
   inactive?: boolean; // backwards compat
   normal: boolean;
   error: boolean;
-  critical: boolean;
-  warn: boolean;
-  noData: boolean;
+  critical?: boolean; // backwards compat - added later
+  warn?: boolean; // backwards compat - added later
+  noData?: boolean; // backwards compat - added later
 }
 
 export interface UnifiedAlertListOptions {

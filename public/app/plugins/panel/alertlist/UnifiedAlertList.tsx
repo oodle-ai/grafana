@@ -552,15 +552,27 @@ function filterRules(props: PanelProps<UnifiedAlertListOptions>, rules: Combined
       (options.stateFilter.pending && alertingRule.state === PromAlertingRuleState.Pending) ||
       (options.stateFilter.normal && alertingRule.state === PromAlertingRuleState.Inactive);
 
-    // Check severity-based filters
+    // Check severity-based filters (only if they exist for backwards compatibility)
     const severity = alertingRule.labels?.['severity'];
     const matchesSeverityFilter =
-      (options.stateFilter.critical && severity === 'critical') ||
-      (options.stateFilter.warn && severity === 'warn') ||
-      (options.stateFilter.noData && severity === 'no_data');
+      (options.stateFilter.critical === true && severity === 'critical') ||
+      (options.stateFilter.warn === true && severity === 'warn') ||
+      (options.stateFilter.noData === true && severity === 'no_data');
 
-    // Check if any severity filters are enabled
-    const hasSeverityFilters = options.stateFilter.critical || options.stateFilter.warn || options.stateFilter.noData;
+    // Check if this is an "old" panel by seeing if all severity filters are undefined or false
+    const allSeverityFiltersDisabled =
+      (options.stateFilter.critical === false || options.stateFilter.critical === undefined) &&
+      (options.stateFilter.warn === false || options.stateFilter.warn === undefined) &&
+      (options.stateFilter.noData === false || options.stateFilter.noData === undefined);
+
+    if (allSeverityFiltersDisabled) {
+      // This is an old panel - show all alerts regardless of severity labels
+      return true;
+    }
+
+    // Check if any severity filters are enabled (only count as enabled if explicitly true)
+    const hasSeverityFilters =
+      options.stateFilter.critical === true || options.stateFilter.warn === true || options.stateFilter.noData === true;
     const hasStateFilters = options.stateFilter.firing || options.stateFilter.pending || options.stateFilter.normal;
 
     if (hasSeverityFilters && hasStateFilters) {
@@ -578,10 +590,8 @@ function filterRules(props: PanelProps<UnifiedAlertListOptions>, rules: Combined
       }
       return matchesStateFilter;
     } else {
-      // If no filters are enabled, exclude all alerts with severity labels
-      const severity = alertingRule.labels?.['severity'];
-      const hasSeverityLabel = severity !== undefined && severity !== null && severity !== '';
-      return !hasSeverityLabel; // Show only alerts without severity labels
+      // If no filters are enabled, show all alerts
+      return true;
     }
   });
 
