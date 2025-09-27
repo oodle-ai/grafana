@@ -71,7 +71,7 @@ const unifiedAlertList = new PanelPlugin<UnifiedAlertListOptions>(UnifiedAlertLi
           { label: 'Time (desc)', value: SortOrder.TimeDesc },
         ],
       },
-      defaultValue: SortOrder.AlphaAsc,
+      defaultValue: SortOrder.Importance,
       category: ['Options'],
     })
     .addTextInput({
@@ -89,28 +89,46 @@ const unifiedAlertList = new PanelPlugin<UnifiedAlertListOptions>(UnifiedAlertLi
       category: ['Filter'],
     })
     .addBooleanSwitch({
+      path: 'stateFilter.firing',
+      name: 'Show Firing',
+      description: 'Show alerts that are currently active. You can also filter by severity if this is enabled.',
+      defaultValue: true,
+      category: ['Filter alerts by state'],
+    })
+    .addBooleanSwitch({
+      path: 'stateFilter.pending',
+      name: 'Show Pending',
+      defaultValue: true,
+      category: ['Filter alerts by state'],
+      showIf: () => false,
+    })
+    .addBooleanSwitch({
       path: 'stateFilter.normal',
-      name: 'Show Normal',
-      defaultValue: false,
-      category: ['Alert state filter'],
+      name: 'Show OK',
+      description: 'Show alerts that are in a normal or resolved state.',
+      defaultValue: true,
+      category: ['Filter alerts by state'],
     })
     .addBooleanSwitch({
       path: 'stateFilter.critical',
-      name: 'Critical',
-      defaultValue: false,
-      category: ['Firing Alert severity filter'],
+      name: 'Show Critical',
+      defaultValue: true,
+      category: ['Filter firing alert by severity (shows all when none enabled)'],
+      showIf: ({ stateFilter }) => stateFilter.firing,
     })
     .addBooleanSwitch({
       path: 'stateFilter.warn',
-      name: 'Warn',
-      defaultValue: false,
-      category: ['Firing Alert severity filter'],
+      name: 'Show Warn',
+      defaultValue: true,
+      category: ['Filter firing alert by severity (shows all when none enabled)'],
+      showIf: ({ stateFilter }) => stateFilter.firing,
     })
     .addBooleanSwitch({
       path: 'stateFilter.noData',
-      name: 'No Data',
-      defaultValue: false,
-      category: ['Firing Alert severity filter'],
+      name: 'Show No Data',
+      defaultValue: true,
+      category: ['Filter firing alert by severity (shows all when none enabled)'],
+      showIf: ({ stateFilter }) => stateFilter.firing,
     });
 });
 
