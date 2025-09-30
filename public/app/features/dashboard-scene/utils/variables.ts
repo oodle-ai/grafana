@@ -170,7 +170,7 @@ export function createSceneVariableFromVariableModel(variable: TypedVariableMode
       sort: variable.sort,
       refresh: variable.refresh,
       regex: variable.regex,
-      allValue: variable.allValue || undefined,
+      allValue: variable.allValue === 'auto_regex' ? undefined : (variable.allValue || undefined),
       includeAll: variable.includeAll,
       defaultToAll: Boolean(variable.includeAll),
       isMulti: variable.multi,

@@ -46,7 +46,7 @@ export function sceneVariablesSetToVariables(set: SceneVariables, keepQueryOptio
         sort: variable.state.sort,
         refresh: variable.state.refresh,
         regex: variable.state.regex,
-        allValue: variable.state.allValue,
+        allValue: variable.state.allValue === 'auto_regex' ? '' : variable.state.allValue,
         includeAll: variable.state.includeAll,
         multi: variable.state.isMulti,
         skipUrlSync: variable.state.skipUrlSync,
