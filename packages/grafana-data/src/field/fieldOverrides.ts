@@ -101,21 +101,25 @@ export function applyFieldOverrides(options: ApplyFieldOverrideOptions): DataFra
 
   return options.data.map((originalFrame, index) => {
     // Need to define this new frame here as it's passed to the getLinkSupplier function inside the fields loop
-    const newFrame: DataFrame = { ...originalFrame };
-    // Copy fields
-    newFrame.fields = newFrame.fields.map((field) => {
-      return {
-        ...field,
-        config: cloneDeep(field.config),
-        state: {
-          ...field.state,
-        },
-      };
-    });
+    const newFrame = originalFrame;
+    // const newFrame: DataFrame = { ...originalFrame };
+    // // Copy fields
+    // newFrame.fields = newFrame.fields.map((field) => {
+    //   return {
+    //     ...field,
+    //     config: cloneDeep(field.config),
+    //     state: {
+    //       ...field.state,
+    //     },
+    //   };
+    // });
 
     for (const field of newFrame.fields) {
       const config = field.config;
 
+      if (!field.state) {
+        field.state = {};
+      }
       field.state!.scopedVars = {
         __dataContext: {
           value: {
