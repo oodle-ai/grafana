@@ -1,12 +1,15 @@
 import { useMemo, useState, useEffect } from 'react';
+import { useToggle } from 'react-use';
+import { css } from '@emotion/css';
 
-import { PanelProps, DataFrameType, DashboardCursorSync, DataFrame, Field, FieldType } from '@grafana/data';
+import { PanelProps, DataFrameType, DashboardCursorSync, DataFrame, Field, FieldType, GrafanaTheme2 } from '@grafana/data';
 import { PanelDataErrorView } from '@grafana/runtime';
 import { TooltipDisplayMode, VizOrientation } from '@grafana/schema';
-import { EventBusPlugin, KeyboardPlugin, TooltipPlugin2, usePanelContext } from '@grafana/ui';
+import { EventBusPlugin, KeyboardPlugin, TooltipPlugin2, usePanelContext, useStyles2, Icon, Button, Tooltip } from '@grafana/ui';
 import { TimeRange2, TooltipHoverMode } from '@grafana/ui/src/components/uPlot/plugins/TooltipPlugin2';
 import { TimeSeries } from 'app/core/components/TimeSeries/TimeSeries';
 import { config } from 'app/core/config';
+import { t, Trans } from 'app/core/internationalization';
 
 import { TimeSeriesTooltip } from './TimeSeriesTooltip';
 import { Options } from './panelcfg.gen';
@@ -16,6 +19,8 @@ import { OutsideRangePlugin } from './plugins/OutsideRangePlugin';
 import { ThresholdControlsPlugin } from './plugins/ThresholdControlsPlugin';
 import { getPrepareTimeseriesSuggestion } from './suggestions';
 import { getTimezones, prepareGraphableFields } from './utils';
+
+const MAX_NUMBER_OF_TIME_SERIES = 100;
 
 interface CustomAnnotation {
   timestamp: number;
@@ -48,7 +53,9 @@ export const TimeSeriesPanel = ({
     eventBus,
   } = usePanelContext();
 
+  const [showAllSeries, toggleShowAllSeries] = useToggle(false);
   const [customAnnotations, setCustomAnnotations] = useState<DataFrame[]>([]);
+  const styles = useStyles2(getStyles);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -103,7 +110,13 @@ export const TimeSeriesPanel = ({
   // Vertical orientation is not available for users through config.
   // It is simplified version of horizontal time series panel and it does not support all plugins.
   const isVerticallyOriented = options.orientation === VizOrientation.Vertical;
-  const frames = useMemo(() => prepareGraphableFields(data.series, config.theme2, timeRange), [data.series, timeRange]);
+  
+  // Slice data series if needed for performance
+  const slicedDataSeries = useMemo(() => {
+    return showAllSeries ? data.series : data.series.slice(0, MAX_NUMBER_OF_TIME_SERIES);
+  }, [data.series, showAllSeries]);
+  
+  const frames = useMemo(() => prepareGraphableFields(slicedDataSeries, config.theme2, timeRange), [slicedDataSeries, timeRange]);
   const timezones = useMemo(() => getTimezones(options.timezone, timeZone), [options.timezone, timeZone]);
   const suggestions = useMemo(() => {
     if (frames?.length && frames.every((df) => df.meta?.type === DataFrameType.TimeSeriesLong)) {
@@ -137,14 +150,37 @@ export const TimeSeriesPanel = ({
   // Combine dashboard annotations with custom annotations from URL
   const allAnnotations = [...(data.annotations ?? []), ...customAnnotations];
 
+  const shouldShowSeriesWarning = !showAllSeries && MAX_NUMBER_OF_TIME_SERIES < data.series.length;
+
   return (
+    <>
+      {shouldShowSeriesWarning && (
+        <div className={styles.timeSeriesDisclaimer}>
+          <span className={styles.warningMessage}>
+            <Icon name="exclamation-triangle" aria-hidden="true" />
+            <Trans i18nKey={'timeseries.panel.show-only-series'}>
+              Showing only {{ MAX_NUMBER_OF_TIME_SERIES }} series
+            </Trans>
+          </span>
+          <Tooltip
+            content={t(
+              'timeseries.panel.content',
+              'Rendering too many series in a single panel may impact performance and make data harder to read. Consider refining your queries.'
+            )}
+          >
+            <Button variant="secondary" size="sm" onClick={toggleShowAllSeries}>
+              <Trans i18nKey={'timeseries.panel.show-all-series'}>Show all {{ length: data.series.length }}</Trans>
+            </Button>
+          </Tooltip>
+        </div>
+      )}
     <TimeSeries
       frames={frames}
       structureRev={data.structureRev}
       timeRange={timeRange}
       timeZone={timezones}
       width={width}
-      height={height}
+      height={shouldShowSeriesWarning ? height - 24 : height}
       legend={options.legend}
       options={options}
       replaceVariables={replaceVariables}
@@ -231,5 +267,24 @@ export const TimeSeriesPanel = ({
         );
       }}
     </TimeSeries>
+    </>
   );
 };
+
+const getStyles = (theme: GrafanaTheme2) => ({
+  timeSeriesDisclaimer: css({
+    label: 'time-series-disclaimer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    position: 'relative',
+    top: theme.spacing(-1),
+  }),
+  warningMessage: css({
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    color: theme.colors.warning.main,
+    fontSize: theme.typography.bodySmall.fontSize,
+  }),
+});
