@@ -20,7 +20,7 @@ import { ThresholdControlsPlugin } from './plugins/ThresholdControlsPlugin';
 import { getPrepareTimeseriesSuggestion } from './suggestions';
 import { getTimezones, prepareGraphableFields } from './utils';
 
-const MAX_NUMBER_OF_TIME_SERIES = 100;
+const MAX_NUMBER_OF_TIME_SERIES = 20;
 
 interface CustomAnnotation {
   timestamp: number;
@@ -111,12 +111,10 @@ export const TimeSeriesPanel = ({
   // It is simplified version of horizontal time series panel and it does not support all plugins.
   const isVerticallyOriented = options.orientation === VizOrientation.Vertical;
   
-  // Slice data series if needed for performance
-  const slicedDataSeries = useMemo(() => {
-    return showAllSeries ? data.series : data.series.slice(0, MAX_NUMBER_OF_TIME_SERIES);
-  }, [data.series, showAllSeries]);
-  
-  const frames = useMemo(() => prepareGraphableFields(slicedDataSeries, config.theme2, timeRange), [slicedDataSeries, timeRange]);
+  const frames = useMemo(() => {
+    const dataToUse = showAllSeries ? data.series : data.series.slice(0, MAX_NUMBER_OF_TIME_SERIES);
+    return prepareGraphableFields(dataToUse, config.theme2, timeRange);
+  }, [data.series, showAllSeries, timeRange, config.theme2]);
   const timezones = useMemo(() => getTimezones(options.timezone, timeZone), [options.timezone, timeZone]);
   const suggestions = useMemo(() => {
     if (frames?.length && frames.every((df) => df.meta?.type === DataFrameType.TimeSeriesLong)) {
@@ -175,6 +173,7 @@ export const TimeSeriesPanel = ({
         </div>
       )}
     <TimeSeries
+      key={`timeseries-${showAllSeries}-${frames?.length}`}
       frames={frames}
       structureRev={data.structureRev}
       timeRange={timeRange}
