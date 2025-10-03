@@ -1,26 +1,38 @@
 import { css } from '@emotion/css';
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useState } from 'react';
 import * as React from 'react';
 
-import { GrafanaTheme2 } from '@grafana/data';
+import { DataQueryError, GrafanaTheme2 } from '@grafana/data';
 import { Icon, InlineField, InlineLabel, TextArea, Toggletip, useStyles2, Stack } from '@grafana/ui';
 
+import { QueryErrorAlert } from '../../query/components/QueryErrorAlert';
 import { ExpressionQuery } from '../types';
+
+import { validateMathExpression } from './MathValidation';
 
 interface Props {
   labelWidth: number | 'auto';
   query: ExpressionQuery;
   onChange: (query: ExpressionQuery) => void;
   onRunQuery: () => void;
+  queries?: Array<{ refId: string }>; // Available queries for variable validation
 }
 
 const mathPlaceholder =
   'Math operations on one or more queries. You reference the query by ${refId} ie. $A, $B, $C etc\n' +
   'The sum of two scalar values: $A + $B > 10';
 
-export const Math = ({ labelWidth, onChange, query, onRunQuery }: Props) => {
+export const Math = ({ labelWidth, onChange, query, onRunQuery, queries }: Props) => {
+  const [validationError, setValidationError] = useState<DataQueryError | null>(null);
+
   const onExpressionChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    onChange({ ...query, expression: event.target.value });
+    const newExpression = event.target.value;
+    onChange({ ...query, expression: newExpression });
+
+    // Clear validation error when user starts typing
+    if (validationError) {
+      setValidationError(null);
+    }
   };
 
   const styles = useStyles2(getStyles);
@@ -31,8 +43,23 @@ export const Math = ({ labelWidth, onChange, query, onRunQuery }: Props) => {
     }
   };
 
+  const handleBlur = () => {
+    const errorMessage = validateMathExpression(query.expression || '', queries);
+    if (errorMessage) {
+      // Show validation error using QueryErrorAlert
+      setValidationError({
+        message: errorMessage,
+        refId: query.refId,
+      });
+    } else {
+      // Clear any existing validation error and execute query
+      setValidationError(null);
+      executeQuery();
+    }
+  };
+
   return (
-    <Stack>
+    <Stack direction="column">
       <InlineField
         label={
           <InlineLabel width="auto">
@@ -128,10 +155,11 @@ export const Math = ({ labelWidth, onChange, query, onRunQuery }: Props) => {
           onChange={onExpressionChange}
           rows={1}
           placeholder={mathPlaceholder}
-          onBlur={executeQuery}
+          onBlur={handleBlur}
           style={{ minWidth: 250, lineHeight: '26px', minHeight: 32 }}
         />
       </InlineField>
+      {validationError && <QueryErrorAlert error={validationError} />}
     </Stack>
   );
 };
