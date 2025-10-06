@@ -1,6 +1,5 @@
 import { css } from '@emotion/css';
-import { ReactNode, useCallback, useMemo, useState } from 'react';
-import { useToggle } from 'react-use';
+import { ReactNode, useCallback, useState } from 'react';
 
 import {
   DataFrame,
@@ -18,13 +17,10 @@ import {
   GraphThresholdsStyleConfig,
   PanelChrome,
   PanelChromeProps,
-  Icon,
-  Button,
   useStyles2,
-  Tooltip,
   GraphThresholdsStyleMode,
 } from '@grafana/ui';
-import { t, Trans } from 'app/core/internationalization';
+import { t } from 'app/core/internationalization';
 import { ExploreGraphStyle, ExploreTimeRangeOptions } from 'app/types';
 
 import { storeGraphStyle } from '../state/utils';
@@ -80,7 +76,6 @@ export const GraphContainer = ({
   hideQueryEditor,
   hideMiniOptions,
 }: Props) => {
-  const [showAllSeries, toggleShowAllSeries] = useToggle(false);
   const [graphStyle, setGraphStyle] = useState(loadGraphStyle);
   const [timeRangeOption, setTimeRangeOption] = useState<ExploreTimeRangeOptions>('24h');
   const styles = useStyles2(getStyles);
@@ -89,10 +84,6 @@ export const GraphContainer = ({
     storeGraphStyle(graphStyle);
     setGraphStyle(graphStyle);
   }, []);
-
-  const slicedData = useMemo(() => {
-    return showAllSeries ? data : data.slice(0, MAX_NUMBER_OF_TIME_SERIES);
-  }, [data, showAllSeries]);
 
   if (criticalThreshold || warnThreshold) {
     thresholdsStyle = {
@@ -137,27 +128,7 @@ export const GraphContainer = ({
       title={title ? title : queryBuilderOnly ? '' : t('graph.container.title', 'Graph')}
       hideHeader={!title && queryBuilderOnly && hideQueryEditor && hideMiniOptions}
       titleItems={[
-        !showAllSeries && MAX_NUMBER_OF_TIME_SERIES < data.length && (
-          <div key="disclaimer" className={styles.timeSeriesDisclaimer}>
-            <span className={styles.warningMessage}>
-              <Icon name="exclamation-triangle" aria-hidden="true" />
-              <Trans i18nKey={'graph.container.show-only-series'}>
-                Showing only {{ MAX_NUMBER_OF_TIME_SERIES }} series
-              </Trans>
-            </span>
-            <Tooltip
-              content={t(
-                'graph.container.content',
-                'Rendering too many series in a single panel may impact performance and make data harder to read. Consider refining your queries.'
-              )}
-            >
-              <Button variant="secondary" size="sm" onClick={toggleShowAllSeries}>
-                <Trans i18nKey={'graph.container.show-all-series'}>Show all {{ length: data.length }}</Trans>
-              </Button>
-            </Tooltip>
-          </div>
-        ),
-        (queryBuilderOnly && (showAllSeries || MAX_NUMBER_OF_TIME_SERIES >= data.length)) && data.length > 0 && (
+        (queryBuilderOnly && MAX_NUMBER_OF_TIME_SERIES >= data.length) && data.length > 0 && (
           <div key="series-count" className={styles.seriesCount}>
             {t('graph.container.series-count', '{{count}} series', { count: data.length })}
           </div>
@@ -172,7 +143,7 @@ export const GraphContainer = ({
       {(innerWidth, innerHeight) => (
         <ExploreGraph
           graphStyle={queryBuilderOnly ? 'lines' : graphStyle}
-          data={slicedData}
+          data={data}
           height={innerHeight}
           width={innerWidth}
           timeRange={timeRange}
