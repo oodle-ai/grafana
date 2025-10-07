@@ -74,6 +74,9 @@ type PrometheusQueryProperties struct {
 
 	// Group By parameters to apply to aggregate expressions in the query
 	GroupByKeys []string `json:"groupByKeys,omitempty"`
+
+	// When enabled, ignores the first sample if it is equal to the start time of the query
+	IgnoreStartTimeSample bool `json:"ignoreStartTimeSample,omitempty"`
 }
 
 // ScopeSpec is a hand copy of the ScopeSpec struct from pkg/apis/scope/v0alpha1/types.go
@@ -167,16 +170,17 @@ type TimeRange struct {
 
 // The internal query object
 type Query struct {
-	Expr          string
-	Step          time.Duration
-	LegendFormat  string
-	Start         time.Time
-	End           time.Time
-	RefId         string
-	InstantQuery  bool
-	RangeQuery    bool
-	ExemplarQuery bool
-	UtcOffsetSec  int64
+	Expr                  string
+	Step                  time.Duration
+	LegendFormat          string
+	Start                 time.Time
+	End                   time.Time
+	RefId                 string
+	InstantQuery          bool
+	RangeQuery            bool
+	ExemplarQuery         bool
+	UtcOffsetSec          int64
+	IgnoreStartTimeSample bool
 
 	Scopes []ScopeSpec
 }
@@ -273,16 +277,17 @@ func Parse(span trace.Span, query backend.DataQuery, dsScrapeInterval string, in
 	)
 
 	return &Query{
-		Expr:          expr,
-		Step:          calculatedStep,
-		LegendFormat:  model.LegendFormat,
-		Start:         query.TimeRange.From,
-		End:           query.TimeRange.To,
-		RefId:         query.RefID,
-		InstantQuery:  model.Instant,
-		RangeQuery:    model.Range,
-		ExemplarQuery: model.Exemplar,
-		UtcOffsetSec:  model.UtcOffsetSec,
+		Expr:                  expr,
+		Step:                  calculatedStep,
+		LegendFormat:          model.LegendFormat,
+		Start:                 query.TimeRange.From,
+		End:                   query.TimeRange.To,
+		RefId:                 query.RefID,
+		InstantQuery:          model.Instant,
+		RangeQuery:            model.Range,
+		ExemplarQuery:         model.Exemplar,
+		UtcOffsetSec:          model.UtcOffsetSec,
+		IgnoreStartTimeSample: model.IgnoreStartTimeSample,
 	}, nil
 }
 

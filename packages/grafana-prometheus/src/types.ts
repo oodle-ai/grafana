@@ -20,6 +20,10 @@ export interface PromQuery extends GenPromQuery, DataQuery {
   disableTextWrap?: boolean;
   fullMetaSearch?: boolean;
   includeNullMetadata?: boolean;
+  /**
+   * When enabled, ignores the first sample if it is equal to the start time of the query
+   */
+  ignoreStartTimeSample?: boolean;
 }
 
 export enum PrometheusCacheLevel {
