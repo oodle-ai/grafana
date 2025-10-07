@@ -127,6 +127,24 @@ export const PromQueryBuilderOptions = React.memo<PromQueryBuilderOptionsProps>(
                 />
               </EditorField>
             )}
+            <EditorField
+              label="Ignore Start Time Sample"
+              tooltip={
+                <>
+                  When enabled, ignores the first sample if it is equal to the start time of the query.
+                </>
+              }
+            >
+              <EditorSwitch
+                value={query.ignoreStartTimeSample || false}
+                onChange={(event: SyntheticEvent<HTMLInputElement>) => {
+                  const isEnabled = event.currentTarget.checked;
+                  onChange({ ...query, ignoreStartTimeSample: isEnabled });
+                  onRunQuery();
+                }}
+                data-test-id="prometheus-ignore-start-time-sample"
+              />
+            </EditorField>
           </QueryOptionGroup>
         </div>
       </EditorRow>
@@ -160,6 +178,9 @@ function getCollapsedInfo(query: PromQuery, formatOption: string, queryType: str
     } else {
       items.push(`Exemplars: false`);
     }
+  }
+  if (query.ignoreStartTimeSample) {
+    items.push(`Ignore Start Time Sample: true`);
   }
   return items;
 }
