@@ -174,11 +174,11 @@ export const getContentItems = (
   }
 
   // Add Total line for stacked charts (when there are multiple numeric fields and we're in multi mode)
-  // Show total when we have 2 or more numeric fields - add after sorting to ensure it's always at the end
+  // Show total when we have 2 or more numeric fields - add after sorting to ensure it's always at the top
   if (hasNumericFields && rows.length >= 2 && mode === TooltipDisplayMode.Multi && processedNumericFields >= 2) {
     if (firstNumericField) {
       const totalDisplay = firstNumericField.display!(totalNumericValue); // Use first field's formatter for consistency
-      rows.push({
+      rows.unshift({
         label: 'Total',
         value: formattedValueToString(totalDisplay),
         color: FALLBACK_COLOR,
@@ -186,6 +186,7 @@ export const getContentItems = (
         colorPlacement: ColorPlacement.first,
         isActive: false,
         numeric: totalNumericValue, // Raw numeric value for sorting
+        showDivider: true, // Add border-bottom divider
       });
     }
   }

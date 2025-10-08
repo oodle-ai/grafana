@@ -224,28 +224,28 @@ describe('utils', () => {
     it('displays the right content in multi mode', () => {
       const rows = getContentItems(fields, xField, dataIdxs, null, TooltipDisplayMode.Multi, SortOrder.None);
       expect(rows.length).toBe(3); // 2 series + 1 total
-      expect(rows[0].value).toBe('20');
-      expect(rows[1].value).toBe('-26');
-      expect(rows[2].label).toBe('Total');
-      expect(rows[2].value).toBe('-6'); // 20 + (-26)
+      expect(rows[0].label).toBe('Total');
+      expect(rows[0].value).toBe('-6'); // 20 + (-26)
+      expect(rows[1].value).toBe('20');
+      expect(rows[2].value).toBe('-26');
     });
 
     it('displays the values sorted ASC', () => {
       const rows = getContentItems(fields, xField, dataIdxs, null, TooltipDisplayMode.Multi, SortOrder.Ascending);
       expect(rows.length).toBe(3); // 2 series + 1 total
-      expect(rows[0].value).toBe('-26');
-      expect(rows[1].value).toBe('20');
-      expect(rows[2].label).toBe('Total');
-      expect(rows[2].value).toBe('-6'); // 20 + (-26)
+      expect(rows[0].label).toBe('Total');
+      expect(rows[0].value).toBe('-6'); // 20 + (-26)
+      expect(rows[1].value).toBe('-26');
+      expect(rows[2].value).toBe('20');
     });
 
     it('displays the values sorted DESC', () => {
       const rows = getContentItems(fields, xField, dataIdxs, null, TooltipDisplayMode.Multi, SortOrder.Descending);
       expect(rows.length).toBe(3); // 2 series + 1 total
-      expect(rows[0].value).toBe('20');
-      expect(rows[1].value).toBe('-26');
-      expect(rows[2].label).toBe('Total');
-      expect(rows[2].value).toBe('-6'); // 20 + (-26)
+      expect(rows[0].label).toBe('Total');
+      expect(rows[0].value).toBe('-6'); // 20 + (-26)
+      expect(rows[1].value).toBe('20');
+      expect(rows[2].value).toBe('-26');
     });
 
     it('displays the correct value when NULL values', () => {
@@ -403,11 +403,11 @@ describe('utils', () => {
     it('displays total line for stacked charts with 3+ series', () => {
       const rows = getContentItems(fields, xField, dataIdxs, null, TooltipDisplayMode.Multi, SortOrder.None);
       expect(rows.length).toBe(4); // 3 series + 1 total
-      expect(rows[0].value).toBe('20');
-      expect(rows[1].value).toBe('25');
-      expect(rows[2].value).toBe('10');
-      expect(rows[3].label).toBe('Total');
-      expect(rows[3].value).toBe('55'); // 20 + 25 + 10
+      expect(rows[0].label).toBe('Total');
+      expect(rows[0].value).toBe('55'); // 20 + 25 + 10
+      expect(rows[1].value).toBe('20');
+      expect(rows[2].value).toBe('25');
+      expect(rows[3].value).toBe('10');
     });
   });
 });
