@@ -223,23 +223,29 @@ describe('utils', () => {
 
     it('displays the right content in multi mode', () => {
       const rows = getContentItems(fields, xField, dataIdxs, null, TooltipDisplayMode.Multi, SortOrder.None);
-      expect(rows.length).toBe(2);
+      expect(rows.length).toBe(3); // 2 series + 1 total
       expect(rows[0].value).toBe('20');
       expect(rows[1].value).toBe('-26');
+      expect(rows[2].label).toBe('Total');
+      expect(rows[2].value).toBe('-6'); // 20 + (-26)
     });
 
     it('displays the values sorted ASC', () => {
       const rows = getContentItems(fields, xField, dataIdxs, null, TooltipDisplayMode.Multi, SortOrder.Ascending);
-      expect(rows.length).toBe(2);
+      expect(rows.length).toBe(3); // 2 series + 1 total
       expect(rows[0].value).toBe('-26');
       expect(rows[1].value).toBe('20');
+      expect(rows[2].label).toBe('Total');
+      expect(rows[2].value).toBe('-6'); // 20 + (-26)
     });
 
     it('displays the values sorted DESC', () => {
       const rows = getContentItems(fields, xField, dataIdxs, null, TooltipDisplayMode.Multi, SortOrder.Descending);
-      expect(rows.length).toBe(2);
+      expect(rows.length).toBe(3); // 2 series + 1 total
       expect(rows[0].value).toBe('20');
       expect(rows[1].value).toBe('-26');
+      expect(rows[2].label).toBe('Total');
+      expect(rows[2].value).toBe('-6'); // 20 + (-26)
     });
 
     it('displays the correct value when NULL values', () => {
@@ -330,6 +336,78 @@ describe('utils', () => {
       expect(rows.length).toBe(2);
       expect(rows[0].value).toBe('NORMAL');
       expect(rows[1].value).toBe('LOW');
+    });
+  });
+
+  describe('it tests getContentItems with stacked charts (3+ series)', () => {
+    const timeValues = [1707833954056, 1707838274056, 1707842594056];
+    const seriesAValues = [10, 20, 30];
+    const seriesBValues = [15, 25, 35];
+    const seriesCValues = [5, 10, 15];
+
+    const frame = {
+      name: 'stacked',
+      length: timeValues.length,
+      fields: [
+        {
+          name: 'time',
+          type: FieldType.time,
+          values: timeValues[0],
+          config: {},
+          display: (value: string) => ({
+            text: value,
+            color: undefined,
+            numeric: NaN,
+          }),
+        },
+        {
+          name: 'A-series',
+          type: FieldType.number,
+          values: seriesAValues,
+          config: {},
+          display: (value: string) => ({
+            text: value,
+            color: undefined,
+            numeric: Number(value),
+          }),
+        },
+        {
+          name: 'B-series',
+          type: FieldType.number,
+          values: seriesBValues,
+          config: {},
+          display: (value: string) => ({
+            text: value,
+            color: undefined,
+            numeric: Number(value),
+          }),
+        },
+        {
+          name: 'C-series',
+          type: FieldType.number,
+          values: seriesCValues,
+          config: {},
+          display: (value: string) => ({
+            text: value,
+            color: undefined,
+            numeric: Number(value),
+          }),
+        },
+      ],
+    } as unknown as DataFrame;
+
+    const fields = frame.fields;
+    const xField = frame.fields[0];
+    const dataIdxs = [1, 1, 1, 1];
+
+    it('displays total line for stacked charts with 3+ series', () => {
+      const rows = getContentItems(fields, xField, dataIdxs, null, TooltipDisplayMode.Multi, SortOrder.None);
+      expect(rows.length).toBe(4); // 3 series + 1 total
+      expect(rows[0].value).toBe('20');
+      expect(rows[1].value).toBe('25');
+      expect(rows[2].value).toBe('10');
+      expect(rows[3].label).toBe('Total');
+      expect(rows[3].value).toBe('55'); // 20 + 25 + 10
     });
   });
 });
