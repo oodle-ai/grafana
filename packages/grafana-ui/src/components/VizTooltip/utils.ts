@@ -84,6 +84,10 @@ export const getContentItems = (
   let rows: VizTooltipItem[] = [];
 
   let allNumeric = true;
+  let totalNumericValue = 0; // Sum of all numeric values for total line
+  let hasNumericFields = false; // Whether we have any valid numeric fields
+  let processedNumericFields = 0; // Count of processed numeric fields
+  let firstNumericField: Field | undefined; // First numeric field for total line formatting
 
   for (let i = 0; i < fields.length; i++) {
     const field = fields[i];
@@ -129,6 +133,18 @@ export const getContentItems = (
         ? Number.MIN_SAFE_INTEGER
         : Number.MAX_SAFE_INTEGER;
 
+    // Track numeric fields for total calculation and first numeric field
+    if (field.type === FieldType.number && !Number.isNaN(display.numeric)) {
+      totalNumericValue += display.numeric; // Accumulate sum for total
+      hasNumericFields = true; // Mark we have valid numeric fields
+      processedNumericFields++; // Count fields contributing to total
+
+      // Store the first numeric field for total formatting
+      if (!firstNumericField) {
+        firstNumericField = field; // Capture first field for consistent formatting
+      }
+    }
+
     const colorMode = getFieldColorModeForField(field);
 
     let colorIndicator = ColorIndicator.series;
@@ -155,6 +171,24 @@ export const getContentItems = (
     const cmp = allNumeric ? numberCmp : stringCmp;
     const mult = sortOrder === SortOrder.Descending ? -1 : 1;
     rows.sort((a, b) => mult * cmp(a, b));
+  }
+
+  // Add Total line for stacked charts (when there are multiple numeric fields and we're in multi mode)
+  // Show total when we have 2 or more numeric fields - add after sorting to ensure it's always at the top
+  if (hasNumericFields && rows.length >= 2 && mode === TooltipDisplayMode.Multi && processedNumericFields >= 2) {
+    if (firstNumericField) {
+      const totalDisplay = firstNumericField.display!(totalNumericValue); // Use first field's formatter for consistency
+      rows.unshift({
+        label: 'Total',
+        value: formattedValueToString(totalDisplay),
+        color: FALLBACK_COLOR,
+        colorIndicator: ColorIndicator.series,
+        colorPlacement: ColorPlacement.first,
+        isActive: false,
+        numeric: totalNumericValue, // Raw numeric value for sorting
+        showDivider: true, // Add border-bottom divider
+      });
+    }
   }
 
   return rows;

@@ -34,7 +34,7 @@ export const VizTooltipContent = ({
 
   return (
     <div className={styles.wrapper} style={scrollableStyle}>
-      {items.map(({ label, value, color, colorIndicator, colorPlacement, isActive, lineStyle }, i) => (
+      {items.map(({ label, value, color, colorIndicator, colorPlacement, isActive, lineStyle, showDivider }, i) => (
         <VizTooltipRow
           key={i}
           label={label}
@@ -46,6 +46,7 @@ export const VizTooltipContent = ({
           justify={'space-between'}
           isPinned={isPinned}
           lineStyle={lineStyle}
+          showDivider={showDivider}
           showValueScroll={!scrollable}
         />
       ))}

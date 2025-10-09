@@ -27,6 +27,7 @@ export interface VizTooltipItem {
   colorPlacement?: ColorPlacement;
   isActive?: boolean;
   lineStyle?: LineStyle;
+  showDivider?: boolean; // Add divider below this item
 
   // internal/tmp for sorting
   numeric?: number;
