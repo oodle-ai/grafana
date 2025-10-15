@@ -28,7 +28,7 @@ interface BrowseViewProps {
   canSelect: boolean;
 }
 
-const uidsToExclude = new Set(['ebpf'])
+const uidsToExclude = new Set(['ebpf', 'infrastructure'])
 
 export function BrowseView({ folderUID, width, height, canSelect }: BrowseViewProps) {
   const status = useBrowseLoadingStatus(folderUID);
