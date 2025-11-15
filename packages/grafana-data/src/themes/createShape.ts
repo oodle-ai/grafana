@@ -22,7 +22,7 @@ export function createShape(options: ThemeShapeInput): ThemeShape {
   const baseBorderRadius = options.borderRadius ?? 2;
 
   const radius = {
-    default: '0.375rem',
+    default: '0.125rem',
     pill: '9999px',
     circle: '100%',
   };
