@@ -593,7 +593,12 @@ func (hs *HTTPServer) postDashboard(c *contextmodel.ReqContext, cmd dashboards.S
 
 	dashboard, saveErr := hs.DashboardService.SaveDashboard(ctx, dashItem, allowUiUpdate)
 
-	if hs.Live != nil {
+	skipNotification := strings.Contains(cmd.Message, "::no_notification::")
+	if skipNotification {
+		hs.log.Info("skipping notification", "dashboardMsg", cmd.Message)
+	}
+
+	if hs.Live != nil && !skipNotification {
 		// Tell everyone listening that the dashboard changed
 		if dashboard == nil {
 			dashboard = dash // the original request
