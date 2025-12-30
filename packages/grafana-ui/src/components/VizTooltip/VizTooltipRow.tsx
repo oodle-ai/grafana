@@ -17,6 +17,7 @@ interface VizTooltipRowProps extends Omit<VizTooltipItem, 'value'> {
   justify?: string;
   isActive?: boolean; // for series list
   marginRight?: string;
+  showDivider?: boolean; // Add divider below this item
   isPinned: boolean;
   showValueScroll?: boolean;
   isHiddenFromViz?: boolean;
@@ -40,7 +41,8 @@ export const VizTooltipRow = ({
   colorPlacement = ColorPlacement.first,
   justify,
   isActive = false,
-  marginRight,
+  marginRight = '0px',
+  showDivider = false,
   isPinned,
   lineStyle,
   showValueScroll,
@@ -132,90 +134,86 @@ export const VizTooltipRow = ({
   }
 
   return (
-    <div className={styles.contentWrapper}>
-      {color && colorPlacement === ColorPlacement.first && (
-        <div className={styles.colorWrapper}>
-          <VizTooltipColorIndicator
-            color={color}
-            colorIndicator={colorIndicator}
-            lineStyle={lineStyle}
-            isHollow={isHiddenFromViz}
-          />
-        </div>
-      )}
-      {label && (
-        <div className={styles.labelWrapper}>
-          {!isPinned ? (
-            <div className={clsx(styles.label, isActive ? styles.activeSeries : '')}>{label}</div>
-          ) : (
-            <>
-              <Tooltip content={label} interactive={false} show={showLabelTooltip}>
-                <>
-                  {showCopySuccess && copiedText?.label && (
-                    <InlineToast placement="top" referenceElement={labelRef.current}>
-                      {SUCCESSFULLY_COPIED_TEXT}
-                    </InlineToast>
-                  )}
-                  {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
-                  <div
-                    className={clsx(styles.label, isActive ? styles.activeSeries : '', CAN_COPY ? styles.copy : '')}
-                    onMouseEnter={onMouseEnterLabel}
-                    onMouseLeave={onMouseLeaveLabel}
-                    onClick={() => copyToClipboard(label, LabelValueTypes.label)}
-                    ref={labelRef}
-                  >
-                    {label}
-                  </div>
-                </>
-              </Tooltip>
-            </>
-          )}
-        </div>
-      )}
-
-      <div className={styles.valueWrapper}>
-        {color && colorPlacement === ColorPlacement.leading && (
-          <VizTooltipColorIndicator
-            color={color}
-            colorIndicator={colorIndicator}
-            position={ColorIndicatorPosition.Leading}
-            lineStyle={lineStyle}
-          />
+    <>
+      <div className={styles.contentWrapper}>
+        {(color || label) && (
+          <div className={styles.valueWrapper}>
+            {color && colorPlacement === ColorPlacement.first && (
+              <VizTooltipColorIndicator color={color} colorIndicator={colorIndicator} lineStyle={lineStyle} />
+            )}
+            {!isPinned ? (
+              <div className={clsx(styles.label, isActive && styles.activeSeries)}>{label}</div>
+            ) : (
+              <>
+                <Tooltip content={label} interactive={false} show={showLabelTooltip}>
+                  <>
+                    {showCopySuccess && copiedText?.label && (
+                      <InlineToast placement="top" referenceElement={labelRef.current}>
+                        {SUCCESSFULLY_COPIED_TEXT}
+                      </InlineToast>
+                    )}
+                    {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
+                    <div
+                      className={clsx(styles.label, isActive && styles.activeSeries, navigator?.clipboard && styles.copy)}
+                      onMouseEnter={onMouseEnterLabel}
+                      onMouseLeave={onMouseLeaveLabel}
+                      onClick={() => copyToClipboard(label, LabelValueTypes.label)}
+                      ref={labelRef}
+                    >
+                      {label}
+                    </div>
+                  </>
+                </Tooltip>
+              </>
+            )}
+          </div>
         )}
 
-        {!isPinned ? (
-          <div className={styles.value} style={innerValueScrollStyle}>
-            {value}
-          </div>
-        ) : (
-          <>
-            {showCopySuccess && copiedText?.value && (
-              <InlineToast placement="top" referenceElement={valueRef.current}>
-                {SUCCESSFULLY_COPIED_TEXT}
-              </InlineToast>
-            )}
-            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
-            <div
-              className={clsx(styles.value, CAN_COPY ? styles.copy : '')}
-              style={innerValueScrollStyle}
-              onClick={() => copyToClipboard(value ? value.toString() : '', LabelValueTypes.value)}
-              ref={valueRef}
-            >
+        <div className={styles.valueWrapper}>
+          {color && colorPlacement === ColorPlacement.leading && (
+            <VizTooltipColorIndicator
+              color={color}
+              colorIndicator={colorIndicator}
+              position={ColorIndicatorPosition.Leading}
+              lineStyle={lineStyle}
+            />
+          )}
+
+          {!isPinned ? (
+            <div className={clsx(styles.value, isActive)} style={innerValueScrollStyle}>
               {value}
             </div>
-          </>
-        )}
+          ) : (
+            <>
+              {showCopySuccess && copiedText?.value && (
+                <InlineToast placement="top" referenceElement={valueRef.current}>
+                  {SUCCESSFULLY_COPIED_TEXT}
+                </InlineToast>
+              )}
+              {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
+              <div
+                className={clsx(styles.value, isActive, navigator?.clipboard && styles.copy)}
+                style={innerValueScrollStyle}
+                onClick={() => copyToClipboard(value ? value.toString() : '', LabelValueTypes.value)}
+                ref={valueRef}
+              >
+                {value}
+              </div>
+            </>
+          )}
 
-        {color && colorPlacement === ColorPlacement.trailing && (
-          <VizTooltipColorIndicator
-            color={color}
-            colorIndicator={colorIndicator}
-            position={ColorIndicatorPosition.Trailing}
-            lineStyle={lineStyle}
-          />
-        )}
+          {color && colorPlacement === ColorPlacement.trailing && (
+            <VizTooltipColorIndicator
+              color={color}
+              colorIndicator={colorIndicator}
+              position={ColorIndicatorPosition.Trailing}
+              lineStyle={lineStyle}
+            />
+          )}
+        </div>
       </div>
-    </div>
+      {showDivider && <div className={styles.divider} />}
+    </>
   );
 };
 
@@ -257,5 +255,12 @@ const getStyles = (theme: GrafanaTheme2, justify = 'start', marginRight?: string
   }),
   copy: css({
     cursor: 'pointer',
+  }),
+  divider: css({
+    borderBottom: `1px solid ${theme.colors.border.medium}`,
+    marginTop: theme.spacing(0.25),
+    marginBottom: theme.spacing(0.25),
+    marginLeft: -10,
+    marginRight: -10,
   }),
 });

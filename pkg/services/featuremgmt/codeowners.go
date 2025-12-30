@@ -33,4 +33,5 @@ const (
 	grafanaDatasourcesCoreServicesSquad         codeowner = "@grafana/grafana-datasources-core-services"
 	grafanaBackendGroup                         codeowner = "@grafana/grafana-backend-group"
 	grafanaPathfinderSquad                      codeowner = "@grafana/pathfinder"
+	grafanaOodleSquad                           codeowner = "@grafana/oodle-squad"
 )

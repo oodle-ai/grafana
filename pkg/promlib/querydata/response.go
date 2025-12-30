@@ -67,6 +67,7 @@ func (s *QueryData) parseResponse(ctx context.Context, q *models.Query, res *htt
 
 		if r.Error == nil {
 			r = s.processExemplars(ctx, q, r)
+			r = s.processIgnoreStartTimeSample(q, r)
 		}
 
 		return r
@@ -238,4 +239,51 @@ func isExemplarFrame(frame *data.Frame) bool {
 func getSeriesLabels(frame *data.Frame) data.Labels {
 	// series labels are stored on the value field (index 1)
 	return frame.Fields[1].Labels.Copy()
+}
+
+func (s *QueryData) processIgnoreStartTimeSample(q *models.Query, dr backend.DataResponse) backend.DataResponse {
+	if !q.IgnoreStartTimeSample {
+		return dr
+	}
+
+	// Only process range queries as instant queries don't have multiple samples
+	if !q.RangeQuery {
+		return dr
+	}
+
+	for _, frame := range dr.Frames {
+		// Skip exemplar frames
+		if isExemplarFrame(frame) {
+			continue
+		}
+
+		// Need at least 2 fields: time and value
+		if len(frame.Fields) < 2 {
+			continue
+		}
+
+		timeField := frame.Fields[0]
+
+		// Check if we have any data points
+		if timeField.Len() == 0 {
+			continue
+		}
+
+		// Get the first timestamp
+		firstTime, ok := timeField.At(0).(time.Time)
+		if !ok {
+			continue
+		}
+
+		timeDiff := firstTime.Sub(q.Start)
+		// Check if the first sample timestamp equals the query start time
+		// Use a small tolerance for floating point comparison
+		if timeDiff >= 0 && timeDiff <= time.Millisecond {
+			for _, field := range frame.Fields {
+				field.Delete(0)
+			}
+		}
+	}
+
+	return dr
 }

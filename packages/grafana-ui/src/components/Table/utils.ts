@@ -39,8 +39,10 @@ import { DataLinksCell } from './Cells/DataLinksCell';
 import { DefaultCell } from './Cells/DefaultCell';
 import { GeoCell } from './Cells/GeoCell';
 import { ImageCell } from './Cells/ImageCell';
+import { InspectableDataLinkCell } from "./InspectableDataLinkCell";
 import { JSONViewCell } from './Cells/JSONViewCell';
 import { SparklineCell } from './Cells/SparklineCell';
+import { getFooterValue } from './FooterRow';
 import { getFooterValue } from './TableRT/FooterRow';
 import { RowExpander } from './TableRT/RowExpander';
 import {
@@ -203,6 +205,8 @@ export function getCellComponent(displayMode: TableCellDisplayMode, field: Field
       return ActionsCell;
     case TableCellDisplayMode.Pill:
       return DefaultCell; // Legacy table doesn't support pill cells, fallback to default
+    case TableCellDisplayMode.InspectableDataLink:
+      return InspectableDataLinkCell;
   }
 
   if (field.type === FieldType.geo) {

@@ -1,21 +1,26 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useToggle } from 'react-use';
+import { css } from '@emotion/css';
 
 import {
   PanelProps,
   DataFrameType,
   DashboardCursorSync,
   DataFrame,
+  Field,
   alignTimeRangeCompareData,
   shouldAlignTimeCompare,
   useDataLinksContext,
   FieldType,
+  GrafanaTheme2,
 } from '@grafana/data';
 import { PanelDataErrorView } from '@grafana/runtime';
 import { TooltipDisplayMode, VizOrientation } from '@grafana/schema';
-import { EventBusPlugin, KeyboardPlugin, TooltipPlugin2, usePanelContext } from '@grafana/ui';
+import { EventBusPlugin, KeyboardPlugin, TooltipPlugin2, usePanelContext, useStyles2, Icon, Button, Tooltip } from '@grafana/ui';
 import { TimeRange2, TooltipHoverMode } from '@grafana/ui/internal';
 import { TimeSeries } from 'app/core/components/TimeSeries/TimeSeries';
 import { config } from 'app/core/config';
+import { t, Trans } from 'app/core/internationalization';
 
 import { TimeSeriesTooltip } from './TimeSeriesTooltip';
 import { Options } from './panelcfg.gen';
@@ -26,7 +31,15 @@ import { ThresholdControlsPlugin } from './plugins/ThresholdControlsPlugin';
 import { getPrepareTimeseriesSuggestion } from './suggestions';
 import { getTimezones, prepareGraphableFields } from './utils';
 
-interface TimeSeriesPanelProps extends PanelProps<Options> {}
+const MAX_NUMBER_OF_TIME_SERIES = 20;
+
+interface CustomAnnotation {
+  timestamp: number;
+  text: string;
+  color?: string;
+}
+
+interface TimeSeriesPanelProps extends PanelProps<Options> { }
 
 export const TimeSeriesPanel = ({
   data,
@@ -50,6 +63,58 @@ export const TimeSeriesPanel = ({
     eventBus,
     canExecuteActions,
   } = usePanelContext();
+  const [showAllSeries, toggleShowAllSeries] = useToggle(false);
+  const [customAnnotations, setCustomAnnotations] = useState<DataFrame[]>([]);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const annotationsParam = searchParams.get('customAnnotations');
+    if (annotationsParam) {
+      try {
+        const parsedAnnotations = JSON.parse(annotationsParam) as CustomAnnotation[];
+        // Convert custom annotations to DataFrame format
+        const annotationFrames = parsedAnnotations.map(annotation => {
+          const timeField: Field = {
+            name: 'time',
+            type: FieldType.time,
+            values: [annotation.timestamp],
+            config: {},
+          };
+
+          const textField: Field = {
+            name: 'text',
+            type: FieldType.string,
+            values: [annotation.text],
+            config: {},
+          };
+
+          const fields = [timeField, textField];
+          if (annotation.color) {
+            const colorField: Field = {
+              name: 'color',
+              type: FieldType.string,
+              values: [annotation.color ?? ''],
+              config: {},
+            };
+
+            fields.push(colorField);
+          }
+
+          return {
+            fields: fields,
+            length: 1,
+            meta: {
+              type: DataFrameType.TimeSeriesMulti,
+            },
+          };
+        });
+
+        setCustomAnnotations(annotationFrames);
+      } catch (e) {
+        console.error('Failed to parse annotations from URL:', e);
+      }
+    }
+  }, []);
 
   const { dataLinkPostProcessor } = useDataLinksContext();
 
@@ -58,7 +123,8 @@ export const TimeSeriesPanel = ({
   // It is simplified version of horizontal time series panel and it does not support all plugins.
   const isVerticallyOriented = options.orientation === VizOrientation.Vertical;
   const { frames, compareDiffMs } = useMemo(() => {
-    let frames = prepareGraphableFields(data.series, config.theme2, timeRange);
+    const dataToUse = showAllSeries ? data.series : data.series.slice(0, MAX_NUMBER_OF_TIME_SERIES);
+    let frames = prepareGraphableFields(dataToUse, config.theme2, timeRange);
     if (frames != null) {
       let compareDiffMs: number[] = [0];
 
@@ -86,7 +152,7 @@ export const TimeSeriesPanel = ({
     }
 
     return { frames };
-  }, [data.series, timeRange]);
+  }, [data.series, showAllSeries, timeRange]);
 
   const timezones = useMemo(() => getTimezones(options.timezone, timeZone), [options.timezone, timeZone]);
   const suggestions = useMemo(() => {
@@ -118,14 +184,41 @@ export const TimeSeriesPanel = ({
     );
   }
 
+  // Combine dashboard annotations with custom annotations from URL
+  const allAnnotations = [...(data.annotations ?? []), ...customAnnotations];
+
+  const shouldShowSeriesWarning = !showAllSeries && MAX_NUMBER_OF_TIME_SERIES < data.series.length;
+
   return (
+    <>
+      {shouldShowSeriesWarning && (
+        <div className={styles.timeSeriesDisclaimer}>
+          <span className={styles.warningMessage}>
+            <Icon name="exclamation-triangle" aria-hidden="true" />
+            <Trans i18nKey={'timeseries.panel.show-only-series'}>
+              Showing only {{ MAX_NUMBER_OF_TIME_SERIES }} series
+            </Trans>
+          </span>
+          <Tooltip
+            content={t(
+              'timeseries.panel.content',
+              'Rendering too many series in a single panel may impact performance and make data harder to read. Consider refining your queries.'
+            )}
+          >
+            <Button variant="secondary" size="sm" onClick={toggleShowAllSeries}>
+              <Trans i18nKey={'timeseries.panel.show-all-series'}>Show all {{ length: data.series.length }}</Trans>
+            </Button>
+          </Tooltip>
+        </div>
+      )}
     <TimeSeries
+      key={`timeseries-${showAllSeries}-${frames?.length}`}
       frames={frames}
       structureRev={data.structureRev}
       timeRange={timeRange}
       timeZone={timezones}
       width={width}
-      height={height}
+      height={shouldShowSeriesWarning ? height - 24 : height}
       legend={options.legend}
       options={options}
       replaceVariables={replaceVariables}
@@ -192,18 +285,18 @@ export const TimeSeriesPanel = ({
               <>
                 <AnnotationsPlugin2
                   replaceVariables={replaceVariables}
-                  annotations={data.annotations ?? []}
+                  annotations={allAnnotations}
                   config={uplotConfig}
                   timeZone={timeZone}
                   newRange={newAnnotationRange}
                   setNewRange={setNewAnnotationRange}
                 />
                 <OutsideRangePlugin config={uplotConfig} onChangeTimeRange={onChangeTimeRange} />
-                {data.annotations && (
+                {allAnnotations.length > 0 && (
                   <ExemplarsPlugin
                     visibleSeries={getVisibleLabels(uplotConfig, frames)}
                     config={uplotConfig}
-                    exemplars={data.annotations}
+                    exemplars={allAnnotations}
                     timeZone={timeZone}
                     maxHeight={options.tooltip.maxHeight}
                     maxWidth={options.tooltip.maxWidth}
@@ -222,5 +315,24 @@ export const TimeSeriesPanel = ({
         );
       }}
     </TimeSeries>
+    </>
   );
 };
+
+const getStyles = (theme: GrafanaTheme2) => ({
+  timeSeriesDisclaimer: css({
+    label: 'time-series-disclaimer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    position: 'relative',
+    top: theme.spacing(-1),
+  }),
+  warningMessage: css({
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    color: theme.colors.warning.main,
+    fontSize: theme.typography.bodySmall.fontSize,
+  }),
+});

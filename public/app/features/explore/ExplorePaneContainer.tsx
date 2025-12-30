@@ -19,8 +19,17 @@ const containerStyles = css({
   height: '100%',
 });
 
+const containerStylesQueryBuilderOnly = css({
+  label: 'explorePaneContainer',
+  display: 'flex',
+  flexDirection: 'column',
+  minWidth: '100px',
+  height: '100%',
+});
+
 interface Props {
   exploreId: string;
+  queryBuilderOnly?: boolean;
 }
 
 /*
@@ -32,7 +41,7 @@ interface Props {
 
   You can read more about this issue here: https://react-redux.js.org/api/hooks#stale-props-and-zombie-children
 */
-function ExplorePaneContainerUnconnected({ exploreId }: Props) {
+function ExplorePaneContainerUnconnected({ exploreId, queryBuilderOnly = false }: Props) {
   useStopQueries(exploreId);
   const eventBus = useRef(new EventBusSrv());
   const ref = useRef(null);
@@ -44,12 +53,17 @@ function ExplorePaneContainerUnconnected({ exploreId }: Props) {
   }, []);
 
   return (
-    <div className={containerStyles} ref={ref} data-testid={selectors.pages.Explore.General.container}>
+    <div
+      className={queryBuilderOnly ? containerStylesQueryBuilderOnly : containerStyles}
+      ref={ref}
+      data-testid={selectors.pages.Explore.General.container}
+    >
       <Explore
         exploreId={exploreId}
         eventBus={eventBus.current}
         showQueryInspector={showQueryInspector}
         setShowQueryInspector={setShowQueryInspector}
+        queryBuilderOnly={queryBuilderOnly}
       />
       {showQueryInspector && (
         <ExploreQueryInspector

@@ -121,13 +121,17 @@ interface FetchPromRulesRulesActionProps {
 
 export function fetchAllPromAndRulerRulesAction(
   force = false,
-  options: FetchPromRulesRulesActionProps = {}
+  options: FetchPromRulesRulesActionProps = {},
+  dataSourceNameBlocklist: string[] = [],
 ): ThunkResult<Promise<void>> {
   return async (dispatch, getStore) => {
     const allStartLoadingTs = performance.now();
+    const dataSourceNames =
+      getAllRulesSourceNames()
+        .filter((name) => !dataSourceNameBlocklist.includes(name));
 
     await Promise.allSettled(
-      getAllRulesSourceNames().map(async (rulesSourceName) => {
+      dataSourceNames.map(async (rulesSourceName) => {
         const { data: dsFeatures } = await dispatch(
           featureDiscoveryApi.endpoints.discoverDsFeatures.initiate({ rulesSourceName })
         );

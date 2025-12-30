@@ -46,4 +46,8 @@ export interface Prometheus extends common.DataQuery {
   scopes?: Array<ScopeSpec & Pick<Scope['metadata'], 'name'>>;
   adhocFilters?: ScopeSpecFilter[];
   groupByKeys?: string[];
+  /**
+   * When enabled, ignores the first sample if it is equal to the start time of the query
+   */
+  ignoreStartTimeSample?: boolean;
 }

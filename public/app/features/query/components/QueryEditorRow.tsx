@@ -70,6 +70,7 @@ export interface Props<TQuery extends DataQuery> {
   onQueryReplacedFromLibrary?: () => void;
   collapsable?: boolean;
   hideRefId?: boolean;
+  queryBuilderOnly?: boolean;
   queryLibraryRef?: string;
   onCancelQueryLibraryEdit?: () => void;
   isOpen?: boolean;
@@ -188,7 +189,7 @@ export class QueryEditorRow<TQuery extends DataQuery> extends PureComponent<Prop
   }
 
   renderPluginEditor = () => {
-    const { query, onChange, queries, onRunQuery, onAddQuery, range, app = CoreApp.PanelEditor, history } = this.props;
+    const { query, onChange, queries, onRunQuery, onAddQuery, range, app = CoreApp.PanelEditor, history, queryBuilderOnly } = this.props;
     const { datasource, data } = this.state;
 
     if (this.isWaitingForDatasourceToLoad()) {
@@ -213,6 +214,7 @@ export class QueryEditorRow<TQuery extends DataQuery> extends PureComponent<Prop
               queries={queries}
               app={app}
               history={history}
+              queryBuilderOnly={queryBuilderOnly}
             />
           </DataSourcePluginContextProvider>
         );
@@ -476,6 +478,7 @@ export class QueryEditorRow<TQuery extends DataQuery> extends PureComponent<Prop
       app,
       queryLibraryRef,
       onCancelQueryLibraryEdit,
+      queryBuilderOnly,
     } = this.props;
     const { datasource, showingHelp, data } = this.state;
     const isHidden = query.hide;
@@ -496,13 +499,14 @@ export class QueryEditorRow<TQuery extends DataQuery> extends PureComponent<Prop
     const queryOperationRow = (
       <QueryOperationRow
         id={this.id}
-        draggable={!hideActionButtons && !queryLibraryRef}
+        draggable={!queryBuilderOnly && !hideActionButtons && !queryLibraryRef}
         collapsable={collapsable}
         index={index}
         headerElement={this.renderHeader}
         actions={hideActionButtons ? undefined : this.renderActions}
         isOpen={isOpen}
         onOpen={onQueryOpenChanged}
+        queryBuilderOnly={queryBuilderOnly}
       >
         <div className={rowClasses} id={this.id}>
           <ErrorBoundaryAlert boundaryName="query-editor-operation-row">

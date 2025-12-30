@@ -76,6 +76,7 @@ interface BaseProps {
    * If true, the VizPanelMenu will always be visible in the panel header. Defaults to false.
    */
   showMenuAlways?: boolean;
+  hideHeader?: boolean;
 }
 
 interface FixedDimensions extends BaseProps {
@@ -157,6 +158,7 @@ export function PanelChrome({
   onMouseEnter,
   onDragStart,
   showMenuAlways = false,
+  hideHeader,
 }: PanelChromeProps) {
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
@@ -165,7 +167,7 @@ export function PanelChrome({
   const { isSelected, onSelect, isSelectable } = useElementSelection(selectionId);
   const pointerDistance = usePointerDistance();
 
-  const hasHeader = !hoverHeader;
+  const hasHeader = hideHeader ? false : !hoverHeader;
 
   const [isOpen, toggleOpen] = useToggle(true);
 
@@ -249,6 +251,9 @@ export function PanelChrome({
     },
     [onSelect]
   );
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const hideQueryEditor = searchParams.has('hideQueryBuilder');
 
   const headerContent = (
     <>
@@ -362,7 +367,7 @@ export function PanelChrome({
           ) : null}
         </div>
 
-        {hoverHeader && (
+        {hoverHeader && !hideQueryEditor && (
           <>
             <HoverWidget
               menu={menu}

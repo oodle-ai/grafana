@@ -43,4 +43,6 @@ export enum DataTransformerID {
   formatString = 'formatString',
   regression = 'regression',
   groupToNestedTable = 'groupToNestedTable',
+  eventDistribution = 'eventDistribution',
+  ignoreRow = 'ignoreRow',
 }

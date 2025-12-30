@@ -36,6 +36,7 @@ export function arrayKeyValuesToObject(
 }
 
 export const GRAFANA_ORIGIN_LABEL = '__grafana_origin';
+export const OODLE_ORIGIN_LABEL = '__oodle_';
 
 export function labelsSize(labels?: Labels) {
   if (isEmpty(labels)) {
@@ -46,7 +47,7 @@ export function labelsSize(labels?: Labels) {
 }
 
 export function isPrivateLabelKey(labelKey: string) {
-  return (labelKey.startsWith('__') && labelKey.endsWith('__')) || labelKey === GRAFANA_ORIGIN_LABEL;
+  return (labelKey.startsWith('__') && labelKey.endsWith('__')) || labelKey === GRAFANA_ORIGIN_LABEL || labelKey.startsWith(OODLE_ORIGIN_LABEL);
 }
 
 export const isPrivateLabel = ([key, _]: [string, string]) => isPrivateLabelKey(key);

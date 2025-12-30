@@ -16,9 +16,25 @@ $theme-name: light;
 
 // New Colors
 // -------------------------
-$blue-base: #3871dc;
-$red-base: #e0226e;
-$green-base: #1b855e;
+$blue-light: #007AB8;
+$blue-base: #0098D9;
+$blue-shade: rgb(0, 121, 173);
+$red-base: #E0226E;
+$red-shade: rgb(179, 27, 88);
+$green-base: #1B855E;
+$green-shade: rgb(21, 106, 75);
+$orange-dark: #ff780a;
+
+$gray98: #f7f8fa;
+$gray95: #e9edf2;
+$gray85: #c7d0d9;
+$gray70: #9fa7b3;
+$gray60: #7b8087;
+$gray33: #464c54;
+$gray25: #2c3235;
+$gray15: #202226;
+$gray10: #141619;
+$gray05: #0b0c0e;
 
 // Grays
 // -------------------------
@@ -39,10 +55,28 @@ $layer2: #f4f5f5;
 
 // Accent colors
 // -------------------------
-$blue: #1f62e0;
+$blue: #007AB8;
 $red: $red-base;
 $yellow: #ecbb13;
 $purple: #9933cc;
+$variable: #007AB8;
+
+$brand-primary: #eb7b18;
+$brand-success: #1B855E;
+$brand-warning: #FF9900;
+$brand-danger: #E0226E;
+
+$query-red: #CF0E5B;
+$query-green: #0A764E;
+$query-purple: #fe85fc;
+$query-orange: #eb7b18;
+
+// Status colors
+// -------------------------
+$online: #0A764E;
+$warn: #B5510D;
+$critical: #CF0E5B;
+
 
 // Scaffolding
 // -------------------------
@@ -50,13 +84,22 @@ $body-bg: #fbfbfb;
 
 $text-color: rgba(36, 41, 46, 1);
 $text-color-weak: rgba(36, 41, 46, 0.75);
+$text-color-faint: rgba(36, 41, 46, 0.4);
 $text-color-emphasis: #000000;
+$text-blue: #007AB8;
+
+$text-shadow-faint: none;
+
+// gradients
+$brand-gradient-horizontal: linear-gradient(90deg, #FF8833 0%, #F53E4C 100%);
+$brand-gradient-vertical: linear-gradient(0.01deg, #F53E4C -31.2%, #FF8833 113.07%);
 
 // Links
 // -------------------------
 $link-color: rgba(36, 41, 46, 1);
-$link-color-disabled: rgba(36, 41, 46, 0.65);
+$link-color-disabled: rgba(36, 41, 46, 0.4);
 $link-hover-color: #000000;
+$external-link-color: #007AB8;
 
 // Typography
 // -------------------------
@@ -109,7 +152,21 @@ $btn-drag-image: '../img/grab_light.svg';
 $input-bg: #ffffff;
 
 $input-color: rgba(36, 41, 46, 1);
-$input-border-color: rgba(36, 41, 46, 0.3);
+$input-border-color: rgba(36, 41, 46, 0.30);
+$input-box-shadow: none;
+$input-border-focus: #5794f2;
+$input-box-shadow-focus: #5794f2;
+$input-color-placeholder: rgba(36, 41, 46, 0.4);
+$input-label-bg: #F4F5F5;
+$input-color-select-arrow: #7b8087;
+
+// search
+$search-shadow: 0 1px 5px 0 $gray-5;
+
+// Typeahead
+$typeahead-shadow: 0 5px 10px 0 $gray-5;
+$typeahead-selected-bg: $gray-6;
+$typeahead-selected-color: $yellow;
 
 // Dropdowns
 // -------------------------

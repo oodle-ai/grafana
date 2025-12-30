@@ -42,6 +42,8 @@ const gettingStartedPanel = async () =>
   await import(/* webpackChunkName: "gettingStartedPanel" */ 'app/plugins/panel/gettingstarted/module');
 const histogramPanel = async () =>
   await import(/* webpackChunkName: "histogramPanel" */ 'app/plugins/panel/histogram/module');
+const eventsPanel = async () =>
+  await import(/* webpackChunkName: "eventsPanel" */ 'app/plugins/panel/events/module');
 const livePanel = async () => await import(/* webpackChunkName: "livePanel" */ 'app/plugins/panel/live/module');
 const logsPanel = async () => await import(/* webpackChunkName: "logsPanel" */ 'app/plugins/panel/logs/module');
 const newsPanel = async () => await import(/* webpackChunkName: "newsPanel" */ 'app/plugins/panel/news/module');
@@ -116,6 +118,7 @@ const builtInPlugins: Record<string, System.Module | (() => Promise<System.Modul
   'core:plugin/nodeGraph': nodeGraph,
   'core:plugin/histogram': histogramPanel,
   'core:plugin/radialbar': radialBar,
+  'core:plugin/events': eventsPanel,
 };
 
 export default builtInPlugins;

@@ -150,9 +150,9 @@ export class PrometheusDatasource
    * Prometheus API and checks if exemplars are available by testing the exemplars API endpoint.
    */
   init = async (): Promise<void> => {
-    if (!this.disableRecordingRules) {
-      this.loadRules();
-    }
+    // if (!this.disableRecordingRules) {
+    //   this.loadRules();
+    // }
     this.exemplarsAvailable = await this.areExemplarsAvailable();
   };
 

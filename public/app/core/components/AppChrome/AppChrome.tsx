@@ -11,7 +11,8 @@ import { useGrafana } from 'app/core/context/GrafanaContext';
 import { useMediaQueryMinWidth } from 'app/core/hooks/useMediaQueryMinWidth';
 import store from 'app/core/store';
 import { CommandPalette } from 'app/features/commandPalette/CommandPalette';
-import { ScopesDashboards } from 'app/features/scopes/dashboards/ScopesDashboards';
+// import { ScopesDashboards, useScopesDashboardsState } from 'app/features/scopes';
+import { KioskMode } from 'app/types';
 
 import { AppChromeMenu } from './AppChromeMenu';
 import { AppChromeService, DOCKED_LOCAL_STORAGE_KEY } from './AppChromeService';
@@ -39,10 +40,10 @@ export function AppChrome({ children }: Props) {
   const state = chrome.useState();
   const scopes = useScopes();
 
-  const menuDockedAndOpen = !state.chromeless && state.megaMenuDocked && state.megaMenuOpen;
-  const isScopesDashboardsOpen = Boolean(
-    scopes?.state.enabled && scopes?.state.drawerOpened && !scopes?.state.readOnly
-  );
+  const menuDockedAndOpen = false;
+  // const isScopesDashboardsOpen = Boolean(
+  //   scopes?.state.enabled && scopes?.state.drawerOpened && !scopes?.state.readOnly
+  // );
 
   const headerLevels = useChromeHeaderLevels();
   const headerHeight = headerLevels * getChromeHeaderLevelHeight();
@@ -60,7 +61,8 @@ export function AppChrome({ children }: Props) {
   });
 
   const handleMegaMenu = () => {
-    chrome.setMegaMenuOpen(!state.megaMenuOpen);
+    // chrome.setMegaMenuOpen(!state.megaMenuOpen);
+    chrome.setMegaMenuOpen(false);
   };
 
   const { pathname, search } = locationService.getLocation();
