@@ -8,6 +8,7 @@ import { TimeRangeUpdatedEvent } from '@grafana/runtime';
 import {
   Alert,
   BigValue,
+  BigValueColorMode,
   BigValueGraphMode,
   BigValueJustifyMode,
   BigValueTextMode,
@@ -330,6 +331,7 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
               <BigValue
                 width={props.width}
                 height={props.height}
+                colorMode={BigValueColorMode.Value}
                 graphMode={BigValueGraphMode.None}
                 textMode={BigValueTextMode.Auto}
                 justifyMode={BigValueJustifyMode.Auto}

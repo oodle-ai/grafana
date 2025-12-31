@@ -108,7 +108,7 @@ const defaultOptions: UnifiedAlertListOptions = {
   groupBy: [''],
   alertName: 'test',
   showInstances: false,
-  folder: { id: 1, title: 'test folder' },
+  folder: { uid: 'a', title: 'test folder' },
   stateFilter: {
     firing: true,
     pending: false,
@@ -117,6 +117,7 @@ const defaultOptions: UnifiedAlertListOptions = {
     critical: false,
     warn: false,
     noData: false,
+    recovering: false,
   },
   alertInstanceLabelFilter: '',
   datasource: 'grafana',
