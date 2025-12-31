@@ -44,7 +44,6 @@ import {
   setMegaMenuOpenHook,
 } from '@grafana/runtime';
 import {
-  initOpenFeature,
   setGetObservablePluginComponents,
   setGetObservablePluginLinks,
   setPanelDataErrorView,
@@ -138,16 +137,6 @@ export class GrafanaApp {
       window.parent.postMessage('GrafanaAppInit', '*');
 
       initSystemJSHooks();
-
-      // Currently the OpenFeature API requires a signed in user. This means feature flags cannot be used
-      // on the login page.
-      if (contextSrv.user.isSignedIn) {
-        try {
-          await initOpenFeature();
-        } catch (err) {
-          console.error('Failed to initialize OpenFeature provider', err);
-        }
-      }
 
       const regionalFormat = config.featureToggles.localeFormatPreference
         ? config.regionalFormat
