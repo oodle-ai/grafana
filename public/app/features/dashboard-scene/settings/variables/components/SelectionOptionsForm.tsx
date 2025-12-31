@@ -63,9 +63,9 @@ export function SelectionOptionsForm({
       />
       {includeAll && (
         <VariableTextField
-          defaultValue={allValue ?? ''}
+          defaultValue={(allValue?.length ?? 0 > 0) ? allValue ?? '' : '.*'}
           onBlur={onAllValueChange}
-          name={t('dashboard-scene.selection-options-form.name-custom-all-value', 'Custom all value')}
+          name="Custom all value"
           testId={selectors.pages.Dashboard.Settings.Variables.Edit.General.selectionOptionsCustomAllInput}
         />
       )}

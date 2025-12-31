@@ -9,7 +9,6 @@ import { Icon, Stack, ToolbarButton, useStyles2 } from '@grafana/ui';
 import { config } from 'app/core/config';
 import { MEGA_MENU_TOGGLE_ID } from 'app/core/constants';
 import { useGrafana } from 'app/core/context/GrafanaContext';
-import { contextSrv } from 'app/core/core';
 import { useMediaQueryMinWidth } from 'app/core/hooks/useMediaQueryMinWidth';
 import { HOME_NAV_ID } from 'app/core/reducers/navModel';
 import { useSelector } from 'app/types/store';
@@ -19,13 +18,8 @@ import { Breadcrumbs } from '../../Breadcrumbs/Breadcrumbs';
 import { buildBreadcrumbs } from '../../Breadcrumbs/utils';
 import { ExtensionToolbarItem } from '../ExtensionSidebar/ExtensionToolbarItem';
 import { HistoryContainer } from '../History/HistoryContainer';
-import { NavToolbarSeparator } from '../NavToolbar/NavToolbarSeparator';
 import { QuickAdd } from '../QuickAdd/QuickAdd';
 
-import { HelpTopBarButton } from './HelpTopBarButton';
-import { InviteUserButton } from './InviteUserButton';
-import { ProfileButton } from './ProfileButton';
-import { SignInLink } from './SignInLink';
 import { SingleTopBarActions } from './SingleTopBarActions';
 import { TopSearchBarCommandPaletteTrigger } from './TopSearchBarCommandPaletteTrigger';
 import { getChromeHeaderLevelHeight } from './useChromeHeaderHeight';
@@ -55,7 +49,6 @@ export const SingleTopBar = memo(function SingleTopBar({
   const state = chrome.useState();
   const menuDockedAndOpen = !state.chromeless && state.megaMenuDocked && state.megaMenuOpen;
   const styles = useStyles2(getStyles, menuDockedAndOpen);
-  const profileNode = useSelector((state) => state.navIndex['profile']);
   const homeNav = useSelector((state) => state.navIndex)[HOME_NAV_ID];
   const breadcrumbs = buildBreadcrumbs(sectionNav, pageNav, homeNav);
   const unifiedHistoryEnabled = config.featureToggles.unifiedHistory;
@@ -93,13 +86,11 @@ export const SingleTopBar = memo(function SingleTopBar({
           <TopSearchBarCommandPaletteTrigger />
           {unifiedHistoryEnabled && !isSmallScreen && <HistoryContainer />}
           {!isSmallScreen && <QuickAdd />}
-          <HelpTopBarButton isSmallScreen={isSmallScreen} />
-          <NavToolbarSeparator />
           {!isSmallScreen && <ExtensionToolbarItem compact={isSmallScreen} />}
           {!showToolbarLevel && actions}
-          {!contextSrv.user.isSignedIn && <SignInLink />}
-          <InviteUserButton />
-          {profileNode && <ProfileButton profileNode={profileNode} onToggleKioskMode={onToggleKioskMode} />}
+          <ToolbarButton className={styles.kioskToggle} onClick={onToggleKioskMode} narrow aria-label={t('navigation.toolbar.enable-kiosk', 'Enable kiosk mode')}>
+            <Icon name="angle-up" size="xl" />
+          </ToolbarButton>
         </Stack>
       </div>
       {showToolbarLevel && (
@@ -133,8 +124,5 @@ const getStyles = (theme: GrafanaTheme2, menuDockedAndOpen: boolean) => ({
     width: theme.spacing(3),
   }),
   kioskToggle: css({
-    [theme.breakpoints.down('lg')]: {
-      display: 'none',
-    },
   }),
 });

@@ -23,20 +23,20 @@ export function getAlertingRoutes(cfg = config): RouteDescriptor[] {
     {
       path: '/alerting',
       component: importAlertingComponent(
-        () => import(/* webpackChunkName: "AlertingHome" */ 'app/features/alerting/unified/home/Home')
+        () => import(/* webpackChunkName: "AlertingHome" */ 'app/features/alerting/unified/OodleAlerts')
       ),
     },
     {
       path: '/alerting/home',
       component: importAlertingComponent(
-        () => import(/* webpackChunkName: "AlertingHome" */ 'app/features/alerting/unified/home/Home')
+        () => import(/* webpackChunkName: "AlertingHome" */ 'app/features/alerting/unified/OodleAlerts')
       ),
     },
     {
       path: '/alerting/list',
       roles: evaluateAccess([AccessControlAction.AlertingRuleRead, AccessControlAction.AlertingRuleExternalRead]),
       component: importAlertingComponent(
-        () => import(/* webpackChunkName: "AlertRuleListIndex" */ 'app/features/alerting/unified/RuleList')
+        () => import(/* webpackChunkName: "AlertRuleListIndex" */ 'app/features/alerting/unified/OodleAlerts')
       ),
     },
     {
@@ -208,7 +208,7 @@ export function getAlertingRoutes(cfg = config): RouteDescriptor[] {
       component: importAlertingComponent(
         () =>
           import(
-            /* webpackChunkName: "HistoryPage" */ 'app/features/alerting/unified/components/rules/central-state-history/CentralAlertHistoryPage'
+            /* webpackChunkName: "HistoryPage" */ 'app/features/alerting/unified/OodleAlerts'
           )
       ),
     },
@@ -244,7 +244,7 @@ export function getAlertingRoutes(cfg = config): RouteDescriptor[] {
       pageClass: 'page-alerting',
       roles: evaluateAccess([AccessControlAction.AlertingRuleCreate, AccessControlAction.AlertingRuleExternalWrite]),
       component: importAlertingComponent(
-        () => import(/* webpackChunkName: "AlertingRuleForm"*/ 'app/features/alerting/unified/rule-editor/RuleEditor')
+        () => import(/* webpackChunkName: "AlertingRuleForm"*/ './unified/OodleAlertsCreate')
       ),
     },
     {
@@ -328,7 +328,7 @@ export function getAlertingRoutes(cfg = config): RouteDescriptor[] {
       path: '/alerting/admin/alertmanager',
       roles: () => ['Admin'],
       component: importAlertingComponent(
-        () => import(/* webpackChunkName: "AlertingSettings" */ 'app/features/alerting/unified/Settings')
+        () => import(/* webpackChunkName: "AlertingSettings" */ 'app/features/alerting/unified/OodleAlerts')
       ),
     },
   ];

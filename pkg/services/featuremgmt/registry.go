@@ -2158,6 +2158,13 @@ var (
 			Owner:        grafanaSharingSquad,
 			FrontendOnly: false,
 		},
+		{
+			Name:        "oodleInsight",
+			Description: "Enables Oodle Insight for Grafana",
+			Stage:       FeatureStageExperimental,
+			Owner:       grafanaOodleSquad,
+			Expression:  "false",
+		},
 	}
 )
 

@@ -16,9 +16,9 @@ $theme-name: light;
 
 // New Colors
 // -------------------------
-$blue-base: #3871dc;
-$red-base: #e0226e;
-$green-base: #1b855e;
+$blue-base: #0098D9;
+$red-base: #E0226E;
+$green-base: #1B855E;
 
 // Grays
 // -------------------------
@@ -39,7 +39,7 @@ $layer2: #f4f5f5;
 
 // Accent colors
 // -------------------------
-$blue: #1f62e0;
+$blue: #007AB8;
 $red: $red-base;
 $yellow: #ecbb13;
 $purple: #9933cc;
@@ -55,7 +55,7 @@ $text-color-emphasis: #000000;
 // Links
 // -------------------------
 $link-color: rgba(36, 41, 46, 1);
-$link-color-disabled: rgba(36, 41, 46, 0.65);
+$link-color-disabled: rgba(36, 41, 46, 0.4);
 $link-hover-color: #000000;
 
 // Typography
@@ -132,10 +132,10 @@ $menu-dropdown-shadow: 0px 13px 20px 1px rgba(24, 26, 27, 0.18);
 
 // Form states and alerts
 // -------------------------
-$alert-error-bg: #e0226e;
-$alert-success-bg: #1b855e;
-$alert-warning-bg: #ff9900;
-$alert-info-bg: #ff9900;
+$alert-error-bg: #E0226E;
+$alert-success-bg: #1B855E;
+$alert-warning-bg: #FF9900;
+$alert-info-bg: #FF9900;
 
 // Tooltips and popovers
 $tooltipBackground: #ffffff;

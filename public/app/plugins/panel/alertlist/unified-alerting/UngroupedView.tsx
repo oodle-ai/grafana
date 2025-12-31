@@ -1,19 +1,16 @@
 import { css, cx } from '@emotion/css';
-import { useLocation } from 'react-use';
 
 import { GrafanaTheme2, intervalToAbbreviatedDurationString } from '@grafana/data';
 import { Trans, t } from '@grafana/i18n';
-import { Icon, Stack, useStyles2 } from '@grafana/ui';
+import { Icon, Stack, useStyles2, useTheme2 } from '@grafana/ui';
 import alertDef from 'app/features/alerting/state/alertDef';
 import { Spacer } from 'app/features/alerting/unified/components/Spacer';
-import { fromCombinedRule, stringifyIdentifier } from 'app/features/alerting/unified/utils/rule-id';
 import {
   alertStateToReadable,
   alertStateToState,
   getFirstActiveAt,
   prometheusRuleType,
 } from 'app/features/alerting/unified/utils/rules';
-import { createRelativeUrl } from 'app/features/alerting/unified/utils/url';
 import { PromAlertingRuleState } from 'app/types/unified-alerting-dto';
 
 import { GRAFANA_RULES_SOURCE_NAME } from '../../../../features/alerting/unified/utils/datasource';
@@ -39,7 +36,20 @@ function getGrafanaInstancesTotal(totals: Partial<Record<AlertInstanceTotalState
 const UngroupedModeView = ({ rules, options, handleInstancesLimit, limitInstances, hideViewRuleLinkText }: Props) => {
   const styles = useStyles2(getStyles);
   const stateStyle = useStyles2(getStateTagStyles);
-  const { href: returnTo } = useLocation();
+  const theme = useTheme2();
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity.toLowerCase()) {
+      case 'critical':
+        return theme.colors.error.main;
+      case 'warn':
+        return theme.colors.warning.main;
+      case 'no_data':
+        return theme.colors.text.secondary;
+      default:
+        return theme.colors.text.primary;
+    }
+  };
 
   const rulesToDisplay = rules.length <= options.maxItems ? rules : rules.slice(0, options.maxItems);
 
@@ -47,13 +57,11 @@ const UngroupedModeView = ({ rules, options, handleInstancesLimit, limitInstance
     <>
       <ol className={styles.alertRuleList}>
         {rulesToDisplay.map((ruleWithLocation, index) => {
-          const { namespaceName, groupName, dataSourceName } = ruleWithLocation;
+          const { namespaceName, groupName } = ruleWithLocation;
           const alertingRule = prometheusRuleType.alertingRule(ruleWithLocation.promRule)
             ? ruleWithLocation.promRule
             : undefined;
           const firstActiveAt = getFirstActiveAt(alertingRule);
-          const indentifier = fromCombinedRule(ruleWithLocation.dataSourceName, ruleWithLocation);
-          const strIndentifier = stringifyIdentifier(indentifier);
 
           const grafanaInstancesTotal =
             ruleWithLocation.dataSourceName === GRAFANA_RULES_SOURCE_NAME
@@ -64,10 +72,9 @@ const UngroupedModeView = ({ rules, options, handleInstancesLimit, limitInstance
               ? getGrafanaInstancesTotal(ruleWithLocation.filteredInstanceTotals)
               : undefined;
 
-          const href = createRelativeUrl(
-            `/alerting/${encodeURIComponent(dataSourceName)}/${encodeURIComponent(strIndentifier)}/view`,
-            { returnTo: returnTo ?? '' }
-          );
+          const monitorID = ruleWithLocation?.labels?.['_oodle_monitor_id'];
+          const severity = ruleWithLocation?.labels?.['severity'];
+          const href = monitorID ? '/alerts?view=' + monitorID : undefined;
           if (alertingRule) {
             return (
               <li
@@ -79,6 +86,13 @@ const UngroupedModeView = ({ rules, options, handleInstancesLimit, limitInstance
                     name={alertDef.getStateDisplayModel(alertingRule.state).iconClass}
                     className={stateStyle[alertStateToState(alertingRule.state)]}
                     size={'lg'}
+                    style={
+                      severity &&
+                      (alertingRule.state === PromAlertingRuleState.Firing ||
+                        alertingRule.state === PromAlertingRuleState.Pending)
+                        ? { color: getSeverityColor(severity) }
+                        : undefined
+                    }
                   />
                 </div>
                 <div className={styles.alertNameWrapper}>
@@ -96,16 +110,27 @@ const UngroupedModeView = ({ rules, options, handleInstancesLimit, limitInstance
                           rel="noopener"
                           aria-label={t('alertlist.ungrouped-mode-view.aria-label-view-alert-rule', 'View alert rule')}
                         >
-                          <span className={cx({ [styles.hidden]: hideViewRuleLinkText })}>
-                            <Trans i18nKey="alertlist.ungrouped-mode-view.view-alert-rule">View alert rule</Trans>
-                          </span>
+                          <span className={cx({ [styles.hidden]: hideViewRuleLinkText })}>View alert</span>
                           <Icon name={'external-link-alt'} size="sm" />
                         </a>
                       )}
                     </Stack>
                     <div className={styles.alertDuration}>
-                      <span className={stateStyle[alertStateToState(alertingRule.state)]}>
-                        {alertStateToReadable(alertingRule.state)}
+                      <span
+                        className={stateStyle[alertStateToState(alertingRule.state)]}
+                        style={
+                          severity &&
+                          (alertingRule.state === PromAlertingRuleState.Firing ||
+                            alertingRule.state === PromAlertingRuleState.Pending)
+                            ? { color: getSeverityColor(severity) }
+                            : undefined
+                        }
+                      >
+                        {severity &&
+                        (alertingRule.state === PromAlertingRuleState.Firing ||
+                          alertingRule.state === PromAlertingRuleState.Pending)
+                          ? (severity.charAt(0).toUpperCase() + severity.slice(1).toLowerCase()).replace('_', ' ')
+                          : alertStateToReadable(alertingRule.state)}
                       </span>{' '}
                       {firstActiveAt && alertingRule.state !== PromAlertingRuleState.Inactive && (
                         <Trans

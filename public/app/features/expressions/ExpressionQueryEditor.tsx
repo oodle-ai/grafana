@@ -120,7 +120,9 @@ export function ExpressionQueryEditor(props: ExpressionQueryEditorProps) {
 
     switch (query.type) {
       case ExpressionQueryType.math:
-        return <Math onChange={onChange} query={query} labelWidth={labelWidth} onRunQuery={onRunQuery} />;
+        return (
+          <Math onChange={onChange} query={query} labelWidth={labelWidth} onRunQuery={onRunQuery} queries={queries} />
+        );
 
       case ExpressionQueryType.reduce:
         return <Reduce refIds={refIds} onChange={onChange} labelWidth={labelWidth} query={query} app={app} />;

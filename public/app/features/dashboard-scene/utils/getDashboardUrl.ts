@@ -1,4 +1,4 @@
-import { UrlQueryMap, urlUtil } from '@grafana/data';
+import { UrlQueryMap, urlUtil, locationUtil } from '@grafana/data';
 import { config, locationSearchToObject } from '@grafana/runtime';
 
 export interface DashboardUrlOptions {
@@ -19,6 +19,8 @@ export interface DashboardUrlOptions {
   // Check if we are on the home dashboard
   isHomeDashboard?: boolean;
   isSnapshot?: boolean;
+
+  disableAssureBaseUrl?: boolean;
 }
 
 export function getDashboardUrl(options: DashboardUrlOptions) {
@@ -80,5 +82,9 @@ export function getDashboardUrl(options: DashboardUrlOptions) {
     return config.appUrl + relativeUrl.slice(1);
   }
 
-  return relativeUrl;
+  if (options.disableAssureBaseUrl) {
+    return relativeUrl;
+  }
+
+  return locationUtil.assureBaseUrl(relativeUrl);
 }

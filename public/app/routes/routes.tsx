@@ -175,6 +175,16 @@ export function getAppRoutes(): RouteDescriptor[] {
       ),
     },
     {
+      path: '/promql-editor',
+      pageClass: 'page-promql-editor',
+      roles: () => contextSrv.evaluatePermission([AccessControlAction.DataSourcesExplore]),
+      component: SafeDynamicImport(() =>
+          import(/* webpackChunkName: "explore" */ 'app/features/explore/PromqlEditorPage')
+      ),
+      // Exiting kiosk mode is disabled in chromeless.
+      chromeless: true,
+    },
+    {
       path: '/drilldown',
       component: () => <NavLandingPage navId="drilldown" />,
     },

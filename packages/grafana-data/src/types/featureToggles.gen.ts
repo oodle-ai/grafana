@@ -897,7 +897,7 @@ export interface FeatureToggles {
   */
   alertingJiraIntegration?: boolean;
   /**
-  * 
+  *
   * @default true
   */
   alertingUseNewSimplifiedRoutingHashAlgorithm?: boolean;
@@ -1246,4 +1246,5 @@ export interface FeatureToggles {
   * Enable template dashboards
   */
   dashboardTemplates?: boolean;
+  oodleInsight?: boolean;
 }

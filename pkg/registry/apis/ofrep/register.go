@@ -259,6 +259,18 @@ func (b *APIBuilder) oneFlagHandler(w http.ResponseWriter, r *http.Request) {
 	valid, ns := b.validateNamespace(r)
 	b.logger.Debug("validating namespace in oneFlagHandler handler", "namespace", ns, "valid", valid, "flag", flagKey)
 	if !valid {
+		// Skip namespace validation for static provider - return default flag value instead of 401
+		if b.providerType != setting.GOFFProviderType {
+			b.logger.Debug("namespace validation failed, returning default flag value for static provider", "flag", flagKey)
+			defaultResult := map[string]any{
+				"key":     flagKey,
+				"value":   false,
+				"variant": "disabled",
+				"reason":  "STATIC",
+			}
+			writeResponse(http.StatusOK, defaultResult, b.logger, w)
+			return
+		}
 		_ = tracing.Errorf(span, namespaceMismatchMsg)
 		span.SetAttributes(semconv.HTTPStatusCode(http.StatusUnauthorized))
 		b.logger.Error(namespaceMismatchMsg)
@@ -273,10 +285,15 @@ func (b *APIBuilder) oneFlagHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Unless the request is authenticated, we only allow public flags evaluations
 	if !isAuthedReq && !isPublicFlag(flagKey) {
-		_ = tracing.Errorf(span, "unauthorized to evaluate flag: %s", flagKey)
-		span.SetAttributes(semconv.HTTPStatusCode(http.StatusUnauthorized))
-		b.logger.Error("Unauthorized to evaluate flag", "flagKey", flagKey)
-		http.Error(w, "unauthorized to evaluate flag", http.StatusUnauthorized)
+		// Return default value instead of 401 for non-public flags
+		b.logger.Debug("returning default value for non-public flag", "flag", flagKey)
+		defaultResult := map[string]any{
+			"key":     flagKey,
+			"value":   false,
+			"variant": "disabled",
+			"reason":  "STATIC",
+		}
+		writeResponse(http.StatusOK, defaultResult, b.logger, w)
 		return
 	}
 
@@ -297,7 +314,14 @@ func (b *APIBuilder) allFlagsHandler(w http.ResponseWriter, r *http.Request) {
 	valid, ns := b.validateNamespace(r)
 	b.logger.Debug("validating namespace in allFlagsHandler handler", "namespace", ns, "valid", valid)
 
+	// Skip namespace validation for static provider - return empty flags instead of 401
 	if !valid {
+		if b.providerType != setting.GOFFProviderType {
+			b.logger.Debug("namespace validation failed, returning empty flags for static provider")
+			emptyResult := map[string]any{"flags": []any{}}
+			writeResponse(http.StatusOK, emptyResult, b.logger, w)
+			return
+		}
 		_ = tracing.Errorf(span, namespaceMismatchMsg)
 		span.SetAttributes(semconv.HTTPStatusCode(http.StatusUnauthorized))
 		b.logger.Error(namespaceMismatchMsg)

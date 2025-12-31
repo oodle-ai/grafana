@@ -1,6 +1,6 @@
 // Core Grafana history https://github.com/grafana/grafana/blob/v11.0.0-preview/public/app/plugins/datasource/prometheus/querybuilder/components/PromQueryEditorSelector.tsx
 import { isEqual } from 'lodash';
-import { memo, SyntheticEvent, useCallback, useEffect, useState } from 'react';
+import { memo, SyntheticEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CoreApp, LoadingState } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
@@ -13,7 +13,7 @@ import { PromQueryEditorProps } from '../../components/types';
 import { PromQuery } from '../../types';
 import { QueryPatternsModal } from '../QueryPatternsModal';
 import { promQueryEditorExplainKey, useFlag } from '../hooks/useFlag';
-import { buildVisualQueryFromString } from '../parsing';
+import { buildVisualQueryFromString, isValidPromQLMinusGrafanaGlobalVariables } from '../parsing';
 import { QueryEditorModeToggle } from '../shared/QueryEditorModeToggle';
 import { QueryHeaderSwitch } from '../shared/QueryHeaderSwitch';
 import { QueryEditorMode } from '../shared/types';
@@ -23,7 +23,42 @@ import { PromQueryBuilderContainer } from './PromQueryBuilderContainer';
 import { PromQueryBuilderOptions } from './PromQueryBuilderOptions';
 import { PromQueryCodeEditor } from './PromQueryCodeEditor';
 
+const eventSourceOodleGrafana = 'oodle';
+const eventTypeUpdateThresholds = 'updateThresholds';
+
 type Props = PromQueryEditorProps;
+
+class DelayedTriggerState {
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private delay: number;
+  private action: () => void;
+  private state = false; // Indicates if the trigger is active
+
+  constructor(action: () => void, delay = 3000) {
+    this.action = action;
+    this.delay = delay;
+  }
+
+  start() {
+    this.reset();
+    this.state = true;
+    this.timer = setTimeout(() => {
+      this.state = false;
+      this.action();
+    }, this.delay);
+  }
+
+  reset() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+    }
+    this.state = false;
+  }
+
+  isActive() {
+    return this.state;
+  }
+}
 
 export const PromQueryEditorSelector = memo<Props>((props) => {
   const {
@@ -34,16 +69,56 @@ export const PromQueryEditorSelector = memo<Props>((props) => {
     onAddQuery,
     datasource: { defaultEditor },
     queries,
+    queryBuilderOnly,
   } = props;
 
   const [parseModalOpen, setParseModalOpen] = useState(false);
   const [queryPatternsModalOpen, setQueryPatternsModalOpen] = useState(false);
   const [dataIsStale, setDataIsStale] = useState(false);
+  const delayTrigger = useMemo(() => new DelayedTriggerState(onRunQuery), [onRunQuery]);
   const { flag: explain, setFlag: setExplain } = useFlag(promQueryEditorExplainKey);
+  const [hideBuilderMode, setHideBuilderMode] = useState<boolean>(false);
 
   const query = getQueryWithDefaults(props.query, app, defaultEditor);
-  // This should be filled in from the defaults by now.
-  const editorMode = query.editorMode!;
+  // This should be filled in from the defaults by now.. Pull in the defaults once
+  // Track mode locally so it never gets yanked out from under us
+  const [editorMode, setEditorMode] = useState<QueryEditorMode>(query.editorMode!);
+  useEffect(() => {
+    const handleEvent = (event: { data: any; origin: string }) => {
+      const { type, payload } = event.data;
+      if (type !== 'message') {
+        return
+      }
+      if (payload?.source !== eventSourceOodleGrafana) {
+        return
+      }
+      if (payload?.eventType !== eventTypeUpdateThresholds) {
+        return
+      }
+
+      onChange({
+        ...query,
+        expr: payload?.query,
+      });
+      onRunQuery();
+    };
+
+    window.addEventListener('message', handleEvent, false);
+
+    return () => {
+      window.removeEventListener('message', handleEvent);
+    };
+  }, []);
+
+  useEffect(() => {
+    const result = buildVisualQueryFromString(query.expr || '');
+    // If there are errors, give user a chance to decide if they want to go to builder as that can lose some data.
+    if (result.errors.length) {
+      setHideBuilderMode(true);
+    } else {
+      setHideBuilderMode(false);
+    }
+  }, [query.expr]);
 
   const onEditorModeChange = useCallback(
     (newMetricEditorMode: QueryEditorMode) => {
@@ -63,6 +138,12 @@ export const PromQueryEditorSelector = memo<Props>((props) => {
         }
       }
       changeEditorMode(query, newMetricEditorMode, onChange);
+      setEditorMode(newMetricEditorMode);
+
+      if (queryBuilderOnly) {
+        // Trigger onRunQuery to change URL to reflect the new editor mode.
+        onRunQuery();
+      }
     },
     [onChange, query, app]
   );
@@ -71,9 +152,34 @@ export const PromQueryEditorSelector = memo<Props>((props) => {
     setDataIsStale(false);
   }, [data]);
 
+  useEffect(() => {
+    window.parent.postMessage({
+      type: 'message',
+      payload: {
+        source: 'oodle-grafana',
+        eventType: 'dataIsStale',
+        value: {
+          dataIsStale,
+        }
+      },
+    }, '*');
+  }, [dataIsStale])
+
   const onChangeInternal = (query: PromQuery) => {
     if (!isEqual(query, props.query)) {
       setDataIsStale(true);
+
+      if (isValidPromQLMinusGrafanaGlobalVariables(query.expr)) {
+        if (editorMode === QueryEditorMode.Builder) {
+          onRunQuery();
+        } else {
+          // For code editor add a delay before running query rather than do it for
+          // every character.
+          delayTrigger.start();
+        }
+      } else {
+        delayTrigger.reset();
+      }
     }
     onChange(query);
   };
@@ -88,6 +194,12 @@ export const PromQueryEditorSelector = memo<Props>((props) => {
     });
     setQueryPatternsModalOpen(true);
   }, [app]);
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const hideQueryEditor = searchParams.has('hideQueryBuilder');
+  if (hideQueryEditor) {
+    return null;
+  }
 
   return (
     <>
@@ -148,7 +260,7 @@ export const PromQueryEditorSelector = memo<Props>((props) => {
           </Button>
         )}
         <div data-testid={selectors.components.DataSource.Prometheus.queryEditor.editorToggle}>
-          <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} />
+          <QueryEditorModeToggle mode={editorMode} onChange={onEditorModeChange} hideBuilder={hideBuilderMode} />
         </div>
       </EditorHeader>
       <Space v={0.5} />
@@ -166,7 +278,7 @@ export const PromQueryEditorSelector = memo<Props>((props) => {
             showExplain={explain}
           />
         )}
-        <PromQueryBuilderOptions query={query} app={props.app} onChange={onChange} onRunQuery={onRunQuery} />
+        {!queryBuilderOnly && <PromQueryBuilderOptions query={query} app={props.app} onChange={onChange} onRunQuery={onRunQuery} />}
       </EditorRows>
     </>
   );

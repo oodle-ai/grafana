@@ -437,7 +437,7 @@ export default class PromQlLanguageProvider extends LanguageProvider implements 
       getDefaultCacheHeaders(this.datasource.cacheLevel)
     );
     // Convert string array to Record<string , []>
-    return data.reduce((ac, a) => ({ ...ac, [a]: '' }), {});
+    return data?.reduce((ac, a) => ({ ...ac, [a]: '' }), {}) || [];
   };
 
   /**

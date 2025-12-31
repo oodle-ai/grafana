@@ -21,9 +21,9 @@ type Props = {
 };
 
 const QUERYLESS_APPS = [
-  'grafana-pyroscope-app',
-  'grafana-lokiexplore-app',
-  'grafana-exploretraces-app',
+  // 'grafana-pyroscope-app',
+  // 'grafana-lokiexplore-app',
+  // 'grafana-exploretraces-app',
   'grafana-metricsdrilldown-app',
 ];
 

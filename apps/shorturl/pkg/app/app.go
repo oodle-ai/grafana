@@ -73,7 +73,7 @@ func New(cfg app.Config) (app.App, error) {
 						Method: "GET",
 						Path:   "goto",
 					}: func(ctx context.Context, w app.CustomRouteResponseWriter, req *app.CustomRouteRequest) error {
-						url, _, found := strings.Cut(req.URL.Path, "/apis/") // This will be settings.AppURL
+						urlPrefix, _, found := strings.Cut(req.URL.Path, "/apis/") // This will be settings.AppURL
 						if !found {
 							return fmt.Errorf("unable to parse request URL")
 						}
@@ -103,7 +103,19 @@ func New(cfg app.Config) (app.App, error) {
 							}
 						}()
 
-						url = url + "/" + info.Spec.Path
+						// Build the redirect URL
+						// If the stored path already starts with the URL prefix (e.g., /grafana-proxy/),
+						// don't prepend it again to avoid double prefixes like /grafana-proxy/grafana-proxy/
+						targetPath := info.Spec.Path
+						var url string
+						if strings.HasPrefix(targetPath, urlPrefix+"/") || strings.HasPrefix(targetPath, urlPrefix) {
+							// Path already has the prefix, use it directly
+							url = targetPath
+						} else {
+							// Path doesn't have the prefix, prepend it
+							url = urlPrefix + "/" + targetPath
+						}
+
 						if req.URL.Query().Get("redirect") == "false" { // helpful for testing
 							return json.NewEncoder(w).Encode(shorturlv1alpha1.GetGoto{
 								Url: url,

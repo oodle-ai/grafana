@@ -14,7 +14,7 @@ const defaultOption: UnifiedAlertListOptions = {
   alertName: 'test',
   showInstances: false,
   folder: { uid: 'abc', title: 'test folder' },
-  stateFilter: { firing: true, pending: true, noData: true, normal: true, error: true, recovering: false },
+  stateFilter: { firing: true, pending: true, normal: true, error: true, critical: false, warn: false, noData: false, recovering: false },
   alertInstanceLabelFilter: '',
   datasource: 'Alertmanager',
   viewMode: ViewMode.List,
@@ -38,14 +38,36 @@ describe('filterAlerts', () => {
   it('Filters by alert instance state ', () => {
     const noNormalStateOptions = {
       ...defaultOption,
-      ...{ stateFilter: { firing: true, pending: true, noData: true, normal: false, error: true, recovering: false } },
+      ...{
+        stateFilter: {
+          firing: true,
+          pending: true,
+          normal: false,
+          error: true,
+          critical: false,
+          warn: false,
+          noData: false,
+          recovering: false,
+        },
+      },
     };
 
     expect(filterAlerts(noNormalStateOptions, alerts).length).toBe(3);
 
     const noErrorOrNormalStateOptions = {
       ...defaultOption,
-      ...{ stateFilter: { firing: true, pending: true, noData: true, normal: false, error: false, recovering: false } },
+      ...{
+        stateFilter: {
+          firing: true,
+          pending: true,
+          normal: false,
+          error: false,
+          critical: false,
+          warn: false,
+          noData: false,
+          recovering: false,
+        },
+      },
     };
 
     expect(filterAlerts(noErrorOrNormalStateOptions, alerts).length).toBe(1);
@@ -65,7 +87,16 @@ describe('filterAlerts', () => {
     const options = {
       ...defaultOption,
       ...{
-        stateFilter: { firing: false, pending: false, noData: false, normal: false, error: true, recovering: false },
+        stateFilter: {
+          firing: false,
+          pending: false,
+          normal: false,
+          error: true,
+          critical: false,
+          warn: false,
+          noData: false,
+          recovering: false,
+        },
       },
       ...{ alertInstanceLabelFilter: '{severity=low}' },
     };

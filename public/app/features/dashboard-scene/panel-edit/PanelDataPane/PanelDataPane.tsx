@@ -12,10 +12,10 @@ import {
   VizPanel,
 } from '@grafana/scenes';
 import { Container, ScrollContainer, TabContent, TabsBar, useStyles2 } from '@grafana/ui';
-import { getConfig } from 'app/core/config';
-import { contextSrv } from 'app/core/core';
-import { getRulesPermissions } from 'app/features/alerting/unified/utils/access-control';
-import { GRAFANA_RULES_SOURCE_NAME } from 'app/features/alerting/unified/utils/datasource';
+// import { getConfig } from 'app/core/config';
+// import { contextSrv } from 'app/core/core';
+// import { getRulesPermissions } from 'app/features/alerting/unified/utils/access-control';
+// import { GRAFANA_RULES_SOURCE_NAME } from 'app/features/alerting/unified/utils/datasource';
 
 import { PanelDataAlertingTab } from './PanelDataAlertingTab';
 import { PanelDataQueriesTab } from './PanelDataQueriesTab';
@@ -95,17 +95,18 @@ function PanelDataPaneRendered({ model }: SceneComponentProps<PanelDataPane>) {
 }
 
 export function shouldShowAlertingTab(pluginId: string) {
-  const { unifiedAlertingEnabled = false } = getConfig();
-  const hasRuleReadPermissions = contextSrv.hasPermission(getRulesPermissions(GRAFANA_RULES_SOURCE_NAME).read);
-  const isAlertingAvailable = unifiedAlertingEnabled && hasRuleReadPermissions;
-  if (!isAlertingAvailable) {
-    return false;
-  }
-
-  const isGraph = pluginId === 'graph';
-  const isTimeseries = pluginId === 'timeseries';
-
-  return isGraph || isTimeseries;
+  return false;
+  // const { unifiedAlertingEnabled = false } = getConfig();
+  // const hasRuleReadPermissions = contextSrv.hasPermission(getRulesPermissions(GRAFANA_RULES_SOURCE_NAME).read);
+  // const isAlertingAvailable = unifiedAlertingEnabled && hasRuleReadPermissions;
+  // if (!isAlertingAvailable) {
+  //   return false;
+  // }
+  //
+  // const isGraph = pluginId === 'graph';
+  // const isTimeseries = pluginId === 'timeseries';
+  //
+  // return isGraph || isTimeseries;
 }
 
 function getStyles(theme: GrafanaTheme2) {

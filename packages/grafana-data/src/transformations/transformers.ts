@@ -3,6 +3,7 @@ import { concatenateTransformer } from './transformers/concat';
 import { convertFieldTypeTransformer } from './transformers/convertFieldType';
 import { convertFrameTypeTransformer } from './transformers/convertFrameType';
 import { ensureColumnsTransformer } from './transformers/ensureColumns';
+import { eventDistributionTransformer } from './transformers/eventDistribution';
 import { filterFieldsTransformer, filterFramesTransformer } from './transformers/filter';
 import { filterFieldsByNameTransformer } from './transformers/filterByName';
 import { filterFramesByRefIdTransformer } from './transformers/filterByRefId';
@@ -13,6 +14,7 @@ import { groupByTransformer } from './transformers/groupBy';
 import { groupToNestedTable } from './transformers/groupToNestedTable';
 import { groupingToMatrixTransformer } from './transformers/groupingToMatrix';
 import { histogramTransformer } from './transformers/histogram';
+import { ignoreRowTransformer } from './transformers/ignoreRow';
 import { joinByFieldTransformer } from './transformers/joinByField';
 import { labelsToFieldsTransformer } from './transformers/labelsToFields';
 import { limitTransformer } from './transformers/limit';
@@ -59,4 +61,6 @@ export const standardTransformers = {
   limitTransformer,
   groupToNestedTable,
   transposeTransformer,
+  eventDistributionTransformer,
+  ignoreRowTransformer,
 };

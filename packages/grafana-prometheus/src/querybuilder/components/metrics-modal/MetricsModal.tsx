@@ -9,7 +9,6 @@ import { Icon, Input, Modal, MultiSelect, Pagination, Spinner, useStyles2 } from
 import { PrometheusDatasource } from '../../../datasource';
 import { PromVisualQuery } from '../../types';
 
-import { FeedbackLink } from './FeedbackLink';
 import { MetricsModalContextProvider, useMetricsModal } from './MetricsModalContext';
 import { ResultsTable } from './ResultsTable';
 import { getPlaceholders, getPromTypes } from './helpers';
@@ -66,7 +65,6 @@ const MetricsModalContent = (props: MetricsModalProps) => {
       aria-label={t('grafana-prometheus.querybuilder.metrics-modal.aria-label-browse-metrics', 'Browse metrics')}
       className={styles.modal}
     >
-      <FeedbackLink feedbackUrl="https://forms.gle/DEMAJHoAMpe3e54CA" />
       <div
         className={styles.inputWrapper}
         data-testid={selectors.components.DataSource.Prometheus.queryEditor.builder.metricsExplorer}
