@@ -12,7 +12,7 @@ import {
 import { config, PanelDataErrorView } from '@grafana/runtime';
 import { TableCellDisplayMode } from '@grafana/schema';
 import { Table, usePanelContext, useTheme2 } from '@grafana/ui';
-import { TableSortByFieldState } from '@grafana/ui/src/components/Table/types';
+import { TableSortByFieldState } from '@grafana/ui/internal';
 
 import { hasDeprecatedParentRowIndex, migrateFromParentRowIndexToNestedFrames } from '../table/migrations';
 
@@ -263,8 +263,7 @@ export function EventsPanel(props: Props) {
             onSortByChange={(sortBy) => onSortByChange(sortBy, props)}
 
             onCellFilterAdded={panelContext.onAddAdHocFilter}
-            footerOptions={options.footer}
-            enablePagination={options.footer?.enablePagination}
+            enablePagination={true}
             cellHeight={options.cellHeight}
             timeRange={timeRange}
             enableSharedCrosshair={config.featureToggles.tableSharedCrosshair && enableSharedCrosshair}

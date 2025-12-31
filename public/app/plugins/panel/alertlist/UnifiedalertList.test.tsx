@@ -109,6 +109,7 @@ const defaultOptions: UnifiedAlertListOptions = {
   alertName: 'test',
   showInstances: false,
   folder: { uid: 'a', title: 'test folder' },
+  showInactiveAlerts: false,
   stateFilter: {
     firing: true,
     pending: false,

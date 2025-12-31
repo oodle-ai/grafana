@@ -1,6 +1,6 @@
+import { css } from '@emotion/css';
 import { useMemo, useState, useEffect } from 'react';
 import { useToggle } from 'react-use';
-import { css } from '@emotion/css';
 
 import {
   PanelProps,
@@ -14,13 +14,13 @@ import {
   FieldType,
   GrafanaTheme2,
 } from '@grafana/data';
+import { t, Trans } from '@grafana/i18n';
 import { PanelDataErrorView } from '@grafana/runtime';
 import { TooltipDisplayMode, VizOrientation } from '@grafana/schema';
 import { EventBusPlugin, KeyboardPlugin, TooltipPlugin2, usePanelContext, useStyles2, Icon, Button, Tooltip } from '@grafana/ui';
 import { TimeRange2, TooltipHoverMode } from '@grafana/ui/internal';
 import { TimeSeries } from 'app/core/components/TimeSeries/TimeSeries';
 import { config } from 'app/core/config';
-import { t, Trans } from '@grafana/i18n';
 
 import { TimeSeriesTooltip } from './TimeSeriesTooltip';
 import { Options } from './panelcfg.gen';
@@ -64,6 +64,7 @@ export const TimeSeriesPanel = ({
     canExecuteActions,
   } = usePanelContext();
   const [showAllSeries, toggleShowAllSeries] = useToggle(false);
+  const styles = useStyles2(getStyles);
   const [customAnnotations, setCustomAnnotations] = useState<DataFrame[]>([]);
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export const TimeSeriesPanel = ({
     const annotationsParam = searchParams.get('customAnnotations');
     if (annotationsParam) {
       try {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const parsedAnnotations = JSON.parse(annotationsParam) as CustomAnnotation[];
         // Convert custom annotations to DataFrame format
         const annotationFrames = parsedAnnotations.map(annotation => {
