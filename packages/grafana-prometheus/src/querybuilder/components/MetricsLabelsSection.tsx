@@ -184,7 +184,7 @@ async function getMetrics(
   }
 
   // Ignore filters when querying metrics list for good performance.
-  let metrics = (await datasource.languageProvider.getLabelValues('__name__')) ?? [];
+  let metrics = (await datasource.languageProvider.queryLabelValues(timeRange, '__name__')) ?? [];
 
   return metrics.map((m) => ({
     value: m,

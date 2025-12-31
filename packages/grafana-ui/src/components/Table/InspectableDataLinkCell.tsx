@@ -1,14 +1,12 @@
-import {useState} from "react";
+import { useState } from "react";
 
-import { Field, LinkModel } from '@grafana/data';
+import { getCellLinks } from '../../utils/table';
 
-import {getCellLinks} from '../../utils/table';
-
-import {TableCellInspector, TableCellInspectorMode} from "./TableCellInspector";
-import {TableCellProps} from './types';
+import { TableCellInspector, TableCellInspectorMode } from "./TableCellInspector";
+import { TableCellProps } from './types';
 
 
-export const InspectableDataLinkCell= (props: TableCellProps) => {
+export const InspectableDataLinkCell = (props: TableCellProps) => {
   const { field, row, cellProps, tableStyles } = props;
   const [isInspecting, setIsInspecting] = useState(false);
 
@@ -18,14 +16,14 @@ export const InspectableDataLinkCell= (props: TableCellProps) => {
     <div {...cellProps} className={tableStyles.cellContainerText}>
       {links?.length === 0 && (
         <span className={tableStyles.cellText}>{field.values}</span>
-        )}
+      )}
       {links &&
         links.map((link, idx) => {
           return (
             // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
             <span key={idx} className={tableStyles.cellLink} onClick={link.onClick}>
               {/* eslint-disable-next-line jsx-a11y/anchor-is-valid,jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
-              <a onClick={() => {setIsInspecting(true);}} target={link.target}>
+              <a onClick={() => { setIsInspecting(true); }} target={link.target}>
                 {field.values[row.index]}
               </a>
             </span>

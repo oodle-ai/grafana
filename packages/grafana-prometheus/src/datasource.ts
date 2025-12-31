@@ -156,29 +156,6 @@ export class PrometheusDatasource
   };
 
   /**
-   * Loads recording rules from the Prometheus API and extracts rule mappings.
-   *
-   * This method fetches rules from the `/api/v1/rules` endpoint and processes
-   * them to create a mapping of rule names to their corresponding queries and labels.
-   * The rules API is experimental, so errors are logged but not thrown.
-   */
-  private async loadRules(): Promise<void> {
-    try {
-      const params = {};
-      const options = { showErrorAlert: false };
-      const res = await this.metadataRequest('/api/v1/rules', params, options);
-      const ruleGroups = res.data?.data?.groups;
-
-      if (ruleGroups) {
-        this.ruleMappings = extractRuleMappingFromGroups(ruleGroups);
-      }
-    } catch (err) {
-      console.log('Rules API is experimental. Ignore next error.');
-      console.error(err);
-    }
-  }
-
-  /**
    * Checks if exemplars are available by testing the exemplars API endpoint.
    *
    * This method makes a test request to the `/api/v1/query_exemplars` endpoint to determine

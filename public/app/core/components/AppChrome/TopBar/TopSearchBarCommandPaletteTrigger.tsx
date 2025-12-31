@@ -10,8 +10,6 @@ import { getFocusStyles } from '@grafana/ui/internal';
 import { useMediaQueryMinWidth } from 'app/core/hooks/useMediaQueryMinWidth';
 import { getModKey } from 'app/core/utils/browser';
 
-import { NavToolbarSeparator } from '../NavToolbar/NavToolbarSeparator';
-
 export const TopSearchBarCommandPaletteTrigger = React.memo(() => {
   const { query: kbar } = useKBar((kbarState) => ({
     kbarSearchQuery: kbarState.searchQuery,

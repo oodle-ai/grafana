@@ -6,13 +6,12 @@ import { PropsWithChildren, useEffect } from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { Trans } from '@grafana/i18n';
 import { locationSearchToObject, locationService, useScopes } from '@grafana/runtime';
-import { ErrorBoundaryAlert, floatingUtils, getDragStyles, LinkButton, useStyles2 } from '@grafana/ui';
+import { floatingUtils, getDragStyles, LinkButton, useStyles2 } from '@grafana/ui';
 import { useGrafana } from 'app/core/context/GrafanaContext';
 import { useMediaQueryMinWidth } from 'app/core/hooks/useMediaQueryMinWidth';
 import store from 'app/core/store';
 import { CommandPalette } from 'app/features/commandPalette/CommandPalette';
 // import { ScopesDashboards, useScopesDashboardsState } from 'app/features/scopes';
-import { KioskMode } from 'app/types';
 
 import { AppChromeMenu } from './AppChromeMenu';
 import { AppChromeService, DOCKED_LOCAL_STORAGE_KEY } from './AppChromeService';
@@ -124,15 +123,12 @@ export function AppChrome({ children }: Props) {
                 [styles.scopesDashboardsContainerDocked]: menuDockedAndOpen,
               })}
             >
-              <ErrorBoundaryAlert boundaryName="scopes-dashboards">
-                <ScopesDashboards />
-              </ErrorBoundaryAlert>
             </div>
           )}
           <main
             className={cx(styles.pageContainer, {
-              [styles.pageContainerMenuDocked]: menuDockedAndOpen || isScopesDashboardsOpen,
-              [styles.pageContainerMenuDockedScopes]: menuDockedAndOpen && isScopesDashboardsOpen,
+              [styles.pageContainerMenuDocked]: menuDockedAndOpen,
+              [styles.pageContainerMenuDockedScopes]: menuDockedAndOpen,
               [styles.pageContainerWithSidebar]: !state.chromeless && isExtensionSidebarOpen,
               [contentSizeStyles.contentWidth]: !state.chromeless && isExtensionSidebarOpen,
             })}
