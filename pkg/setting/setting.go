@@ -91,30 +91,30 @@ type Cfg struct {
 	appliedEnvOverrides          []string
 
 	// HTTP Server Settings
-	CertFile          string
-	KeyFile           string
-	CertPassword      string
-	CertWatchInterval time.Duration
-	HTTPAddr          string
-	HTTPPort          string
-	Env               string
-	AppURL            string
-	AppSubURL         string
-	InstanceName      string
-	ServeFromSubPath  bool
-	StaticRootPath    string
-	Protocol          Scheme
+	CertFile                 string
+	KeyFile                  string
+	CertPassword             string
+	CertWatchInterval        time.Duration
+	HTTPAddr                 string
+	HTTPPort                 string
+	Env                      string
+	AppURL                   string
+	AppSubURL                string
+	InstanceName             string
+	ServeFromSubPath         bool
+	StaticRootPath           string
+	Protocol                 Scheme
 	HTTP1MaxParallelRequests int
-	SocketGid         int
-	SocketMode        int
-	SocketPath        string
-	RouterLogging     bool
-	Domain            string
-	CDNRootURL        *url.URL
-	ReadTimeout       time.Duration
-	EnableGzip        bool
-	EnforceDomain     bool
-	MinTLSVersion     string
+	SocketGid                int
+	SocketMode               int
+	SocketPath               string
+	RouterLogging            bool
+	Domain                   string
+	CDNRootURL               *url.URL
+	ReadTimeout              time.Duration
+	EnableGzip               bool
+	EnforceDomain            bool
+	MinTLSVersion            string
 
 	// Security settings
 	SecretKey             string
@@ -1273,7 +1273,7 @@ func (cfg *Cfg) parseINIFile(iniFile *ini.File) error {
 
 	cfg.ApplicationInsightsConnectionString = analytics.Key("application_insights_connection_string").String()
 	cfg.ApplicationInsightsEndpointUrl = analytics.Key("application_insights_endpoint_url").String()
-	cfg.FeedbackLinksEnabled = analytics.Key("feedback_links_enabled").MustBool(true)
+	cfg.FeedbackLinksEnabled = false
 
 	// parse reporting static context string of key=value, key=value pairs into an object
 	cfg.ReportingStaticContext = make(map[string]string)
