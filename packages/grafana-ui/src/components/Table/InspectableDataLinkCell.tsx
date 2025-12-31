@@ -1,6 +1,8 @@
 import {useState} from "react";
 
-import {getCellLinks} from '../../utils';
+import { Field, LinkModel } from '@grafana/data';
+
+import {getCellLinks} from '../../utils/table';
 
 import {TableCellInspector, TableCellInspectorMode} from "./TableCellInspector";
 import {TableCellProps} from './types';

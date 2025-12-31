@@ -38,7 +38,7 @@ interface BrowseViewProps {
 
 const uidsToExclude = new Set(['ebpf', 'infrastructure'])
 
-export function BrowseView({ folderUID, width, height, permissions, isReadOnlyRepo, canSelect }: BrowseViewProps) {
+export function BrowseView({ folderUID, width, height, permissions, isReadOnlyRepo }: BrowseViewProps) {
   const status = useBrowseLoadingStatus(folderUID);
   const dispatch = useDispatch();
   const flatTree = useFlatTreeState(folderUID).filter((item => !uidsToExclude.has(item.item.uid)));

@@ -8,9 +8,9 @@ import { QueryOperationAction } from 'app/core/components/QueryOperationRow/Quer
 import { SplitPaneWrapper } from 'app/core/components/SplitPaneWrapper/SplitPaneWrapper';
 import { useGrafana } from 'app/core/context/GrafanaContext';
 import { useNavModel } from 'app/core/hooks/useNavModel';
-import { t } from 'app/core/internationalization';
+import { t } from '@grafana/i18n';
 import { GrafanaRouteComponentProps } from 'app/core/navigation/types';
-import { useSelector } from 'app/types';
+import { useSelector } from 'app/types/store';
 import { ExploreQueryParams } from 'app/types/explore';
 
 import { RowActionComponents } from '../query/components/QueryActionComponent';

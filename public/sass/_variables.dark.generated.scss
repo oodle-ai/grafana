@@ -16,25 +16,9 @@ $theme-name: dark;
 
 // New Colors
 // -------------------------
-$blue-light: #00B7FF;
 $blue-base: #0091cf;
-$blue-shade: rgb(38, 161, 214);
 $red-base: #D10E5C;
-$red-shade: rgb(215, 50, 116);
 $green-base: #1A7F4B;
-$green-shade: rgb(60, 146, 102);
-$orange-dark: #ff780a;
-
-$gray98: #f7f8fa;
-$gray95: #e9edf2;
-$gray85: #c7d0d9;
-$gray70: #9fa7b3;
-$gray60: #7b8087;
-$gray33: #464c54;
-$gray25: #2c3235;
-$gray15: #202226;
-$gray10: #141619;
-$gray05: #0b0c0e;
 
 // Grays
 // -------------------------
@@ -58,23 +42,6 @@ $blue: #33a2e5;
 $red: $red-base;
 $yellow: #ecbb13;
 $purple: #9933cc;
-$variable: #00B7FF;
-
-$brand-primary: #eb7b18;
-$brand-success: #1A7F4B;
-$brand-warning: #FF9900;
-$brand-danger: #D10E5C;
-
-$query-red: #FF5286;
-$query-green: #6CCF8E;
-$query-purple: #fe85fc;
-$query-orange: #eb7b18;
-
-// Status colors
-// -------------------------¨
-$online: #6CCF8E;
-$warn: #fbad37;
-$critical: #FF5286;
 
 // Scaffolding
 // -------------------------
@@ -82,17 +49,14 @@ $body-bg: #111217;
 
 $text-color: rgb(204, 204, 220);
 $text-color-weak: rgba(204, 204, 220, 0.65);
-$text-color-faint: rgba(204, 204, 220, 0.4);
-$text-color-emphasis: #FFFFFF;
-$text-blue: #00B7FF;
+$text-color-emphasis: #ffffff;
 
 
 // Links
 // -------------------------
 $link-color: rgb(204, 204, 220);
 $link-color-disabled: rgba(204, 204, 220, 0.4);
-$link-hover-color: #FFFFFF;
-$external-link-color: #00B7FF;
+$link-hover-color: #ffffff;
 
 // Typography
 // -------------------------
@@ -145,21 +109,7 @@ $btn-drag-image: '../img/grab_dark.svg';
 $input-bg: #111217;
 
 $input-color: rgb(204, 204, 220);
-$input-border-color: rgba(204, 204, 220, 0.20);
-$input-box-shadow: none;
-$input-border-focus: #00B7FF;
-$input-box-shadow-focus: #00B7FF !default;
-$input-color-placeholder: rgba(204, 204, 220, 0.4);
-$input-label-bg: #22252b;
-$input-color-select-arrow: $white;
-
-// Search
-$search-shadow: 0 0 30px 0 $black;
-
-// Typeahead
-$typeahead-shadow: 0 5px 10px 0 $black;
-$typeahead-selected-bg: $dark-9;
-$typeahead-selected-color: $yellow;
+$input-border-color: rgba(204, 204, 220, 0.2);
 
 // Dropdowns
 // -------------------------
@@ -181,15 +131,15 @@ $menu-dropdown-shadow: 0px 8px 24px rgb(1, 4, 9);
 
 // Form states and alerts
 // -------------------------
-$alert-error-bg: #d10e5c;
-$alert-success-bg: #1a7f4b;
-$alert-warning-bg: #ff9900;
-$alert-info-bg: #ff9900;
+$alert-error-bg: #D10E5C;
+$alert-success-bg: #1A7F4B;
+$alert-warning-bg: #FF9900;
+$alert-info-bg: #FF9900;
 
 // Tooltips and popovers
 // -------------------------
 $tooltipLinkColor: $link-color;
-$tooltipExternalLinkColor: #6e9fff;
+$tooltipExternalLinkColor: #00B7FF;
 $graph-tooltip-bg: $dark-1;
 
 $tooltipBackground: #22252b;

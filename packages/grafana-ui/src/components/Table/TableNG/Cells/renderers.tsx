@@ -142,6 +142,11 @@ const CELL_REGISTRY: Record<TableCellOptions['type'], CellRegistryEntry> = {
       );
     }),
   },
+  [TableCellDisplayMode.InspectableDataLink]: {
+    // eslint-disable-next-line react/display-name
+    renderer: memo((props: TableCellRendererProps) => <DataLinksCell field={props.field} rowIdx={props.rowIdx} />),
+    getStyles: getDataLinksStyles,
+  },
 };
 
 /** @internal */

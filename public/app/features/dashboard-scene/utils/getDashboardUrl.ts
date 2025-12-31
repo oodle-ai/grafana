@@ -1,6 +1,5 @@
-import { UrlQueryMap, urlUtil } from '@grafana/data';
+import { UrlQueryMap, urlUtil, locationUtil } from '@grafana/data';
 import { config, locationSearchToObject } from '@grafana/runtime';
-import {assureBaseUrl} from "@grafana/data/src/utils/location";
 
 export interface DashboardUrlOptions {
   uid?: string;
@@ -87,4 +86,5 @@ export function getDashboardUrl(options: DashboardUrlOptions) {
     return relativeUrl;
   }
 
-  return assureBaseUrl(relativeUrl);}
+  return locationUtil.assureBaseUrl(relativeUrl);
+}

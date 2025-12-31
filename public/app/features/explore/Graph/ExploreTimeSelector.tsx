@@ -1,6 +1,6 @@
 import { SelectableValue } from '@grafana/data';
 import { RadioButtonGroup } from '@grafana/ui';
-import { EXPLORE_TIME_RANGE_OPTIONS, ExploreTimeRangeOptions} from 'app/types';
+import { EXPLORE_TIME_RANGE_OPTIONS, ExploreTimeRangeOptions} from 'app/types/explore';
 
 const ALL_TIME_SELECTOR_OPTIONS: Array<SelectableValue<ExploreTimeRangeOptions>> = EXPLORE_TIME_RANGE_OPTIONS.map((style) => ({
   value: style,

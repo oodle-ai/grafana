@@ -20,7 +20,7 @@ import { EventBusPlugin, KeyboardPlugin, TooltipPlugin2, usePanelContext, useSty
 import { TimeRange2, TooltipHoverMode } from '@grafana/ui/internal';
 import { TimeSeries } from 'app/core/components/TimeSeries/TimeSeries';
 import { config } from 'app/core/config';
-import { t, Trans } from 'app/core/internationalization';
+import { t, Trans } from '@grafana/i18n';
 
 import { TimeSeriesTooltip } from './TimeSeriesTooltip';
 import { Options } from './panelcfg.gen';

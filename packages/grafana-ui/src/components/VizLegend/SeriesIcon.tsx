@@ -61,7 +61,7 @@ export const SeriesIcon = React.memo(
       <div
         data-testid="series-icon"
         ref={ref}
-        className={cx(className, styles.forcedColors, styles.container, noMargin ? null : styles.margin, , disabled && styles.disabled)}
+        className={cx(className, styles.forcedColors, styles.container, noMargin ? null : styles.margin, disabled && styles.disabled)}
         style={customStyle}
         {...restProps}
       />

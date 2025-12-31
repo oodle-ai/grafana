@@ -73,8 +73,7 @@ import { PrometheusVariableSupport } from './variables';
 
 export class PrometheusDatasource
   extends DataSourceWithBackend<PromQuery, PromOptions>
-  implements DataSourceWithQueryImportSupport<PromQuery>, DataSourceWithQueryExportSupport<PromQuery>
-{
+  implements DataSourceWithQueryImportSupport<PromQuery>, DataSourceWithQueryExportSupport<PromQuery> {
   access: 'direct' | 'proxy';
   basicAuth: any;
   cache: QueryCache<PromQuery>;
@@ -215,9 +214,8 @@ export class PrometheusDatasource
    */
   getPrometheusTargetSignature(request: DataQueryRequest<PromQuery>, query: PromQuery) {
     const targExpr = this.interpolateString(query.expr);
-    return `${targExpr}|${query.interval ?? request.interval}|${JSON.stringify(request.rangeRaw ?? '')}|${
-      query.exemplar
-    }`;
+    return `${targExpr}|${query.interval ?? request.interval}|${JSON.stringify(request.rangeRaw ?? '')}|${query.exemplar
+      }`;
   }
 
   hasLabelsMatchAPISupport(): boolean {
@@ -612,10 +610,10 @@ export class PrometheusDatasource
         const replacedInterpolatedQuery = targetHasScopes(query)
           ? interpolatedQuery
           : this.templateSrv.replace(
-              this.enhanceExprWithAdHocFilters(filters, interpolatedQuery),
-              scopedVars,
-              this.interpolateQueryExpr
-            );
+            this.enhanceExprWithAdHocFilters(filters, interpolatedQuery),
+            scopedVars,
+            this.interpolateQueryExpr
+          );
 
         const expandedQuery = {
           ...query,

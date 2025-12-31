@@ -42,7 +42,6 @@ import { ImageCell } from './Cells/ImageCell';
 import { InspectableDataLinkCell } from "./InspectableDataLinkCell";
 import { JSONViewCell } from './Cells/JSONViewCell';
 import { SparklineCell } from './Cells/SparklineCell';
-import { getFooterValue } from './FooterRow';
 import { getFooterValue } from './TableRT/FooterRow';
 import { RowExpander } from './TableRT/RowExpander';
 import {
