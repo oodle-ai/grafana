@@ -2,10 +2,10 @@ import memoizeOne from 'memoize-one';
 
 import { PanelPlugin } from '@grafana/data';
 import { t } from '@grafana/i18n';
-import { getConfig } from 'app/core/config';
-import { contextSrv } from 'app/core/services/context_srv';
-import { getRulesPermissions } from 'app/features/alerting/unified/utils/access-control';
-import { GRAFANA_RULES_SOURCE_NAME } from 'app/features/alerting/unified/utils/datasource';
+// import { getConfig } from 'app/core/config';
+// import { contextSrv } from 'app/core/services/context_srv';
+// import { getRulesPermissions } from 'app/features/alerting/unified/utils/access-control';
+// import { GRAFANA_RULES_SOURCE_NAME } from 'app/features/alerting/unified/utils/datasource';
 
 import { PanelEditorTab, PanelEditorTabId } from '../types';
 
