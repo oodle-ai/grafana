@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { useEffectOnce, useToggle } from 'react-use';
 
 import { GrafanaTheme2, PanelProps } from '@grafana/data';
-import { TimeRangeUpdatedEvent } from '@grafana/runtime';
+import { getDataSourceSrv, TimeRangeUpdatedEvent } from '@grafana/runtime';
 import {
   Alert,
   BigValue,
@@ -21,14 +21,12 @@ import { alertRuleApi } from 'app/features/alerting/unified/api/alertRuleApi';
 import { INSTANCES_DISPLAY_LIMIT } from 'app/features/alerting/unified/components/rules/RuleDetails';
 import { useCombinedRuleNamespaces } from 'app/features/alerting/unified/hooks/useCombinedRuleNamespaces';
 import { useUnifiedAlertingSelector } from 'app/features/alerting/unified/hooks/useUnifiedAlertingSelector';
-import {
-  fetchAllPromAndRulerRulesAction,
-  fetchPromAndRulerRulesAction,
-} from 'app/features/alerting/unified/state/actions';
+import { fetchPromAndRulerRulesAction } from 'app/features/alerting/unified/state/actions';
 import { labelsMatchMatchers } from 'app/features/alerting/unified/utils/alertmanager';
 import { Annotation } from 'app/features/alerting/unified/utils/constants';
 import {
   getOodleRulesSources,
+  getPrometheusRulesSources,
   GRAFANA_DATASOURCE_NAME,
   GRAFANA_RULES_SOURCE_NAME,
 } from 'app/features/alerting/unified/utils/datasource';
@@ -89,17 +87,34 @@ const fetchPromAndRuler = ({
       })
     );
   } else {
-    dispatch(
-      fetchAllPromAndRulerRulesAction(
-        false,
-        {
+    // Only fetch from Prometheus datasources (excludes Loki and other non-Prometheus sources)
+    // Priority: Oodle Prometheus datasource > default Prometheus datasource
+    const oodleSources = getOodleRulesSources();
+
+    if (oodleSources.length > 0) {
+      // Oodle sources are fetched separately via RTK Query, no need to dispatch here
+      return;
+    }
+
+    // No Oodle sources found, use the default Prometheus datasource
+    const prometheusSources = getPrometheusRulesSources();
+    if (prometheusSources.length > 0) {
+      // Try to find the default datasource among Prometheus sources
+      const defaultDs = getDataSourceSrv().getInstanceSettings('default');
+      const defaultPrometheusDs = prometheusSources.find((ds) => ds.uid === defaultDs?.uid);
+
+      // Use the default Prometheus datasource if available, otherwise use the first Prometheus datasource
+      const targetDs = defaultPrometheusDs ?? prometheusSources[0];
+
+      dispatch(
+        fetchPromAndRulerRulesAction({
+          rulesSourceName: targetDs.name,
           limitAlerts: limitInstances ? INSTANCES_DISPLAY_LIMIT : undefined,
           matcher: matcherList,
           state: stateList,
-        },
-        getOodleRulesSources().map((ds) => ds.name)
-      )
-    );
+        })
+      );
+    }
   }
 };
 
@@ -239,7 +254,6 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
   };
 
   const combinedRules = useCombinedRuleNamespaces(undefined, [...grafanaPromRules, ...oodlePromRules]);
-  console.log({ combinedRules });
 
   const someRulerRulesDispatched = isAsyncRequestMapSlicePartiallyDispatched(rulerRulesRequests);
   const haveResults = isAsyncRequestMapSlicePartiallyFulfilled(promRulesRequests);
@@ -267,6 +281,9 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
   const renderLoading = grafanaRulesLoading || oodleRulesLoading || (dispatched && loading && !haveResults);
 
   const havePreviousResults = Object.values(promRulesRequests).some((state: any) => state.result);
+  // Also consider RTK Query results (oodle and grafana rules) as having results
+  const haveRTKQueryResults = oodlePromRules.length > 0 || grafanaPromRules.length > 0;
+  const haveAnyResults = havePreviousResults || haveRTKQueryResults;
 
   // Calculate counts based on the filtered rules that are actually displayed
   // Use the same filtering logic as the display to ensure counts match what's shown
@@ -324,8 +341,8 @@ function UnifiedAlertList(props: PanelProps<UnifiedAlertListOptions>) {
         </div>
       ) : null}
       <div className={styles.container}>
-        {havePreviousResults && noAlertsMessage && <div className={styles.noAlertsMessage}>{noAlertsMessage}</div>}
-        {havePreviousResults && (
+        {haveAnyResults && noAlertsMessage && <div className={styles.noAlertsMessage}>{noAlertsMessage}</div>}
+        {haveAnyResults && (
           <section>
             {props.options.viewMode === ViewMode.Stat && (
               <BigValue

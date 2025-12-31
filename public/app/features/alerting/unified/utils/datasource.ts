@@ -242,8 +242,18 @@ export function getOodleRulesSources(): Array<Exclude<RulesSource, 'grafana'>> {
     (ds) => (
       isCloudRulesSource(ds)
       && ds.type === DataSourceType.Prometheus
-      && JSON.stringify(ds.jsonData).toLowerCase().includes('oodle')
+      && ds.name.toLowerCase() === 'oodle'
     )
+  );
+}
+
+/**
+ * Get all Prometheus-flavored datasources that support alerting rules.
+ * This includes Prometheus, Amazon Prometheus, and Azure Prometheus datasources.
+ */
+export function getPrometheusRulesSources(): Array<Exclude<RulesSource, 'grafana'>> {
+  return getRulesDataSources().filter(
+    (ds) => isCloudRulesSource(ds) && isSupportedExternalPrometheusFlavoredRulesSourceType(ds.type)
   );
 }
 

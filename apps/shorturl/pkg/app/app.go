@@ -108,11 +108,14 @@ func New(cfg app.Config) (app.App, error) {
 						// don't prepend it again to avoid double prefixes like /grafana-proxy/grafana-proxy/
 						targetPath := info.Spec.Path
 						var url string
-						if strings.HasPrefix(targetPath, urlPrefix+"/") || strings.HasPrefix(targetPath, urlPrefix) {
-							// Path already has the prefix, use it directly
+						if urlPrefix != "" && (strings.HasPrefix(targetPath, urlPrefix+"/") || strings.HasPrefix(targetPath, urlPrefix)) {
+							// Path already has the non-empty prefix, use it directly
 							url = targetPath
+						} else if strings.HasPrefix(targetPath, "/") {
+							// Path already starts with /, prepend urlPrefix only
+							url = urlPrefix + targetPath
 						} else {
-							// Path doesn't have the prefix, prepend it
+							// Path doesn't start with /, prepend urlPrefix and /
 							url = urlPrefix + "/" + targetPath
 						}
 
