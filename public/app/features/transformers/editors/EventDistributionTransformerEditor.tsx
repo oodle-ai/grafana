@@ -4,12 +4,14 @@ import {
     TransformerRegistryItem,
     TransformerUIProps,
     TransformerCategory,
+    EventDistributionTransformerOptions,
 } from '@grafana/data';
-import { EventDistributionTransformerOptions } from '@grafana/data/src/transformations/transformers/eventDistribution';
 import { selectors } from '@grafana/e2e-selectors';
 import { Alert } from '@grafana/ui';
 
 import { getTransformationContent } from '../docs/getTransformationContent';
+import darkImage from '../images/dark/eventDistribution.svg';
+import lightImage from '../images/light/eventDistribution.svg';
 
 export const EventDistributionTransformerEditor = ({
     input,
@@ -22,7 +24,7 @@ export const EventDistributionTransformerEditor = ({
                 title="Time Field Configuration"
                 severity="info"
             >
-               <code>oodle_event_time_epoch_ms</code> label is considered the time field for this transformer.
+                <code>oodle_event_time_epoch_ms</code> label is considered the time field for this transformer.
             </Alert>
         </div>
     );
@@ -36,4 +38,6 @@ export const eventDistributionTransformerRegistryItem: TransformerRegistryItem<E
     description: `Visualize Events - timestamp is extracted from the oodle_event_time_epoch_ms label.`,
     categories: new Set([TransformerCategory.Reformat, TransformerCategory.Combine]),
     help: getTransformationContent(DataTransformerID.eventDistribution).helperDocs,
+    imageDark: darkImage,
+    imageLight: lightImage,
 };

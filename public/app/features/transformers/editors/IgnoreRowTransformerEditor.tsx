@@ -2,17 +2,19 @@ import { useCallback } from 'react';
 
 import {
     DataTransformerID,
+    IgnoreRowTransformerOptions,
     SelectableValue,
     standardTransformers,
     TransformerRegistryItem,
     TransformerUIProps,
     TransformerCategory,
 } from '@grafana/data';
-import { IgnoreRowTransformerOptions } from '@grafana/data/src/transformations/transformers/ignoreRow';
 import { selectors } from '@grafana/e2e-selectors';
 import { InlineField, RadioButtonGroup } from '@grafana/ui';
 
 import { getTransformationContent } from '../docs/getTransformationContent';
+import darkImage from '../images/dark/ignoreRow.svg';
+import lightImage from '../images/light/ignoreRow.svg';
 
 const positionOptions: Array<SelectableValue<'first' | 'last'>> = [
     {
@@ -63,4 +65,6 @@ export const ignoreRowTransformerRegistryItem: TransformerRegistryItem<IgnoreRow
     description: 'Ignore the oldest or newest sample of each series',
     categories: new Set([TransformerCategory.Filter]),
     help: getTransformationContent(DataTransformerID.ignoreRow).helperDocs,
+    imageDark: darkImage,
+    imageLight: lightImage,
 };

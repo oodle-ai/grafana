@@ -439,6 +439,7 @@ export { createFieldConfigRegistry } from './panel/registryFactories';
 export { type QueryRunner, type QueryRunnerOptions } from './types/queryRunner';
 export { type GroupingToMatrixTransformerOptions } from './transformations/transformers/groupingToMatrix';
 export { type IgnoreRowTransformerOptions } from './transformations/transformers/ignoreRow';
+export { type EventDistributionTransformerOptions } from './transformations/transformers/eventDistribution';
 export {
   type PluginContextType,
   type DataSourcePluginContextType,
