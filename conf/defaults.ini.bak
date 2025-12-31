@@ -57,10 +57,10 @@ domain = localhost
 enforce_domain = false
 
 # The full public facing url
-root_url = %(protocol)s://%(domain)s:%(http_port)s/grafana-proxy
+root_url = %(protocol)s://%(domain)s:%(http_port)s/
 
 # Serve Grafana from subpath specified in `root_url` setting. By default it is set to `false` for compatibility reasons.
-serve_from_sub_path = true
+serve_from_sub_path = false
 
 # Log web requests
 router_logging = false
@@ -401,7 +401,7 @@ cookie_secure = false
 cookie_samesite = lax
 
 # set to true if you want to allow browsers to render Grafana in a <frame>, <iframe>, <embed> or <object>. default is false.
-allow_embedding = true
+allow_embedding = false
 
 # Set to true if you want to enable http strict transport security (HSTS) response header.
 # HSTS tells browsers that the site should only be accessed using HTTPS.
@@ -1925,12 +1925,12 @@ public_key_retrieval_disabled = false
 # Requires public_key_retrieval_disabled to be false to have any effect.
 public_key_retrieval_on_startup = false
 # Enter a comma-separated list of plugin identifiers to avoid loading (including core plugins). These plugins will be hidden in the catalog.
-disable_plugins = grafana-lokiexplore-app,grafana-exploretraces-app,grafana-pyroscope-app
+disable_plugins =
 # Comma separated list of plugin ids for which environment variables should be forwarded. Used only when feature flag pluginsSkipHostEnvVars is enabled.
 forward_host_env_vars =
 # Comma separated list of plugin ids to install as part of the startup process.
 # These will be installed, by default, asynchronously (in the background) while starting Grafana.
-preinstall = grafana-metricsdrilldown-app
+preinstall =
 # Comma separated list of plugin ids to install before the startup process
 # These will be installed before starting Grafana. Useful when used with provisioning.
 preinstall_sync =

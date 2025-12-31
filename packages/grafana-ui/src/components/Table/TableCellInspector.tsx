@@ -26,7 +26,15 @@ interface TableCellInspectorProps {
 
 export function TableCellInspector({ value, onDismiss, mode }: TableCellInspectorProps) {
   const [currentMode, setMode] = useState(mode);
-  const text = value.trim();
+
+  // Try to parse and format JSON with indentation
+  let text = value.trim();
+  try {
+    const parsed = JSON.parse(text);
+    text = JSON.stringify(parsed, null, 2);
+  } catch {
+    // Not valid JSON, use as-is
+  }
   const styles = useStyles2(getStyles);
 
   const tabs = [
