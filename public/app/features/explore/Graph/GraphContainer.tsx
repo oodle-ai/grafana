@@ -23,6 +23,7 @@ import { ExploreGraph } from './ExploreGraph';
 import { ExploreGraphLabel } from './ExploreGraphLabel';
 import { ExploreGraphTimeSelector } from "./ExploreTimeSelector";
 import { loadGraphStyle } from './utils';
+import {GrafanaTheme2} from "@grafana/data/";
 
 const MAX_NUMBER_OF_TIME_SERIES = 20;
 

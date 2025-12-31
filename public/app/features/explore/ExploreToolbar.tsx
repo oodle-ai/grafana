@@ -93,7 +93,7 @@ export function ExploreToolbar({ exploreId, onChangeTime, onContentOutlineToogle
   const isCorrelationsEditorMode = correlationDetails?.editorMode || false;
   const isLeftPane = useSelector(isLeftPaneSelector(exploreId));
   const { drawerOpened, setDrawerOpened } = useQueriesDrawerContext();
-  const isSingleTopNav = config.featureToggles.singleTopNav;
+  const isSingleTopNav = config.featureToggles.unifiedNavbars;
 
   const shouldRotateSplitIcon = useMemo(
     () => (isLeftPane && isLargerPane) || (!isLeftPane && !isLargerPane),
