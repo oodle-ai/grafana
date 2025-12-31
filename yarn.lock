@@ -3556,17 +3556,30 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@grafana/scenes-react@git+https://github.com/oodle-ai/scenes.git#1642b715e5a2b1d7a432ba89a3a3f46cfc3098cd":
-  version: 0.15.0
-  resolution: "@grafana/scenes-react@https://github.com/oodle-ai/scenes.git#commit=1642b715e5a2b1d7a432ba89a3a3f46cfc3098cd"
-  checksum: 10/891d86a769f648816a58ad68eeba8d6063ad05f7f2185e7789d5734811c36dd91ff6e95a55ca549103e2b680106d8af0969ea1078a53ed79552b8c9a14af37ca
+"@grafana/scenes-react@npm:6.52.0":
+  version: 6.52.0
+  resolution: "@grafana/scenes-react@npm:6.52.0"
+  dependencies:
+    "@grafana/scenes": "npm:6.52.0"
+    lru-cache: "npm:^10.2.2"
+    react-use: "npm:^17.4.0"
+  peerDependencies:
+    "@grafana/data": ^11.0.0
+    "@grafana/e2e-selectors": ^11.0.0
+    "@grafana/runtime": ^11.0.0
+    "@grafana/schema": ^11.0.0
+    "@grafana/ui": ^11.0.0
+    react: ^18.0.0
+    react-dom: ^18.0.0
+    react-router-dom: ^6.28.0
+  checksum: 10/7f121bcc4fd50f525c7c3457666ad3a32b04783d322d6715aedb6119538f911d0ec265c9c5b49a80478c1deb99286d36d003399a8831f76b6c483f4458b4ce8b
   languageName: node
   linkType: hard
 
-"@grafana/scenes@git+https://github.com/oodle-ai/scenes.git#d092ae750aef85cccd071427b620a2fa5f684072":
+"@grafana/scenes@git+https://github.com/oodle-ai/scenes.git#a8f1d2aa1aefd9731a08007f6530015ee3ca8bf7":
   version: 0.15.0
-  resolution: "@grafana/scenes@https://github.com/oodle-ai/scenes.git#commit=d092ae750aef85cccd071427b620a2fa5f684072"
-  checksum: 10/ab13c792fb14998d01051b9f5e4977f93d52114be47aaf92a494a3acb301ee71784b39ce602a33e80c8b3615c3107719eba12faa40fd9fabe94f820557755d17
+  resolution: "@grafana/scenes@https://github.com/oodle-ai/scenes.git#commit=a8f1d2aa1aefd9731a08007f6530015ee3ca8bf7"
+  checksum: 10/59da6d7f3313590bdebe83f069bbeb5d445b74431ac17df5639098ef984affc10a51e5865cec2b89eaa663bfbd8052947ad7c1b9f6bd2909e8fc3bb0bcf9518f
   languageName: node
   linkType: hard
 
@@ -18898,8 +18911,8 @@ __metadata:
     "@grafana/plugin-ui": "npm:^0.10.10"
     "@grafana/prometheus": "workspace:*"
     "@grafana/runtime": "workspace:*"
-    "@grafana/scenes": "git+https://github.com/oodle-ai/scenes.git#d092ae750aef85cccd071427b620a2fa5f684072"
-    "@grafana/scenes-react": "git+https://github.com/oodle-ai/scenes.git#1642b715e5a2b1d7a432ba89a3a3f46cfc3098cd"
+    "@grafana/scenes": "git+https://github.com/oodle-ai/scenes.git#a8f1d2aa1aefd9731a08007f6530015ee3ca8bf7"
+    "@grafana/scenes-react": "npm:6.52.0"
     "@grafana/schema": "workspace:*"
     "@grafana/sql": "workspace:*"
     "@grafana/test-utils": "workspace:*"
@@ -28602,7 +28615,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-use@npm:17.6.0, react-use@npm:^17.3.1, react-use@npm:^17.6.0":
+"react-use@npm:17.6.0, react-use@npm:^17.3.1, react-use@npm:^17.4.0, react-use@npm:^17.6.0":
   version: 17.6.0
   resolution: "react-use@npm:17.6.0"
   dependencies:
