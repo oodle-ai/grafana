@@ -95,17 +95,18 @@ function PanelDataPaneRendered({ model }: SceneComponentProps<PanelDataPane>) {
 }
 
 export function shouldShowAlertingTab(pluginId: string) {
-  const { unifiedAlertingEnabled = false } = getConfig();
-  const hasRuleReadPermissions = contextSrv.hasPermission(getRulesPermissions(GRAFANA_RULES_SOURCE_NAME).read);
-  const isAlertingAvailable = unifiedAlertingEnabled && hasRuleReadPermissions;
-  if (!isAlertingAvailable) {
-    return false;
-  }
-
-  const isGraph = pluginId === 'graph';
-  const isTimeseries = pluginId === 'timeseries';
-
-  return isGraph || isTimeseries;
+  return false;
+  // const { unifiedAlertingEnabled = false } = getConfig();
+  // const hasRuleReadPermissions = contextSrv.hasPermission(getRulesPermissions(GRAFANA_RULES_SOURCE_NAME).read);
+  // const isAlertingAvailable = unifiedAlertingEnabled && hasRuleReadPermissions;
+  // if (!isAlertingAvailable) {
+  //   return false;
+  // }
+  //
+  // const isGraph = pluginId === 'graph';
+  // const isTimeseries = pluginId === 'timeseries';
+  //
+  // return isGraph || isTimeseries;
 }
 
 function getStyles(theme: GrafanaTheme2) {

@@ -254,7 +254,7 @@ export function ExploreToolbar({ exploreId, onChangeTime, onContentOutlineToogle
             width={showSmallDataSourcePicker ? 8 : undefined}
           />,
           !queryBuilderOnly && isSingleTopNav && <ShortLinkButtonMenu key="share" />,
-          <ToolbarExtensionPoint
+          !queryBuilderOnly && <ToolbarExtensionPoint
             key="toolbar-extension-point"
             exploreId={exploreId}
             timeZone={timeZone}
