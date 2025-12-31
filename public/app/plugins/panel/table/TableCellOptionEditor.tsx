@@ -38,6 +38,7 @@ export const TableCellOptionEditor = ({ value, onChange, id }: Props) => {
       label: t('table.cell-types.color-background', 'Colored background'),
     },
     { value: TableCellDisplayMode.DataLinks, label: t('table.cell-types.data-links', 'Data links') },
+    { value: TableCellDisplayMode.InspectableDataLink, label: t('table.cell-types.inspectable-data-link', 'Inspectable data link') },
     { value: TableCellDisplayMode.Gauge, label: t('table.cell-types.gauge', 'Gauge') },
     { value: TableCellDisplayMode.Sparkline, label: t('table.cell-types.sparkline', 'Sparkline') },
     { value: TableCellDisplayMode.JSONView, label: t('table.cell-types.json', 'JSON View') },

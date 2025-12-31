@@ -46,7 +46,7 @@ ENV NODE_ENV=${JS_NODE_ENV}
 #
 RUN yarn install
 
-COPY tsconfig.json .eslintrc eslint.config.js .editorconfig .browserslistrc .prettierrc.js ./
+COPY tsconfig.json eslint.config.js .editorconfig .browserslistrc .prettierrc.js ./
 COPY scripts scripts
 COPY emails emails
 

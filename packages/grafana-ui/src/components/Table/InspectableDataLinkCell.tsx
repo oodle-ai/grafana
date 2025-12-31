@@ -1,45 +1,59 @@
 import { useState } from "react";
 
+import { Field, LinkModel } from "@grafana/data";
+
 import { getCellLinks } from '../../utils/table';
 
 import { TableCellInspector, TableCellInspectorMode } from "./TableCellInspector";
 import { TableCellProps } from './types';
 
+interface InspectableDataLinkCellProps {
+  field: Field;
+  rowIdx: number;
+  links: Array<LinkModel<unknown>> | undefined;
+}
 
-export const InspectableDataLinkCell = (props: TableCellProps) => {
-  const { field, row, cellProps, tableStyles } = props;
+// Shared core component used by both TableRT and TableNG
+export const InspectableDataLinkCell = ({ field, rowIdx, links }: InspectableDataLinkCellProps) => {
   const [isInspecting, setIsInspecting] = useState(false);
 
-  const links = getCellLinks(field, row);
+  if (!links?.length) {
+    return null;
+  }
 
   return (
-    <div {...cellProps} className={tableStyles.cellContainerText}>
-      {links?.length === 0 && (
-        <span className={tableStyles.cellText}>{field.values}</span>
-      )}
-      {links &&
-        links.map((link, idx) => {
-          return (
-            // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-            <span key={idx} className={tableStyles.cellLink} onClick={link.onClick}>
-              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid,jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions */}
-              <a onClick={() => { setIsInspecting(true); }} target={link.target}>
-                {field.values[row.index]}
-              </a>
-            </span>
-          );
-        })}
+    <>
+      {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+      <a
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsInspecting(true);
+        }}
+      >
+        {field.values[rowIdx]}
+      </a>
 
       {isInspecting && (
         <TableCellInspector
           mode={TableCellInspectorMode.code}
-          value={decodeURI(links?.[0]?.href as string)}
-          onDismiss={() => {
-            setIsInspecting(false);
-          }}
+          value={decodeURI(links[0]?.href || '')}
+          onDismiss={() => setIsInspecting(false)}
         />
       )}
+    </>
+  );
+};
 
+// TableRT wrapper that adapts TableCellProps to the shared component
+export const InspectableDataLinkCellRT = (props: TableCellProps) => {
+  const { field, row, cellProps, tableStyles } = props;
+  const links = getCellLinks(field, row);
+
+  return (
+    <div {...cellProps} className={tableStyles.cellContainerText}>
+      <InspectableDataLinkCell field={field} rowIdx={row.index} links={links} />
     </div>
   );
 };

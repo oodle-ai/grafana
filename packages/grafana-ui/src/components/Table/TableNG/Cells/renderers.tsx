@@ -3,9 +3,10 @@ import { memo, MemoExoticComponent } from 'react';
 
 import { Field, FieldType, GrafanaTheme2, isDataFrame, isTimeSeriesFrame } from '@grafana/data';
 
+import { InspectableDataLinkCell } from '../../InspectableDataLinkCell';
 import { TableCellDisplayMode, TableCellOptions, TableCustomCellOptions } from '../../types';
 import { TableCellRenderer, TableCellRendererProps, TableCellStyleOptions, TableCellStyles } from '../types';
-import { getCellOptions } from '../utils';
+import { getCellLinks, getCellOptions } from '../utils';
 
 import { ActionsCell, getStyles as getActionsCellStyles } from './ActionsCell';
 import { AutoCell, getStyles as getAutoCellStyles, getJsonCellStyles } from './AutoCell';
@@ -144,7 +145,13 @@ const CELL_REGISTRY: Record<TableCellOptions['type'], CellRegistryEntry> = {
   },
   [TableCellDisplayMode.InspectableDataLink]: {
     // eslint-disable-next-line react/display-name
-    renderer: memo((props: TableCellRendererProps) => <DataLinksCell field={props.field} rowIdx={props.rowIdx} />),
+    renderer: memo((props: TableCellRendererProps) => (
+      <InspectableDataLinkCell
+        field={props.field}
+        rowIdx={props.rowIdx}
+        links={getCellLinks(props.field, props.rowIdx)}
+      />
+    )),
     getStyles: getDataLinksStyles,
   },
 };
