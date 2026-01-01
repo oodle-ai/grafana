@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -78,6 +79,9 @@ type PrometheusQueryProperties struct {
 
 	// Group By parameters to apply to aggregate expressions in the query
 	GroupByKeys []string `json:"groupByKeys,omitempty"`
+
+	// When enabled, ignores the first sample if it is equal to the start time of the query
+	IgnoreStartTimeSample bool `json:"ignoreStartTimeSample,omitempty"`
 }
 
 // Internal interval and range variables
@@ -89,6 +93,8 @@ const (
 	varRangeMs        = "$__range_ms"
 	varRateInterval   = "$__rate_interval"
 	varRateIntervalMs = "$__rate_interval_ms"
+	varDDInterval     = "$__dd_interval"
+	varLargeInterval  = "$__large_interval"
 )
 
 // Internal interval and range variables with {} syntax
@@ -135,16 +141,17 @@ type TimeRange struct {
 
 // The internal query object
 type Query struct {
-	Expr          string
-	Step          time.Duration
-	LegendFormat  string
-	Start         time.Time
-	End           time.Time
-	RefId         string
-	InstantQuery  bool
-	RangeQuery    bool
-	ExemplarQuery bool
-	UtcOffsetSec  int64
+	Expr                  string
+	Step                  time.Duration
+	LegendFormat          string
+	Start                 time.Time
+	End                   time.Time
+	RefId                 string
+	InstantQuery          bool
+	RangeQuery            bool
+	ExemplarQuery         bool
+	UtcOffsetSec          int64
+	IgnoreStartTimeSample bool
 
 	Scopes []scope.ScopeSpec
 }
@@ -159,7 +166,9 @@ type internalQueryModel struct {
 
 	// The following properties may be part of the request payload, however they are not saved in panel JSON
 	// Timezone offset to align start & end time on backend
-	UtcOffsetSec int64  `json:"utcOffsetSec,omitempty"`
+	// UtcOffsetSecDoNotUse being non zero sometimes ignores data near end time.
+	// Do not use this parameter.
+	UtcOffsetSec int64  `json:"utcOffsetSecDoNotUse,omitempty"`
 	Interval     string `json:"interval,omitempty"`
 }
 
@@ -170,14 +179,15 @@ func Parse(ctx context.Context, log glog.Logger, span trace.Span, query backend.
 	}
 	span.SetAttributes(attribute.String("rawExpr", model.Expr))
 
+	// Interpolate variables in expr
+	timeRange := query.TimeRange.To.Sub(query.TimeRange.From)
+
 	// Final step value for prometheus
-	calculatedStep, err := calculatePrometheusInterval(model.Interval, dsScrapeInterval, int64(model.IntervalMS), model.IntervalFactor, query, intervalCalculator)
+	calculatedStep, err := calculatePrometheusInterval(&model.Interval, dsScrapeInterval, int64(model.IntervalMS), model.IntervalFactor, query, intervalCalculator, timeRange)
 	if err != nil {
 		return nil, err
 	}
 
-	// Interpolate variables in expr
-	timeRange := query.TimeRange.To.Sub(query.TimeRange.From)
 	expr := InterpolateVariables(
 		model.Expr,
 		query.Interval,
@@ -237,16 +247,17 @@ func Parse(ctx context.Context, log glog.Logger, span trace.Span, query backend.
 	)
 
 	return &Query{
-		Expr:          expr,
-		Step:          calculatedStep,
-		LegendFormat:  model.LegendFormat,
-		Start:         query.TimeRange.From,
-		End:           query.TimeRange.To,
-		RefId:         query.RefID,
-		InstantQuery:  model.Instant,
-		RangeQuery:    model.Range,
-		ExemplarQuery: model.Exemplar,
-		UtcOffsetSec:  model.UtcOffsetSec,
+		Expr:                  expr,
+		Step:                  calculatedStep,
+		LegendFormat:          model.LegendFormat,
+		Start:                 query.TimeRange.From,
+		End:                   query.TimeRange.To,
+		RefId:                 query.RefID,
+		InstantQuery:          model.Instant,
+		RangeQuery:            model.Range,
+		ExemplarQuery:         model.Exemplar,
+		UtcOffsetSec:          model.UtcOffsetSec,
+		IgnoreStartTimeSample: model.IgnoreStartTimeSample,
 	}, nil
 }
 
@@ -273,11 +284,14 @@ func (query *Query) TimeRange() TimeRange {
 }
 
 func calculatePrometheusInterval(
-	queryInterval, dsScrapeInterval string,
+	queryIntervalIn *string,
+	dsScrapeInterval string,
 	intervalMs, intervalFactor int64,
 	query backend.DataQuery,
 	intervalCalculator intervalv2.Calculator,
+	timeRange time.Duration,
 ) (time.Duration, error) {
+	queryInterval := *queryIntervalIn
 	// we need to compare the original query model after it is overwritten below to variables so that we can
 	// calculate the rateInterval if it is equal to $__rate_interval or ${__rate_interval}
 	originalQueryInterval := queryInterval
@@ -302,7 +316,16 @@ func calculatePrometheusInterval(
 	// here is where we compare for $__rate_interval or ${__rate_interval}
 	if originalQueryInterval == varRateInterval || originalQueryInterval == varRateIntervalAlt {
 		// Rate interval is final and is not affected by resolution
-		return calculateRateInterval(adjustedInterval, dsScrapeInterval), nil
+		resInterval := calculateRateInterval(adjustedInterval, dsScrapeInterval)
+		return resInterval, nil
+	} else if originalQueryInterval == varDDInterval {
+		resInterval := CalculateIntervalDatadogDefault(timeRange)
+		// The below fix is only applied to DD interval to avoid changing behavior of default grafana.
+		*queryIntervalIn = resInterval.String()
+		return resInterval, nil
+	} else if originalQueryInterval == varLargeInterval {
+		resInterval := CalculateIntervalDatadogBarChart(timeRange)
+		return resInterval, nil
 	} else {
 		queryIntervalFactor := intervalFactor
 		if queryIntervalFactor == 0 {
@@ -333,6 +356,118 @@ func calculateRateInterval(
 
 	rateInterval := time.Duration(int64(math.Max(float64(queryInterval+scrapeIntervalDuration), float64(4)*float64(scrapeIntervalDuration))))
 	return rateInterval
+}
+
+func roundIntervalUp(
+	interval time.Duration,
+	roundTo time.Duration,
+) time.Duration {
+	balance := interval % roundTo
+	if balance == 0 {
+		return interval
+	}
+
+	return interval + roundTo - balance
+}
+
+func roundIntervalNearest(
+	interval time.Duration,
+	roundTo time.Duration,
+) time.Duration {
+	balance := interval % roundTo
+	if balance == 0 {
+		return interval
+	}
+
+	if balance < roundTo/2 {
+		return interval - balance
+	}
+
+	return interval + roundTo - balance
+}
+
+func roundDownPromInterval(
+	interval time.Duration,
+) time.Duration {
+	if interval < 5*time.Minute {
+		// Already rounded to the nearest minute.
+		return interval
+	}
+
+	if interval < 30*time.Minute {
+		// Round up to the nearest 5 minutes.
+		return roundIntervalNearest(interval, 5*time.Minute)
+	}
+
+	if interval < 2*time.Hour {
+		// Round up to the nearest 10 minutes.
+		return roundIntervalNearest(interval, 30*time.Minute)
+	}
+
+	return roundIntervalNearest(interval, time.Hour)
+}
+
+type timeRangeToInterval struct {
+	timeRange             time.Duration
+	intervalUpToTimeRange time.Duration
+}
+
+// These values were determined manually by observing when the step interval changes for time ranges up to 1 week.
+// Although Datadog documents the default rollup intervals based on time range here:
+// https://docs.datadoghq.com/dashboards/functions/rollup/#rollup-interval-enforced-vs-custom
+// the actual step intervals seen in the UI do not always match the documented values.
+var defaultMaxInterval = 4 * time.Hour
+var defaultTimeRangeToIntervalSorted = []timeRangeToInterval{
+	{timeRange: time.Minute * 75, intervalUpToTimeRange: time.Second * 20},
+	{timeRange: (time.Hour * 2) + (time.Minute * 30), intervalUpToTimeRange: time.Second * 30},
+	{timeRange: time.Hour * 5, intervalUpToTimeRange: time.Minute * 1},
+	{timeRange: (time.Hour * 12) + (time.Minute * 30), intervalUpToTimeRange: time.Minute * 2},
+	{timeRange: time.Hour * (24 + 1), intervalUpToTimeRange: time.Minute * 5},
+	{timeRange: time.Hour * (48 + 2), intervalUpToTimeRange: time.Minute * 10},
+	{timeRange: time.Hour * (72 + 3), intervalUpToTimeRange: time.Minute * 20},
+	{timeRange: time.Hour * (144 + 6), intervalUpToTimeRange: time.Minute * 30},
+	{timeRange: time.Hour * 24 * 7, intervalUpToTimeRange: time.Hour},
+	{timeRange: time.Hour * 24 * 13, intervalUpToTimeRange: time.Hour * 2},
+	{timeRange: time.Hour * 24 * 31, intervalUpToTimeRange: time.Hour * 4},
+}
+
+var barChartMaxInterval = 12 * time.Hour
+var barChartTimeRangeToIntervalSorted = []timeRangeToInterval{
+	{timeRange: time.Hour, intervalUpToTimeRange: time.Minute},
+	{timeRange: time.Hour * 4, intervalUpToTimeRange: time.Minute * 2},
+	{timeRange: time.Hour * 8, intervalUpToTimeRange: time.Minute * 5},
+	{timeRange: time.Hour * 16, intervalUpToTimeRange: time.Minute * 10},
+	{timeRange: time.Hour * 24, intervalUpToTimeRange: time.Minute * 20},
+	{timeRange: time.Hour * 24 * 2, intervalUpToTimeRange: time.Minute * 30},
+	{timeRange: time.Hour * 24 * 3, intervalUpToTimeRange: time.Hour * 1},
+	{timeRange: time.Hour * 24 * 5, intervalUpToTimeRange: time.Hour * 2},
+	{timeRange: time.Hour * 24 * 14, intervalUpToTimeRange: time.Hour * 4},
+	{timeRange: time.Hour * 24 * 21, intervalUpToTimeRange: time.Hour * 8},
+	{timeRange: time.Hour * 24 * 31, intervalUpToTimeRange: time.Hour * 12},
+}
+
+func CalculateIntervalDatadogDefault(
+	timeRange time.Duration,
+) time.Duration {
+	for _, rangeToInterval := range defaultTimeRangeToIntervalSorted {
+		if timeRange <= rangeToInterval.timeRange {
+			return rangeToInterval.intervalUpToTimeRange
+		}
+	}
+
+	return defaultMaxInterval
+}
+
+func CalculateIntervalDatadogBarChart(
+	timeRange time.Duration,
+) time.Duration {
+	for _, rangeToInterval := range barChartTimeRangeToIntervalSorted {
+		if timeRange <= rangeToInterval.timeRange {
+			return rangeToInterval.intervalUpToTimeRange
+		}
+	}
+
+	return barChartMaxInterval
 }
 
 // InterpolateVariables interpolates built-in variables
@@ -373,6 +508,8 @@ func InterpolateVariables(
 	expr = strings.ReplaceAll(expr, varRange, strconv.FormatInt(rangeSRounded, 10)+"s")
 	expr = strings.ReplaceAll(expr, varRateIntervalMs, strconv.FormatInt(int64(rateInterval/time.Millisecond), 10))
 	expr = strings.ReplaceAll(expr, varRateInterval, rateInterval.String())
+	expr = strings.ReplaceAll(expr, varDDInterval, CalculateIntervalDatadogDefault(timeRange).String())
+	expr = strings.ReplaceAll(expr, varLargeInterval, CalculateIntervalDatadogBarChart(timeRange).String())
 
 	// Repetitive code, we should have functionality to unify these
 	expr = strings.ReplaceAll(expr, varIntervalMsAlt, strconv.FormatInt(int64(calculatedStep/time.Millisecond), 10))
@@ -386,7 +523,12 @@ func InterpolateVariables(
 }
 
 func isVariableInterval(interval string) bool {
-	if interval == varInterval || interval == varIntervalMs || interval == varRateInterval || interval == varRateIntervalMs {
+	if interval == varInterval ||
+		interval == varIntervalMs ||
+		interval == varRateInterval ||
+		interval == varRateIntervalMs ||
+		interval == varDDInterval ||
+		interval == varLargeInterval {
 		return true
 	}
 	// Repetitive code, we should have functionality to unify these
@@ -413,4 +555,10 @@ var f embed.FS
 // QueryTypeDefinitionsJSON returns the query type definitions
 func QueryTypeDefinitionListJSON() (json.RawMessage, error) {
 	return f.ReadFile("query.types.json")
+}
+
+func init() {
+	sort.Slice(defaultTimeRangeToIntervalSorted, func(i, j int) bool {
+		return defaultTimeRangeToIntervalSorted[i].timeRange < defaultTimeRangeToIntervalSorted[j].timeRange
+	})
 }

@@ -16,9 +16,7 @@ export const WelcomeBanner = () => {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>
-        <Trans i18nKey="welcome.welcome-banner.welcome-to-grafana">Welcome to Grafana</Trans>
-      </h1>
+      <h1 className={styles.title}>Welcome to Oodle</h1>
       <div className={styles.help}>
         <h3 className={styles.helpText}>
           <Trans i18nKey="welcome.welcome-banner.need-help">Need help?</Trans>

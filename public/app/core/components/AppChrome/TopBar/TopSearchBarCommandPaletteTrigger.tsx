@@ -10,8 +10,6 @@ import { getFocusStyles } from '@grafana/ui/internal';
 import { useMediaQueryMinWidth } from 'app/core/hooks/useMediaQueryMinWidth';
 import { getModKey } from 'app/core/utils/browser';
 
-import { NavToolbarSeparator } from '../NavToolbar/NavToolbarSeparator';
-
 export const TopSearchBarCommandPaletteTrigger = React.memo(() => {
   const { query: kbar } = useKBar((kbarState) => ({
     kbarSearchQuery: kbarState.searchQuery,
@@ -24,29 +22,32 @@ export const TopSearchBarCommandPaletteTrigger = React.memo(() => {
     kbar.toggle();
   };
 
+  const searchDisabled = window.location.hostname === 'play.oodle.ai';
+  const searchText =
+    searchDisabled ? 'Search disabled' :
+      t('nav.search.placeholderCommandPalette', 'Search or jump to...');
   if (!isLargeScreen) {
     return (
-      <>
-        <ToolbarButton
-          iconOnly
-          icon="search"
-          aria-label={t('nav.search.placeholderCommandPalette', 'Search...')}
-          onClick={onOpenSearch}
-        />
-        <NavToolbarSeparator />
-      </>
+      <ToolbarButton
+        iconOnly
+        icon="search"
+        aria-label={searchText}
+        onClick={onOpenSearch}
+        disabled={searchDisabled}
+      />
     );
   }
 
-  return <PretendTextInput onClick={onOpenSearch} />;
+  return <PretendTextInput searchDisabled={searchDisabled} searchText={searchText} onClick={onOpenSearch} />;
 });
-TopSearchBarCommandPaletteTrigger.displayName = 'TopSearchBarCommandPaletteTrigger';
 
 interface PretendTextInputProps {
+  searchDisabled: boolean
+  searchText: string
   onClick: () => void;
 }
 
-function PretendTextInput({ onClick }: PretendTextInputProps) {
+function PretendTextInput({ searchDisabled, searchText, onClick }: PretendTextInputProps) {
   const styles = useStyles2(getStyles);
   const modKey = useMemo(() => getModKey(), []);
 
@@ -61,8 +62,8 @@ function PretendTextInput({ onClick }: PretendTextInputProps) {
           <Icon name="search" />
         </div>
 
-        <button className={styles.fakeInput} onClick={onClick}>
-          {t('nav.search.placeholderCommandPalette', 'Search...')}
+        <button className={styles.fakeInput} onClick={onClick} disabled={searchDisabled}>
+          {searchText}
         </button>
 
         <div className={styles.suffix}>

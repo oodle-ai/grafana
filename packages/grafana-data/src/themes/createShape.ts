@@ -42,7 +42,7 @@ export function createShape(options: ThemeShapeInput): ThemeShape {
   const baseBorderRadius = options.borderRadius ?? 6;
 
   const radius = {
-    default: `${baseBorderRadius}px`,
+    default: '0.125rem',
     md: `${baseBorderRadius}px`,
     sm: `${Math.ceil(baseBorderRadius * (2 / 3))}px`, // for default base becomes 4
     lg: `${Math.ceil(baseBorderRadius * (5 / 3))}px`, // for default base becomes 10

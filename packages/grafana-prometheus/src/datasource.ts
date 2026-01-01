@@ -73,8 +73,7 @@ import { PrometheusVariableSupport } from './variables';
 
 export class PrometheusDatasource
   extends DataSourceWithBackend<PromQuery, PromOptions>
-  implements DataSourceWithQueryImportSupport<PromQuery>, DataSourceWithQueryExportSupport<PromQuery>
-{
+  implements DataSourceWithQueryImportSupport<PromQuery>, DataSourceWithQueryExportSupport<PromQuery> {
   access: 'direct' | 'proxy';
   basicAuth: any;
   cache: QueryCache<PromQuery>;
@@ -150,34 +149,11 @@ export class PrometheusDatasource
    * Prometheus API and checks if exemplars are available by testing the exemplars API endpoint.
    */
   init = async (): Promise<void> => {
-    if (!this.disableRecordingRules) {
-      this.loadRules();
-    }
+    // if (!this.disableRecordingRules) {
+    //   this.loadRules();
+    // }
     this.exemplarsAvailable = await this.areExemplarsAvailable();
   };
-
-  /**
-   * Loads recording rules from the Prometheus API and extracts rule mappings.
-   *
-   * This method fetches rules from the `/api/v1/rules` endpoint and processes
-   * them to create a mapping of rule names to their corresponding queries and labels.
-   * The rules API is experimental, so errors are logged but not thrown.
-   */
-  private async loadRules(): Promise<void> {
-    try {
-      const params = {};
-      const options = { showErrorAlert: false };
-      const res = await this.metadataRequest('/api/v1/rules', params, options);
-      const ruleGroups = res.data?.data?.groups;
-
-      if (ruleGroups) {
-        this.ruleMappings = extractRuleMappingFromGroups(ruleGroups);
-      }
-    } catch (err) {
-      console.log('Rules API is experimental. Ignore next error.');
-      console.error(err);
-    }
-  }
 
   /**
    * Checks if exemplars are available by testing the exemplars API endpoint.
@@ -215,9 +191,8 @@ export class PrometheusDatasource
    */
   getPrometheusTargetSignature(request: DataQueryRequest<PromQuery>, query: PromQuery) {
     const targExpr = this.interpolateString(query.expr);
-    return `${targExpr}|${query.interval ?? request.interval}|${JSON.stringify(request.rangeRaw ?? '')}|${
-      query.exemplar
-    }`;
+    return `${targExpr}|${query.interval ?? request.interval}|${JSON.stringify(request.rangeRaw ?? '')}|${query.exemplar
+      }`;
   }
 
   hasLabelsMatchAPISupport(): boolean {
@@ -612,10 +587,10 @@ export class PrometheusDatasource
         const replacedInterpolatedQuery = targetHasScopes(query)
           ? interpolatedQuery
           : this.templateSrv.replace(
-              this.enhanceExprWithAdHocFilters(filters, interpolatedQuery),
-              scopedVars,
-              this.interpolateQueryExpr
-            );
+            this.enhanceExprWithAdHocFilters(filters, interpolatedQuery),
+            scopedVars,
+            this.interpolateQueryExpr
+          );
 
         const expandedQuery = {
           ...query,

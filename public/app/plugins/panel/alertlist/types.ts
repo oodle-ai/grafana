@@ -21,9 +21,11 @@ export interface StateFilter {
   pending: boolean;
   inactive?: boolean; // backwards compat
   recovering: boolean;
-  noData: boolean;
   normal: boolean;
   error: boolean;
+  critical?: boolean; // backwards compat - added later
+  warn?: boolean; // backwards compat - added later
+  noData?: boolean; // backwards compat - added later
 }
 
 export interface UnifiedAlertListOptions {

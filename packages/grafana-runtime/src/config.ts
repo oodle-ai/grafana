@@ -150,6 +150,7 @@ export class GrafanaBootConfig {
   rendererDefaultImageScale = 1;
   supportBundlesEnabled = false;
   http2Enabled = false;
+  http1MaxParallelRequests = 30;
   dateFormats?: SystemDateFormatSettings;
   grafanaJavascriptAgent = {
     enabled: false,

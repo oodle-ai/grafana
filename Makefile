@@ -416,7 +416,7 @@ shellcheck: $(SH_FILES) ## Run checks for shell scripts.
 ##@ Docker
 
 TAG_SUFFIX=$(if $(WIRE_TAGS)!=oss,-$(WIRE_TAGS))
-PLATFORM=linux/amd64
+PLATFORM=linux/arm64
 
 # default to a production build for frontend
 #

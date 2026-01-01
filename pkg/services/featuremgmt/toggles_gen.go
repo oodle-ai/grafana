@@ -1117,4 +1117,8 @@ const (
 	// FlagDashboardTemplates
 	// Enable template dashboards
 	FlagDashboardTemplates = "dashboardTemplates"
+
+	// FlagOodleInsight
+	// Enables Oodle Insight for Grafana
+	FlagOodleInsight = "oodleInsight"
 )

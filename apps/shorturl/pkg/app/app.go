@@ -73,7 +73,7 @@ func New(cfg app.Config) (app.App, error) {
 						Method: "GET",
 						Path:   "goto",
 					}: func(ctx context.Context, w app.CustomRouteResponseWriter, req *app.CustomRouteRequest) error {
-						url, _, found := strings.Cut(req.URL.Path, "/apis/") // This will be settings.AppURL
+						urlPrefix, _, found := strings.Cut(req.URL.Path, "/apis/") // This will be settings.AppURL
 						if !found {
 							return fmt.Errorf("unable to parse request URL")
 						}
@@ -103,7 +103,22 @@ func New(cfg app.Config) (app.App, error) {
 							}
 						}()
 
-						url = url + "/" + info.Spec.Path
+						// Build the redirect URL
+						// If the stored path already starts with the URL prefix (e.g., /grafana-proxy/),
+						// don't prepend it again to avoid double prefixes like /grafana-proxy/grafana-proxy/
+						targetPath := info.Spec.Path
+						var url string
+						if urlPrefix != "" && (strings.HasPrefix(targetPath, urlPrefix+"/") || strings.HasPrefix(targetPath, urlPrefix)) {
+							// Path already has the non-empty prefix, use it directly
+							url = targetPath
+						} else if strings.HasPrefix(targetPath, "/") {
+							// Path already starts with /, prepend urlPrefix only
+							url = urlPrefix + targetPath
+						} else {
+							// Path doesn't start with /, prepend urlPrefix and /
+							url = urlPrefix + "/" + targetPath
+						}
+
 						if req.URL.Query().Get("redirect") == "false" { // helpful for testing
 							return json.NewEncoder(w).Encode(shorturlv1alpha1.GetGoto{
 								Url: url,

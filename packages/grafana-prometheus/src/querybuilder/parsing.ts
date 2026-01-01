@@ -104,6 +104,41 @@ interface Context {
   replacements?: Record<string, string>;
 }
 
+// TODO find a better approach for grafana global variables
+export function isValidPromQLMinusGrafanaGlobalVariables(expr: string) {
+  const context: Context = {
+    query: {
+      metric: '',
+      labels: [],
+      operations: [],
+    },
+    errors: [],
+  };
+
+  expr = expr.replace(/\$__interval/g, '1s');
+  expr = expr.replace(/\$__interval_ms/g, '1000');
+  expr = expr.replace(/\$__rate_interval/g, '1s');
+  expr = expr.replace(/\$__dd_interval/g, '1s');
+  expr = expr.replace(/\$__large_interval/g, '1s');
+  expr = expr.replace(/\$__range_ms/g, '1000');
+  expr = expr.replace(/\$__range_s/g, '1');
+  expr = expr.replace(/\$__range/g, '1s');
+  expr = expr.replace(/\$prate/g, 'rate');
+  expr = expr.replace(/\$pincrease/g, 'increase');
+  expr = expr.replace(/\$pdelta/g, 'delta');
+
+  const tree = parser.parse(expr);
+  const node = tree.topNode;
+
+  try {
+    handleExpression(expr, node, context);
+  } catch (err) {
+    return false;
+  }
+
+  return context.errors.length === 0;
+}
+
 /**
  * Handler for default state. It will traverse the tree and call the appropriate handler for each node. The node
  * handled here does not necessarily need to be of type == Expr.

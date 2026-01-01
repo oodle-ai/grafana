@@ -43,6 +43,8 @@ export interface Props {
   onUpdateDatasources?: (datasource: DataSourceRef) => void;
   onQueryReplacedFromLibrary?: () => void;
   queryRowWrapper?: (children: ReactNode, refId: string) => ReactNode;
+  queryBuilderOnly?: boolean;
+  hideQueryEditor?: boolean;
   queryLibraryRef?: string;
   onCancelQueryLibraryEdit?: () => void;
   isOpen?: boolean;
@@ -200,6 +202,8 @@ export class QueryEditorRows extends PureComponent<Props> {
       onQueryOpenChanged,
       onQueryReplacedFromLibrary,
       queryRowWrapper,
+      queryBuilderOnly,
+      hideQueryEditor,
       queryLibraryRef,
       onCancelQueryLibraryEdit,
       isOpen,
@@ -210,7 +214,7 @@ export class QueryEditorRows extends PureComponent<Props> {
         <Droppable droppableId="transformations-list" direction="vertical">
           {(provided) => {
             return (
-              <div data-testid="query-editor-rows" ref={provided.innerRef} {...provided.droppableProps}>
+              <div style={{height: hideQueryEditor ? 0 : 'auto'}} data-testid="query-editor-rows" ref={provided.innerRef} {...provided.droppableProps}>
                 {queries.map((query, index) => {
                   const dataSourceSettings = getDataSourceSettings(query, dsSettings);
                   const onChangeDataSourceSettings = dsSettings.meta.mixed
@@ -241,6 +245,7 @@ export class QueryEditorRows extends PureComponent<Props> {
                       range={getTimeSrv().timeRange()}
                       history={history}
                       eventBus={eventBus}
+                      queryBuilderOnly={queryBuilderOnly}
                       queryLibraryRef={queryLibraryRef}
                       onCancelQueryLibraryEdit={onCancelQueryLibraryEdit}
                       isOpen={isOpen}

@@ -77,7 +77,6 @@ import { getUrlStateFromPaneState } from '../hooks/useStateSync';
 import { changePanelState } from '../state/explorePane';
 import { changeQueries, runQueries } from '../state/query';
 
-import { LogsFeedback } from './LogsFeedback';
 import { LogsMetaRow } from './LogsMetaRow';
 import LogsNavigation from './LogsNavigation';
 import { LogsTableWrap, getLogsTableHeight } from './LogsTableWrap';
@@ -816,15 +815,6 @@ const UnthemedLogs: React.FunctionComponent<Props> = (props: Props) => {
         </PanelChrome>
       </div>
       <PanelChrome
-        titleItems={[
-          config.featureToggles.logsExploreTableVisualisation ? (
-            visualisationType === 'logs' ? null : (
-              <PanelChrome.TitleItem title={t('explore.unthemed-logs.title-feedback', 'Feedback')} key="A">
-                <LogsFeedback feedbackUrl="https://forms.gle/5YyKdRQJ5hzq4c289" />
-              </PanelChrome.TitleItem>
-            )
-          ) : null,
-        ]}
         title={t('explore.unthemed-logs.title-logs', 'Logs')}
         actions={
           <>

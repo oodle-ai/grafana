@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.4
 
 # to maintain formatting of multiline commands in vscode, add the following to settings.json:
 # "docker.languageserver.formatter.ignoreMultilineInstructions": true
@@ -6,7 +6,7 @@
 ARG BASE_IMAGE=alpine-base
 ARG GO_IMAGE=go-builder-base
 ARG JS_IMAGE=js-builder-base
-ARG JS_PLATFORM=linux/amd64
+ARG JS_PLATFORM=linux/arm64
 
 # Default to building locally
 ARG GO_SRC=go-builder
@@ -44,11 +44,7 @@ COPY e2e e2e
 #
 ENV NODE_ENV=${JS_NODE_ENV}
 #
-RUN if [ "$JS_YARN_INSTALL_FLAG" = "" ]; then \
-    yarn install; \
-  else \
-    yarn install --immutable; \
-  fi
+RUN yarn install
 
 COPY tsconfig.json eslint.config.js .editorconfig .browserslistrc .prettierrc.js ./
 COPY scripts scripts
@@ -231,6 +227,8 @@ RUN if [ ! $(getent group "$GF_GID") ]; then \
   chown -R "grafana:$GF_GID_NAME" "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING" && \
   chmod -R 777 "$GF_PATHS_DATA" "$GF_PATHS_HOME/.aws" "$GF_PATHS_LOGS" "$GF_PATHS_PLUGINS" "$GF_PATHS_PROVISIONING"
 
+COPY oodle-plugins/novatec-sdg-panel-4.1.1.zip $GF_PATHS_PLUGINS/
+RUN unzip $GF_PATHS_PLUGINS/novatec-sdg-panel-4.1.1.zip -d $GF_PATHS_PLUGINS/ && rm $GF_PATHS_PLUGINS/novatec-sdg-panel-4.1.1.zip
 COPY --from=go-src /tmp/grafana/bin/grafana* /tmp/grafana/bin/*/grafana* ./bin/
 COPY --from=js-src /tmp/grafana/public ./public
 COPY --from=js-src /tmp/grafana/LICENSE ./

@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-
 	"github.com/grafana/grafana/pkg/api/dtos"
 	"github.com/grafana/grafana/pkg/api/response"
 	"github.com/grafana/grafana/pkg/api/routing"
@@ -17,9 +18,18 @@ import (
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	"github.com/grafana/grafana/pkg/services/datasources"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
+	"github.com/grafana/grafana/pkg/services/query"
 	"github.com/grafana/grafana/pkg/util/errhttp"
 	"github.com/grafana/grafana/pkg/web"
 )
+
+const (
+	// TODO - Add documentation for GF_FORWARD_HEADERS_ALLOW_LIST
+	forwardHeadersAllowListEnvName   = "GF_FORWARD_HEADERS_ALLOW_LIST"
+	forwardHeadersAllowListSeparator = ","
+)
+
+var forwardHeadersAllowList = strings.Split(os.Getenv(forwardHeadersAllowListEnvName), forwardHeadersAllowListSeparator)
 
 func (hs *HTTPServer) handleQueryMetricsError(err error) *response.NormalResponse {
 	if errors.Is(err, datasources.ErrDataSourceAccessDenied) {
@@ -72,6 +82,13 @@ func (hs *HTTPServer) QueryMetricsV2(c *contextmodel.ReqContext) response.Respon
 		return response.Error(http.StatusBadRequest, "bad request data", err)
 	}
 
+	forwardHeaders := map[string]string{}
+	for _, h := range forwardHeadersAllowList {
+		if headerVal := c.Req.Header.Get(h); len(headerVal) > 0 {
+			forwardHeaders[h] = headerVal
+		}
+	}
+
 	handleTimeInQuery := c.Req.Header.Get("X-Query-V2") == "true"
 
 	var resp *backend.QueryDataResponse
@@ -79,9 +96,9 @@ func (hs *HTTPServer) QueryMetricsV2(c *contextmodel.ReqContext) response.Respon
 
 	hs.log.Debug("QueryMetricsV2: request received", "time_in_query", handleTimeInQuery)
 	if handleTimeInQuery {
-		resp, err = hs.queryDataService.QueryDataNew(c.Req.Context(), c.SignedInUser, c.SkipDSCache, reqDTO)
+		resp, err = hs.queryDataService.QueryDataNew(c.Req.Context(), c.SignedInUser, c.SkipDSCache, reqDTO, query.WithForwardHeaders(forwardHeaders))
 	} else {
-		resp, err = hs.queryDataService.QueryData(c.Req.Context(), c.SignedInUser, c.SkipDSCache, reqDTO)
+		resp, err = hs.queryDataService.QueryData(c.Req.Context(), c.SignedInUser, c.SkipDSCache, reqDTO, query.WithForwardHeaders(forwardHeaders))
 	}
 
 	if err != nil {

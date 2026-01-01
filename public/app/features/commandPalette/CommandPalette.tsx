@@ -70,7 +70,7 @@ function CommandPaletteContents() {
     reportInteraction('command_palette_opened');
   }, []);
 
-  return (
+  return (window.location.hostname !== 'play.oodle.ai') ? (
     <KBarPositioner className={styles.positioner}>
       <KBarAnimator className={styles.animator}>
         <FocusScope contain autoFocus restoreFocus>
@@ -94,7 +94,7 @@ function CommandPaletteContents() {
         </FocusScope>
       </KBarAnimator>
     </KBarPositioner>
-  );
+  ) : null;
 }
 
 /**

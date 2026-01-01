@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { useToggle } from 'react-use';
+import { css } from '@emotion/css';
+import { ReactNode, useCallback, useState } from 'react';
 
 import {
   DataFrame,
@@ -10,17 +10,20 @@ import {
   LoadingState,
   ThresholdsConfig,
   TimeRange,
+  ThresholdsMode, RawTimeRange,
 } from '@grafana/data';
-import { Trans, t } from '@grafana/i18n';
-import { GraphThresholdsStyleConfig, PanelChrome, PanelChromeProps } from '@grafana/ui';
-import { ExploreGraphStyle } from 'app/types/explore';
+import { t } from '@grafana/i18n';
+import { GraphThresholdsStyleConfig, PanelChrome, PanelChromeProps, useStyles2, GraphThresholdsStyleMode,
+} from '@grafana/ui';
+import { ExploreGraphStyle, ExploreTimeRangeOptions } from 'app/types/explore';
 
-import { LimitedDataDisclaimer } from '../LimitedDataDisclaimer';
 import { storeGraphStyle } from '../state/utils';
 
 import { ExploreGraph } from './ExploreGraph';
 import { ExploreGraphLabel } from './ExploreGraphLabel';
+import { ExploreGraphTimeSelector } from "./ExploreTimeSelector";
 import { loadGraphStyle } from './utils';
+import {GrafanaTheme2} from "@grafana/data/";
 
 const MAX_NUMBER_OF_TIME_SERIES = 20;
 
@@ -32,14 +35,22 @@ interface Props extends Pick<PanelChromeProps, 'statusMessage'> {
   eventBus: EventBus;
   timeRange: TimeRange;
   timeZone: TimeZone;
+  updateTimeRange?: (rawRange: RawTimeRange) => void;
   onChangeTime: (absoluteRange: AbsoluteTimeRange) => void;
   splitOpenFn: SplitOpen;
   loadingState: LoadingState;
   thresholdsConfig?: ThresholdsConfig;
   thresholdsStyle?: GraphThresholdsStyleConfig;
+  warnThreshold?: number;
+  criticalThreshold?: number;
+  queryBuilderOnly?: boolean;
+  hideQueryEditor?: boolean;
+  hideMiniOptions?: boolean;
+  title?: string;
 }
 
 export const GraphContainer = ({
+  title,
   data,
   eventBus,
   height,
@@ -47,56 +58,87 @@ export const GraphContainer = ({
   timeRange,
   timeZone,
   annotations,
+  updateTimeRange,
   onChangeTime,
   splitOpenFn,
   thresholdsConfig,
   thresholdsStyle,
   loadingState,
   statusMessage,
+  warnThreshold,
+  criticalThreshold,
+  queryBuilderOnly,
+  hideQueryEditor,
+  hideMiniOptions,
 }: Props) => {
-  const [showAllSeries, toggleShowAllSeries] = useToggle(false);
   const [graphStyle, setGraphStyle] = useState(loadGraphStyle);
+  const [timeRangeOption, setTimeRangeOption] = useState<ExploreTimeRangeOptions>('24h');
+  const styles = useStyles2(getStyles);
 
   const onGraphStyleChange = useCallback((graphStyle: ExploreGraphStyle) => {
     storeGraphStyle(graphStyle);
     setGraphStyle(graphStyle);
   }, []);
 
-  const slicedData = useMemo(() => {
-    return showAllSeries ? data : data.slice(0, MAX_NUMBER_OF_TIME_SERIES);
-  }, [data, showAllSeries]);
+  if (criticalThreshold || warnThreshold) {
+    thresholdsStyle = {
+      mode: GraphThresholdsStyleMode.Dashed,
+    }
+
+    let steps = [
+      { value: 0, color: 'green', state: 'ok' },
+    ];
+    if (warnThreshold) {
+      steps.push({ value: warnThreshold, color: 'yellow', state: 'warning' });
+    }
+    if (criticalThreshold) {
+      steps.push({ value: criticalThreshold, color: 'red', state: 'critical' });
+    }
+    thresholdsConfig = {
+      steps: steps,
+      mode: ThresholdsMode.Absolute,
+    };
+  }
+
+  const onTimeRangeChange = useCallback((timeRange: ExploreTimeRangeOptions) => {
+    if (!updateTimeRange) {
+      return;
+    }
+
+    updateTimeRange({ from: 'now-' + timeRange, to: 'now' });
+    setTimeRangeOption(timeRange);
+  }, [updateTimeRange]);
+
+  let actions: ReactNode = null;
+  if (!hideMiniOptions) {
+    if (queryBuilderOnly && hideQueryEditor) {
+      actions = <ExploreGraphTimeSelector timeRange={timeRangeOption} onChangeTimeRange={onTimeRangeChange} />
+    } else {
+      actions = <ExploreGraphLabel graphStyle={graphStyle} onChangeGraphStyle={onGraphStyleChange} />
+    }
+  }
 
   return (
     <PanelChrome
-      title={t('graph.container.title', 'Graph')}
+      title={title ? title : queryBuilderOnly ? '' : t('graph.container.title', 'Graph')}
+      hideHeader={!title && queryBuilderOnly && hideQueryEditor && hideMiniOptions}
       titleItems={[
-        !showAllSeries && MAX_NUMBER_OF_TIME_SERIES < data.length && (
-          <LimitedDataDisclaimer
-            key="disclaimer"
-            toggleShowAllSeries={toggleShowAllSeries}
-            info={
-              <Trans i18nKey={'graph.container.show-only-series'}>
-                Showing only {{ MAX_NUMBER_OF_TIME_SERIES }} series
-              </Trans>
-            }
-            buttonLabel={<Trans i18nKey={'graph.container.show-all-series'}>Show all {{ length: data.length }}</Trans>}
-            tooltip={t(
-              'graph.container.content',
-              'Rendering too many series in a single panel may impact performance and make data harder to read. Consider refining your queries.'
-            )}
-          />
+        (queryBuilderOnly && MAX_NUMBER_OF_TIME_SERIES >= data.length) && data.length > 0 && (
+          <div key="series-count" className={styles.seriesCount}>
+            {t('graph.container.series-count', '{{count}} series', { count: data.length })}
+          </div>
         ),
       ].filter(Boolean)}
       width={width}
       height={height}
       loadingState={loadingState}
       statusMessage={statusMessage}
-      actions={<ExploreGraphLabel graphStyle={graphStyle} onChangeGraphStyle={onGraphStyleChange} />}
+      actions={actions}
     >
       {(innerWidth, innerHeight) => (
         <ExploreGraph
-          graphStyle={graphStyle}
-          data={slicedData}
+          graphStyle={queryBuilderOnly ? 'lines' : graphStyle}
+          data={data}
           height={innerHeight}
           width={innerWidth}
           timeRange={timeRange}
@@ -113,3 +155,26 @@ export const GraphContainer = ({
     </PanelChrome>
   );
 };
+
+const getStyles = (theme: GrafanaTheme2) => ({
+  timeSeriesDisclaimer: css({
+    label: 'time-series-disclaimer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+  }),
+  warningMessage: css({
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    color: theme.colors.warning.main,
+    fontSize: theme.typography.bodySmall.fontSize,
+  }),
+  seriesCount: css({
+    label: 'series-count',
+    fontSize: theme.typography.bodySmall.fontSize,
+    color: theme.colors.text.secondary,
+    display: 'flex',
+    alignItems: 'center',
+  }),
+});

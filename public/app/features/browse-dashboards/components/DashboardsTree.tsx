@@ -119,10 +119,11 @@ export function DashboardsTree({
       onItemSelectionChange,
       treeID,
       permissions,
+      onFolderClick,
     }),
     // we need this to rerender if items changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [table, isSelected, onAllSelectionChange, onItemSelectionChange, items, treeID, permissions]
+    [table, isSelected, onAllSelectionChange, onItemSelectionChange, items, treeID, permissions, onFolderClick]
   );
 
   const handleIsItemLoaded = useCallback(
@@ -214,12 +215,13 @@ interface VirtualListRowProps {
     onItemSelectionChange: DashboardsTreeCellProps['onItemSelectionChange'];
     treeID: string;
     permissions: BrowseDashboardsPermissions;
+    onFolderClick: (uid: string, newOpenState: boolean) => void;
   };
 }
 
 function VirtualListRow({ index, style, data }: VirtualListRowProps) {
   const styles = useStyles2(getStyles);
-  const { table, isSelected, onItemSelectionChange, treeID, permissions } = data;
+  const { table, isSelected, onItemSelectionChange, treeID, permissions, onFolderClick } = data;
   const { rows, prepareRow } = table;
 
   const row = rows[index];
@@ -236,12 +238,21 @@ function VirtualListRow({ index, style, data }: VirtualListRowProps) {
     );
   }
 
+  const handleRowClick = () => {
+    if (dashboardItem.kind === 'folder') {
+      onFolderClick(dashboardItem.uid, !row.original.isOpen);
+    } else if (dashboardItem.kind === 'dashboard' && dashboardItem.url) {
+      window.location.href = dashboardItem.url;
+    }
+  };
+
   return (
     <div
       key={key}
       {...rowProps}
       className={cx(styles.row, styles.bodyRow)}
       aria-labelledby={makeRowID(treeID, dashboardItem)}
+      data-selected={dashboardItem.kind !== 'ui' && isSelected && isSelected(dashboardItem) === SelectionState.Selected}
       data-testid={selectors.pages.BrowseDashboards.table.row(
         'title' in dashboardItem ? dashboardItem.title : dashboardItem.uid
       )}
@@ -250,7 +261,13 @@ function VirtualListRow({ index, style, data }: VirtualListRowProps) {
         const { key, ...cellProps } = cell.getCellProps();
 
         return (
-          <div key={key} {...cellProps} className={styles.cell}>
+          <div key={key} {...cellProps} className={styles.cell} onClick={() => {
+            if (cell?.column?.id === 'checkbox') {
+              return;
+            }
+
+            handleRowClick();
+          }}>
             {cell.render('Cell', { isSelected, onItemSelectionChange, treeID, permissions })}
           </div>
         );
@@ -261,41 +278,104 @@ function VirtualListRow({ index, style, data }: VirtualListRowProps) {
 
 const getStyles = (theme: GrafanaTheme2) => {
   return {
-    // Column flex properties (cell sizing) are set by customFlexTableLayout.ts
-
     row: css({
       gap: theme.spacing(1),
+      borderBottom: `1px solid ${theme.colors.border.weak}`,
+      margin: `0 ${theme.spacing(0.5)}`,
     }),
 
     divider: css({
-      borderTop: `1px solid ${theme.colors.border.weak}`,
+      borderTop: `1px solid ${theme.colors.border.medium}`,
       width: '100%',
       margin: 0,
+      opacity: 0.5,
     }),
 
     headerRow: css({
       backgroundColor: theme.colors.background.secondary,
       height: HEADER_HEIGHT,
+      position: 'sticky',
+      top: 0,
+      zIndex: 1,
+      border: `1px solid ${theme.colors.border.medium}`,
+      fontWeight: theme.typography.fontWeightLight,
+      margin: 0,
+      borderRadius: `${theme.shape.radius.default}`,
+      backdropFilter: 'blur(8px)',
+
+      // Enhanced shadow for better depth
+      boxShadow: `0 4px 8px ${theme.colors.emphasize(theme.colors.background.primary, 0.03)}`,
     }),
 
     bodyRow: css({
       height: ROW_HEIGHT,
+      margin: `${theme.spacing(0.5)} 0`,
+      position: 'relative',
+
+      '&[data-selected="true"]': {
+        backgroundColor: theme.colors.primary.transparent,
+        color: theme.colors.text.primary,
+        fontWeight: theme.typography.fontWeightMedium,
+
+        '&:hover': {
+          backgroundColor: theme.colors.emphasize(theme.colors.primary.transparent, 0.1),
+        },
+      },
 
       '&:hover': {
-        backgroundColor: theme.colors.action.hover,
+        backgroundColor: theme.colors.emphasize(theme.colors.background.primary, 0.05),
+        cursor: 'pointer',
+        boxShadow: `
+          0 4px 12px ${theme.colors.emphasize(theme.colors.background.primary, 0.1)},
+          0 0 0 1px ${theme.colors.border.weak}
+        `,
+
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderRadius: 'inherit',
+          boxShadow: `0 0 12px ${theme.colors.primary.transparent}`,
+          opacity: 0.5,
+          pointerEvents: 'none',
+        },
+      },
+
+      '&[data-selected="true"]:hover': {
+        '&::after': {
+          boxShadow: `0 0 12px ${theme.colors.primary.main}`,
+        },
       },
     }),
 
     cell: css({
-      padding: theme.spacing(1),
-      overflow: 'hidden', // Required so flex children can do text-overflow: ellipsis
+      padding: theme.spacing(1, 1),
+      overflow: 'hidden',  // Required so flex children can do text-overflow: ellipsis
       display: 'flex',
       alignItems: 'center',
+      fontSize: theme.typography.body.fontSize,
+      color: theme.colors.text.primary,
+
+      '[role="columnheader"] &': {
+        color: theme.colors.text.primary,
+        fontWeight: theme.typography.fontWeightMedium,
+        letterSpacing: '0.02em',
+        textTransform: 'uppercase',
+        fontSize: '12px',
+      },
     }),
 
     link: css({
+      color: theme.colors.text.primary,
+      textDecoration: 'none',
+
       '&:hover': {
-        textDecoration: 'underline',
+        color: theme.colors.primary.text,
+        textDecoration: 'none',
+        textShadow: `0 0 8px ${theme.colors.primary.transparent}`,
       },
     }),
   };

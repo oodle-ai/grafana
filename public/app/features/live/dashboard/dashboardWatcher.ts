@@ -55,8 +55,12 @@ class DashboardWatcher {
   }
 
   watch(uid: string) {
+    window.removeEventListener('message', this.listener);
+    window.addEventListener('message', this.listener);
+
     const live = getGrafanaLiveSrv();
     if (!live) {
+      this.uid = uid;
       return;
     }
 
@@ -95,6 +99,30 @@ class DashboardWatcher {
       }
     }
     return this.lastEditing;
+  }
+
+  private listener = (event: MessageEvent<any>) => {
+    if (
+      event.data?.type !== 'grafana-dashboard-updated' ||
+      event.data?.uid !== this.uid
+    ) {
+      return;
+    }
+
+    const dash = getDashboardSrv().getCurrent();
+    const showPopup = this.editing || (dash?.hasUnsavedChanges() ?? false);
+
+    if (showPopup) {
+      appEvents.publish(
+        new ShowModalReactEvent({
+          component: DashboardChangedModal,
+          props: { event },
+        })
+      );
+    } else {
+      appEvents.emit(AppEvents.alertSuccess, ['Dashboard updated']);
+      this.reloadPage();
+    }
   }
 
   observer = {

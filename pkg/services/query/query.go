@@ -69,10 +69,10 @@ func ProvideService(
 //go:generate mockery --name Service --structname FakeQueryService --inpackage --filename query_service_mock.go
 type Service interface {
 	Run(ctx context.Context) error
-	QueryData(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest) (*backend.QueryDataResponse, error)
+	QueryData(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest, opts ...queryDataOptions) (*backend.QueryDataResponse, error)
 
 	// this is more "forward compatible", for example supports per-query time ranges
-	QueryDataNew(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest) (*backend.QueryDataResponse, error)
+	QueryDataNew(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest, opts ...queryDataOptions) (*backend.QueryDataResponse, error)
 
 	GetSQLSchemas(ctx context.Context, user identity.Requester, reqDTO dtos.MetricRequest) (expr.SQLSchemas, error)
 }
@@ -100,7 +100,12 @@ func (s *ServiceImpl) Run(ctx context.Context) error {
 }
 
 // QueryData processes queries and returns query responses. It handles queries to single or mixed datasources, as well as expressions.
-func (s *ServiceImpl) queryData(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest, supportLocaltimeRange bool) (*backend.QueryDataResponse, error) {
+func (s *ServiceImpl) queryData(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest, supportLocaltimeRange bool, opts ...queryDataOptions) (*backend.QueryDataResponse, error) {
+	var conf = &queryDataConf{}
+	for _, opt := range opts {
+		opt(conf)
+	}
+
 	fromAlert := false
 	for header, val := range s.headers {
 		if header == models.FromAlertHeaderName && val == "true" {
@@ -113,6 +118,8 @@ func (s *ServiceImpl) queryData(ctx context.Context, user identity.Requester, sk
 		return nil, err
 	}
 
+	parsedReq.forwardHeaders = conf.forwardHeaders
+
 	// If there are expressions, handle them and return
 	if parsedReq.hasExpression || fromAlert {
 		return s.handleExpressions(ctx, user, parsedReq)
@@ -122,15 +129,15 @@ func (s *ServiceImpl) queryData(ctx context.Context, user identity.Requester, sk
 		return s.handleQuerySingleDatasource(ctx, user, parsedReq)
 	}
 	// If there are multiple datasources, handle their queries concurrently and return the aggregate result
-	return s.executeConcurrentQueries(ctx, user, skipDSCache, reqDTO, parsedReq.parsedQueries)
+	return s.executeConcurrentQueries(ctx, user, skipDSCache, reqDTO, parsedReq.parsedQueries, opts...)
 }
 
-func (s *ServiceImpl) QueryData(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest) (*backend.QueryDataResponse, error) {
-	return s.queryData(ctx, user, skipDSCache, reqDTO, false)
+func (s *ServiceImpl) QueryData(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest, opts ...queryDataOptions) (*backend.QueryDataResponse, error) {
+	return s.queryData(ctx, user, skipDSCache, reqDTO, false, opts...)
 }
 
-func (s *ServiceImpl) QueryDataNew(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest) (*backend.QueryDataResponse, error) {
-	return s.queryData(ctx, user, skipDSCache, reqDTO, true)
+func (s *ServiceImpl) QueryDataNew(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest, opts ...queryDataOptions) (*backend.QueryDataResponse, error) {
+	return s.queryData(ctx, user, skipDSCache, reqDTO, true, opts...)
 }
 
 // splitResponse contains the results of a concurrent data source query - the response and any headers
@@ -140,7 +147,7 @@ type splitResponse struct {
 }
 
 // executeConcurrentQueries executes queries to multiple datasources concurrently and returns the aggregate result.
-func (s *ServiceImpl) executeConcurrentQueries(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest, queriesbyDs map[string][]parsedQuery) (*backend.QueryDataResponse, error) {
+func (s *ServiceImpl) executeConcurrentQueries(ctx context.Context, user identity.Requester, skipDSCache bool, reqDTO dtos.MetricRequest, queriesbyDs map[string][]parsedQuery, opts ...queryDataOptions) (*backend.QueryDataResponse, error) {
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(s.concurrentQueryLimit) // prevent too many concurrent requests
 	rchan := make(chan splitResponse, len(queriesbyDs))
@@ -174,7 +181,7 @@ func (s *ServiceImpl) executeConcurrentQueries(ctx context.Context, user identit
 			defer recoveryFn(subDTO.Queries)
 
 			ctxCopy := contexthandler.CopyWithReqContext(ctx)
-			subResp, err := s.QueryData(ctxCopy, user, skipDSCache, subDTO)
+			subResp, err := s.QueryData(ctxCopy, user, skipDSCache, subDTO, opts...)
 			if err == nil {
 				reqCtx, header := contexthandler.FromContext(ctxCopy), http.Header{}
 				if reqCtx != nil {
@@ -308,6 +315,10 @@ func (s *ServiceImpl) handleQuerySingleDatasource(ctx context.Context, user iden
 
 	for _, q := range queries {
 		req.Queries = append(req.Queries, q.query)
+	}
+
+	for h, v := range parsedReq.forwardHeaders {
+		req.SetHTTPHeader(h, v)
 	}
 
 	qsDsClient, ok, err := s.qsDatasourceClientBuilder.BuildClient(ds.Type, ds.UID)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,8 +90,17 @@ func (hs *HTTPServer) redirectFromShortURL(c *contextmodel.ReqContext) {
 		hs.log.Error("Failed to update short URL last seen at", "error", err)
 	}
 
-	hs.log.Debug("Redirecting short URL", "path", shortURL.Path)
-	c.Redirect(setting.ToAbsUrl(shortURL.Path), http.StatusFound)
+	// Fix for double prefix issue: if the stored path already starts with the app subpath
+	// (e.g., "grafana-proxy/d/..."), strip it before calling ToAbsUrl which will prepend AppURL
+	// (which already contains the subpath like "http://localhost:4001/grafana-proxy/")
+	path := shortURL.Path
+	appSubPath := strings.TrimPrefix(hs.Cfg.AppSubURL, "/")
+	if appSubPath != "" && strings.HasPrefix(path, appSubPath+"/") {
+		path = strings.TrimPrefix(path, appSubPath+"/")
+	}
+
+	hs.log.Debug("Redirecting short URL", "path", path)
+	c.Redirect(setting.ToAbsUrl(path), http.StatusFound)
 }
 
 // getShortURL handles requests to get short URLs.

@@ -8,15 +8,17 @@ import {
   AnnotationEventUIModel,
   CoreApp,
   DashboardCursorSync,
-  DataFrame,
+  DataFrame, DataQuery, DataSourceApi, DataSourceRef,
   EventFilterOptions,
   FieldConfigSource,
   getDataSourceRef,
   getDefaultTimeRange,
+  rangeUtil,
   LoadingState,
   PanelData,
   PanelPlugin,
   PanelPluginMeta,
+  ScopedVars,
   PluginContextProvider,
   SetPanelAttentionEvent,
   TimeRange,
@@ -32,6 +34,7 @@ import {
   PanelContextProvider,
   SeriesVisibilityChangeMode,
   AdHocFilterItem,
+  Button,
 } from '@grafana/ui';
 import appEvents from 'app/core/app_events';
 import config from 'app/core/config';
@@ -82,6 +85,21 @@ export interface State {
   context: PanelContext;
   data: PanelData;
   liveTime?: TimeRange;
+}
+
+// Custom type
+interface SendDataToParentProps {
+  type: string;
+  payload: {
+    eventType: string;
+    source: string;
+    value: any;
+  };
+}
+
+// Custom function
+function sendEventToParent(data: SendDataToParentProps) {
+  window.parent.postMessage(data, '*');
 }
 
 export class PanelStateWrapper extends PureComponent<Props, State> {
@@ -496,6 +514,7 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
       return;
     }
 
+
     dispatch(applyFilterFromTable({ datasource: datasourceRef, key, operator, value }));
   };
 
@@ -522,6 +541,7 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
     // Update the event filter (dashboard settings may have changed)
     // Yes this is called ever render for a function that is triggered on every mouse move
     this.eventFilter.onlyLocal = dashboard.graphTooltip === 0;
+
 
     return (
       <>
@@ -599,6 +619,70 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
       >
         {(innerWidth, innerHeight) => (
           <>
+            {(config.featureToggles.oodleInsight) && plugin.meta.id === 'timeseries' && (
+            <Button
+              style={{top: "-32px",right: "28px", position: "absolute", border: 0, padding: 0}}
+              variant="secondary"
+              fill="outline"
+              type="button"
+              data-testid="send-query-button"
+              tooltip={"Oodle insight"}
+              tooltipPlacement="top"
+              hidden={panel.datasource?.type !== 'prometheus'}
+              onClick={() => {
+                const variables = { ...panel?.scopedVars };
+                variables.__interval = {
+                  value: '$__interval',
+                }
+                variables.__interval_ms = {
+                  value: '$__interval_ms',
+                }
+
+                let timeRange = rangeUtil.convertRawToRange(dashboard.time)
+                let rangeDurationMs = timeRange.to.valueOf() - timeRange.from.valueOf()
+
+                getDataSource(panel.datasource, variables)
+                  .then(ds => {
+                    if (ds.interpolateVariablesInQueries) {
+                      let targets = ds.interpolateVariablesInQueries(panel.targets, variables);
+                      sendOodleInsightEvent(
+                        dashboard.uid,
+                        dashboard.title,
+                        panel.title,
+                        panel.id,
+                        panel.key,
+                        targets,
+                        dashboard.time,
+                        rangeDurationMs,
+                        panel?.fieldConfig?.defaults?.unit,
+                      );
+                    } else {
+                      throw new Error('datasource does not support variable interpolation');
+                    }
+                })
+                  .catch(_ => {
+                    sendOodleInsightEvent(
+                      dashboard.uid,
+                      dashboard.title,
+                      panel.title,
+                      panel.id,
+                      panel.key,
+                      panel.targets,
+                      dashboard.time,
+                      rangeDurationMs,
+                      panel?.fieldConfig?.defaults?.unit,
+                    );
+                  });
+              }}
+            >
+              <img
+                src="https://imagedelivery.net/oP5rEbdkySYwiZY4N9HGRw/d0e74e50-902c-4b3c-90af-cabc367bcb00/public"
+                alt="Insight icon"
+                data-testid="insight-icon"
+                style={{ height: '25px' }}
+              />
+            </Button>
+          )}
             <ErrorBoundary
               boundaryName="panel-state-wrapper"
               dependencies={[data, plugin, panel.getOptions()]}
@@ -617,4 +701,48 @@ export class PanelStateWrapper extends PureComponent<Props, State> {
       </PanelChrome>
     );
   }
+}
+
+async function getDataSource(
+  datasource: DataSourceRef | string | DataSourceApi | null,
+  scopedVars: ScopedVars
+): Promise<DataSourceApi> {
+  if (datasource && typeof datasource === 'object' && 'query' in datasource) {
+    return datasource;
+  }
+
+  return await getDatasourceSrv().get(datasource, scopedVars);
+}
+
+const sendOodleInsightEvent = (
+  dashboardUId: string,
+  dashboardTitle: string,
+  panelTitle: string,
+  panelId: number,
+  panelKey: string,
+  expressionData: DataQuery[],
+  dashboardTime: TimeRange,
+  rangeDurationMs: number,
+  unit: string | undefined
+) => {
+  const eventData = {
+    dashboardUId: dashboardUId,
+    dashboardTitle: dashboardTitle,
+    panelTitle: panelTitle,
+    panelId: panelId,
+    panelKey: panelKey,
+    expressionData: expressionData,
+    dashboardTime: dashboardTime,
+    rangeDurationMs: rangeDurationMs,
+    unit: unit
+  }
+
+  sendEventToParent({
+    type: 'message',
+    payload: {
+      source: 'oodle-grafana',
+      eventType: 'sendQuery',
+      value: JSON.parse(JSON.stringify(eventData)),
+    },
+  });
 }

@@ -7,6 +7,7 @@ import { getConfigFromQueryTransformRegistryItem } from './configFromQuery/Confi
 import { getCalculateFieldTransformRegistryItem } from './editors/CalculateFieldTransformerEditor/CalculateFieldTransformerEditor';
 import { getConcatenateTransformRegistryItem } from './editors/ConcatenateTransformerEditor';
 import { getConvertFieldTypeTransformRegistryItem } from './editors/ConvertFieldTypeTransformerEditor';
+import { eventDistributionTransformerRegistryItem } from './editors/EventDistributionTransformerEditor';
 import { getFilterFieldsByNameTransformRegistryItem } from './editors/FilterByNameTransformerEditor';
 import { getFilterFramesByRefIdTransformRegistryItem } from './editors/FilterByRefIdTransformerEditor';
 import { getFormatStringTransformerRegistryItem } from './editors/FormatStringTransformerEditor';
@@ -15,6 +16,7 @@ import { getGroupByTransformRegistryItem } from './editors/GroupByTransformerEdi
 import { getGroupToNestedTableTransformRegistryItem } from './editors/GroupToNestedTableTransformerEditor';
 import { getGroupingToMatrixTransformRegistryItem } from './editors/GroupingToMatrixTransformerEditor';
 import { getHistogramTransformRegistryItem } from './editors/HistogramTransformerEditor';
+import { ignoreRowTransformerRegistryItem } from './editors/IgnoreRowTransformerEditor';
 import { getJoinByFieldTransformerRegistryItem } from './editors/JoinByFieldTransformerEditor';
 import { getLabelsToFieldsTransformerRegistryItem } from './editors/LabelsToFieldsTransformerEditor';
 import { getLimitTransformRegistryItem } from './editors/LimitTransformerEditor';
@@ -70,5 +72,7 @@ export const getStandardTransformers = (): TransformerRegistryItem[] => {
     getFormatTimeTransformerRegistryItem(),
     getTimeSeriesTableTransformRegistryItem(),
     getTransposeTransformerRegistryItem(),
+    eventDistributionTransformerRegistryItem,
+    ignoreRowTransformerRegistryItem,
   ];
 };

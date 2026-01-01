@@ -16,9 +16,9 @@ $theme-name: dark;
 
 // New Colors
 // -------------------------
-$blue-base: #3d71d9;
-$red-base: #d10e5c;
-$green-base: #1a7f4b;
+$blue-base: #0091cf;
+$red-base: #D10E5C;
+$green-base: #1A7F4B;
 
 // Grays
 // -------------------------
@@ -55,7 +55,7 @@ $text-color-emphasis: #ffffff;
 // Links
 // -------------------------
 $link-color: rgb(204, 204, 220);
-$link-color-disabled: rgba(204, 204, 220, 0.61);
+$link-color-disabled: rgba(204, 204, 220, 0.4);
 $link-hover-color: #ffffff;
 
 // Typography
@@ -131,15 +131,15 @@ $menu-dropdown-shadow: 0px 8px 24px rgb(1, 4, 9);
 
 // Form states and alerts
 // -------------------------
-$alert-error-bg: #d10e5c;
-$alert-success-bg: #1a7f4b;
-$alert-warning-bg: #ff9900;
-$alert-info-bg: #ff9900;
+$alert-error-bg: #D10E5C;
+$alert-success-bg: #1A7F4B;
+$alert-warning-bg: #FF9900;
+$alert-info-bg: #FF9900;
 
 // Tooltips and popovers
 // -------------------------
 $tooltipLinkColor: $link-color;
-$tooltipExternalLinkColor: #6e9fff;
+$tooltipExternalLinkColor: #00B7FF;
 $graph-tooltip-bg: $dark-1;
 
 $tooltipBackground: #22252b;
