@@ -65,7 +65,6 @@ export const eventDistributionTransformer: DataTransformerInfo<EventDistribution
                     }
 
                     const labels = frame.fields[1].labels;
-                    console.log('Labels:', labels);
 
                     // Get time value from labels
                     const timeValueStr = labels[timeFieldName];

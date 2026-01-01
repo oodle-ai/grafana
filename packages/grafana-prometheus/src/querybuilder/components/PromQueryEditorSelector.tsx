@@ -76,6 +76,14 @@ export const PromQueryEditorSelector = memo<Props>((props) => {
   const [queryPatternsModalOpen, setQueryPatternsModalOpen] = useState(false);
   const [dataIsStale, setDataIsStale] = useState(false);
   const delayTrigger = useMemo(() => new DelayedTriggerState(onRunQuery), [onRunQuery]);
+
+  // Cleanup the delayTrigger timer on unmount to prevent state updates on unmounted component
+  useEffect(() => {
+    return () => {
+      delayTrigger.reset();
+    };
+  }, [delayTrigger]);
+
   const { flag: explain, setFlag: setExplain } = useFlag(promQueryEditorExplainKey);
   const [hideBuilderMode, setHideBuilderMode] = useState<boolean>(false);
 
