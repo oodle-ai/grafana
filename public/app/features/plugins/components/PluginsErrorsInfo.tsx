@@ -20,6 +20,8 @@ export function PluginsErrorsInfo({ filterByPluginType }: PluginsErrorInfoProps)
     return null;
   }
 
+  // Ignore unsigned plugin errors.
+  return null;
   return (
     <Alert
       title={t(
