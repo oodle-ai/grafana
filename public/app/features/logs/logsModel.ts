@@ -44,7 +44,6 @@ import { t } from '@grafana/i18n';
 import { config } from '@grafana/runtime';
 import { BarAlignment, GraphDrawStyle, StackingMode } from '@grafana/schema';
 import { colors } from '@grafana/ui';
-import { getThemeColor } from 'app/core/utils/colors';
 import { LokiQueryDirection } from 'app/plugins/datasource/loki/types';
 
 import { LogsFrame, parseLogsFrame } from './logsFrame';
@@ -61,7 +60,7 @@ export const LogLevelColor = {
   [LogLevel.info]: colors[0],
   [LogLevel.debug]: colors[5],
   [LogLevel.trace]: colors[2],
-  [LogLevel.unknown]: getThemeColor('#8e8e8e', '#bdc4cd'),
+  [LogLevel.unknown]: '#5EA4C2', // oodle blue
 };
 
 const MILLISECOND = 1;
