@@ -43,8 +43,10 @@ import { PanelDataErrorView } from 'app/features/panel/components/PanelDataError
 import { combineResponses } from 'app/plugins/datasource/loki/mergeResponses';
 
 import { createAndCopyShortLink, getLogsPermalinkRange } from '../../../core/utils/shortLinks';
+import { DataExplorerLink, getIndexPatternName } from '../../../features/logs/components/DataExplorerLink';
 import { LogLabels } from '../../../features/logs/components/LogLabels';
 import { LogRows } from '../../../features/logs/components/LogRows';
+import { useDatasourcesFromTargets } from '../../../features/logs/components/useDatasourcesFromTargets';
 import { COMMON_LABELS, dataFrameToLogsModel, dedupLogRows } from '../../../features/logs/logsModel';
 
 import type { Options } from './panelcfg.gen';
@@ -65,7 +67,7 @@ import {
   isSetDisplayedFields,
   onNewLogsReceivedType,
 } from './types';
-import { useDatasourcesFromTargets } from './useDatasourcesFromTargets';
+
 
 interface LogsPanelProps extends PanelProps<Options> {
   /**
@@ -320,12 +322,12 @@ export const LogsPanel = ({
   const [logRows, deduplicatedRows, commonLabels] = useMemo(() => {
     const logs = panelData
       ? dataFrameToLogsModel(
-          panelData.series,
-          panelData.request?.intervalMs,
-          undefined,
-          panelData.request?.targets,
-          Boolean(enableInfiniteScrolling)
-        )
+        panelData.series,
+        panelData.request?.intervalMs,
+        undefined,
+        panelData.request?.targets,
+        Boolean(enableInfiniteScrolling)
+      )
       : null;
     const logRows = logs?.rows || [];
     const commonLabels = logs?.meta?.find((m) => m.label === COMMON_LABELS);
@@ -525,6 +527,19 @@ export const LogsPanel = ({
     return `${data.request?.dashboardUID}.${id}`;
   }, [controlsStorageKey, data.request, id]);
 
+  // Check if any datasource has an index pattern for the Data Explorer link
+  // This must be before the early return to maintain consistent hook order
+  const hasIndexPatternTargets = useMemo(() => {
+    const targets = panelData.request?.targets;
+    if (!targets || dataSourcesMap.size === 0) {
+      return false;
+    }
+    return targets.some((target) => {
+      const ds = dataSourcesMap.get(target.refId);
+      return ds && getIndexPatternName(ds) !== null;
+    });
+  }, [panelData.request?.targets, dataSourcesMap]);
+
   if (!data || logRows.length === 0) {
     return <PanelDataErrorView fieldConfig={fieldConfig} panelId={id} data={data} needsStringField />;
   }
@@ -543,7 +558,16 @@ export const LogsPanel = ({
   const detailsMode = detailsModeProp ? detailsModeProp : app === CoreApp.Dashboard ? 'inline' : undefined;
 
   return (
-    <>
+    <div className={style.panelWrapper}>
+      {hasIndexPatternTargets && (
+        <div className={style.panelHeader}>
+          <DataExplorerLink
+            targets={panelData.request?.targets}
+            dataSourcesMap={dataSourcesMap}
+            timeRange={panelData.timeRange}
+          />
+        </div>
+      )}
       {(!config.featureToggles.newLogsPanel || !config.featureToggles.newLogContext) && contextRow && (
         <LogRowContextModal
           open={contextRow !== null}
@@ -745,11 +769,22 @@ export const LogsPanel = ({
           {showCommonLabels && isAscending && renderCommonLabels()}
         </div>
       )}
-    </>
+    </div>
   );
 };
 
 const getStyles = (theme: GrafanaTheme2) => ({
+  panelWrapper: css({
+    position: 'relative',
+    height: '100%',
+    width: '100%',
+  }),
+  panelHeader: css({
+    position: 'absolute',
+    top: theme.spacing(-4),
+    right: theme.spacing(4),
+    zIndex: 1,
+  }),
   container: css({
     marginBottom: theme.spacing(1.5),
   }),
