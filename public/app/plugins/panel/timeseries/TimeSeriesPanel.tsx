@@ -21,6 +21,8 @@ import { EventBusPlugin, KeyboardPlugin, TooltipPlugin2, usePanelContext, useSty
 import { TimeRange2, TooltipHoverMode } from '@grafana/ui/internal';
 import { TimeSeries } from 'app/core/components/TimeSeries/TimeSeries';
 import { config } from 'app/core/config';
+import { DataExplorerLink, getIndexPatternName } from 'app/features/logs/components/DataExplorerLink';
+import { useDatasourcesFromTargets } from 'app/features/logs/components/useDatasourcesFromTargets';
 
 import { TimeSeriesTooltip } from './TimeSeriesTooltip';
 import { Options } from './panelcfg.gen';
@@ -66,6 +68,19 @@ export const TimeSeriesPanel = ({
   const [showAllSeries, toggleShowAllSeries] = useToggle(false);
   const styles = useStyles2(getStyles);
   const [customAnnotations, setCustomAnnotations] = useState<DataFrame[]>([]);
+  const dataSourcesMap = useDatasourcesFromTargets(data.request?.targets);
+
+  // Check if any datasource has an index pattern (logs datasource) for the Data Explorer link
+  const hasIndexPatternTargets = useMemo(() => {
+    const targets = data.request?.targets;
+    if (!targets || dataSourcesMap.size === 0) {
+      return false;
+    }
+    return targets.some((target) => {
+      const ds = dataSourcesMap.get(target.refId);
+      return ds && getIndexPatternName(ds) !== null;
+    });
+  }, [data.request?.targets, dataSourcesMap]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -192,7 +207,16 @@ export const TimeSeriesPanel = ({
   const shouldShowSeriesWarning = !showAllSeries && MAX_NUMBER_OF_TIME_SERIES < data.series.length;
 
   return (
-    <>
+    <div className={styles.panelWrapper}>
+      {hasIndexPatternTargets && (
+        <div className={styles.panelHeader}>
+          <DataExplorerLink
+            targets={data.request?.targets}
+            dataSourcesMap={dataSourcesMap}
+            timeRange={timeRange}
+          />
+        </div>
+      )}
       {shouldShowSeriesWarning && (
         <div className={styles.timeSeriesDisclaimer}>
           <span className={styles.warningMessage}>
@@ -317,11 +341,22 @@ export const TimeSeriesPanel = ({
         );
       }}
     </TimeSeries>
-    </>
+    </div>
   );
 };
 
 const getStyles = (theme: GrafanaTheme2) => ({
+  panelWrapper: css({
+    position: 'relative',
+    height: '100%',
+    width: '100%',
+  }),
+  panelHeader: css({
+    position: 'absolute',
+    top: theme.spacing(-4),
+    right: theme.spacing(4),
+    zIndex: 1,
+  }),
   timeSeriesDisclaimer: css({
     label: 'time-series-disclaimer',
     display: 'flex',
