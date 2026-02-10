@@ -3576,19 +3576,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grafana/scenes@git+https://github.com/oodle-ai/scenes.git#67ab9969e7e8d55a079c8c172ceccec66eb0765c":
-  version: 0.15.0
-  resolution: "@grafana/scenes@https://github.com/oodle-ai/scenes.git#commit=67ab9969e7e8d55a079c8c172ceccec66eb0765c"
-  checksum: 10/a7c569e0f05ee9b2082aab82791be4c881e6d2daae463565be2facfa7b12bd49c7f70580941aed955af794445f9775d7934e10a850707654b8afbf80b6bf17aa
-  languageName: node
-  linkType: hard
-
 "@grafana/scenes@git+https://github.com/oodle-ai/scenes.git#a8f1d2aa1aefd9731a08007f6530015ee3ca8bf7":
   version: 0.15.0
   resolution: "@grafana/scenes@https://github.com/oodle-ai/scenes.git#commit=a8f1d2aa1aefd9731a08007f6530015ee3ca8bf7"
   checksum: 10/59da6d7f3313590bdebe83f069bbeb5d445b74431ac17df5639098ef984affc10a51e5865cec2b89eaa663bfbd8052947ad7c1b9f6bd2909e8fc3bb0bcf9518f
   languageName: node
   linkType: hard
+
+"@grafana/scenes@link:/Users/anirudsamala/repo/oodle-ai/scenes/packages/scenes::locator=grafana%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "@grafana/scenes@link:/Users/anirudsamala/repo/oodle-ai/scenes/packages/scenes::locator=grafana%40workspace%3A."
+  languageName: node
+  linkType: soft
 
 "@grafana/scenes@npm:6.38.0":
   version: 6.38.0
@@ -18918,7 +18917,7 @@ __metadata:
     "@grafana/plugin-ui": "npm:^0.10.10"
     "@grafana/prometheus": "workspace:*"
     "@grafana/runtime": "workspace:*"
-    "@grafana/scenes": "git+https://github.com/oodle-ai/scenes.git#67ab9969e7e8d55a079c8c172ceccec66eb0765c"
+    "@grafana/scenes": "link:/Users/anirudsamala/repo/oodle-ai/scenes/packages/scenes"
     "@grafana/scenes-react": "npm:6.52.0"
     "@grafana/schema": "workspace:*"
     "@grafana/sql": "workspace:*"

@@ -2,7 +2,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { MockDataSourceApi, DatasourceSrvMock } from 'test/mocks/datasource_srv';
 
-import { useDatasourcesFromTargets } from './useDatasourcesFromTargets'; // Update the path accordingly
+import { useDatasourcesFromTargets } from '../../../features/logs/components/useDatasourcesFromTargets';
 
 const defaultDs = new MockDataSourceApi('default datasource', { data: ['default data'] });
 const ds1 = new MockDataSourceApi('dataSource1');

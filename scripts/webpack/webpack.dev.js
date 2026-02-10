@@ -134,6 +134,8 @@ module.exports = (env = {}) => {
       name: 'grafana-default-development',
       buildDependencies: {
         config: [__filename],
+        // Invalidate cache when linked scenes package is rebuilt
+        linkedScenes: [path.resolve('./node_modules/@grafana/scenes/dist/index.js')],
       },
     },
 
