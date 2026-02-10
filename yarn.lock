@@ -3576,17 +3576,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grafana/scenes@git+https://github.com/oodle-ai/scenes.git#67ab9969e7e8d55a079c8c172ceccec66eb0765c":
+"@grafana/scenes@git+https://github.com/oodle-ai/scenes.git#1ce0ab49ce7e962026725aaa81d88196c5b97b53":
   version: 0.15.0
-  resolution: "@grafana/scenes@https://github.com/oodle-ai/scenes.git#commit=67ab9969e7e8d55a079c8c172ceccec66eb0765c"
-  checksum: 10/a7c569e0f05ee9b2082aab82791be4c881e6d2daae463565be2facfa7b12bd49c7f70580941aed955af794445f9775d7934e10a850707654b8afbf80b6bf17aa
+  resolution: "@grafana/scenes@https://github.com/oodle-ai/scenes.git#commit=1ce0ab49ce7e962026725aaa81d88196c5b97b53"
+  checksum: 10/62b43d7d8dc25859d576af2361ad174c787aad11c97bd89ca82668823df00e9c7df7f043cded326982a3765339182c0798434b9e174525b5a756e3a67ef2a04f
   languageName: node
   linkType: hard
 
-"@grafana/scenes@git+https://github.com/oodle-ai/scenes.git#a8f1d2aa1aefd9731a08007f6530015ee3ca8bf7":
+"@grafana/scenes@git+https://github.com/oodle-ai/scenes.git#c012b1c98821e7ef7a27ac5a6f24e54bf5695ad2":
   version: 0.15.0
-  resolution: "@grafana/scenes@https://github.com/oodle-ai/scenes.git#commit=a8f1d2aa1aefd9731a08007f6530015ee3ca8bf7"
-  checksum: 10/59da6d7f3313590bdebe83f069bbeb5d445b74431ac17df5639098ef984affc10a51e5865cec2b89eaa663bfbd8052947ad7c1b9f6bd2909e8fc3bb0bcf9518f
+  resolution: "@grafana/scenes@https://github.com/oodle-ai/scenes.git#commit=c012b1c98821e7ef7a27ac5a6f24e54bf5695ad2"
+  checksum: 10/076ace1e9b1311d1fc945f9cc665b4497ef8a5cbbc87356b958d68a96121a70303a8b0444ce4fe29249e5c4155364782b62c53fc3fb29cfdf85edd3cef9a0c65
   languageName: node
   linkType: hard
 
@@ -18918,7 +18918,7 @@ __metadata:
     "@grafana/plugin-ui": "npm:^0.10.10"
     "@grafana/prometheus": "workspace:*"
     "@grafana/runtime": "workspace:*"
-    "@grafana/scenes": "git+https://github.com/oodle-ai/scenes.git#67ab9969e7e8d55a079c8c172ceccec66eb0765c"
+    "@grafana/scenes": "git+https://github.com/oodle-ai/scenes.git#c012b1c98821e7ef7a27ac5a6f24e54bf5695ad2"
     "@grafana/scenes-react": "npm:6.52.0"
     "@grafana/schema": "workspace:*"
     "@grafana/sql": "workspace:*"
