@@ -631,8 +631,9 @@ describe('PrometheusDatasource', () => {
         customVariable.multi = true;
       });
 
-      it('should regex escape values if the value is a string', () => {
-        expect(ds.interpolateQueryExpr('looking*glass', customVariable)).toEqual('looking\\\\*glass');
+      it('should preserve regex metacharacters if the value is a string', () => {
+        expect(ds.interpolateQueryExpr('looking*glass', customVariable)).toEqual('looking*glass');
+        expect(ds.interpolateQueryExpr('de.*', customVariable)).toEqual('de.*');
       });
 
       it('should return pipe separated values if the value is an array of strings', () => {
@@ -649,8 +650,9 @@ describe('PrometheusDatasource', () => {
         customVariable.includeAll = true;
       });
 
-      it('should regex escape values if the array is a string', () => {
-        expect(ds.interpolateQueryExpr('looking*glass', customVariable)).toEqual('looking\\\\*glass');
+      it('should preserve regex metacharacters if the value is a string', () => {
+        expect(ds.interpolateQueryExpr('looking*glass', customVariable)).toEqual('looking*glass');
+        expect(ds.interpolateQueryExpr('de.*', customVariable)).toEqual('de.*');
       });
 
       it('should return pipe separated values if the value is an array of strings', () => {

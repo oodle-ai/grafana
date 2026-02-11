@@ -14,7 +14,9 @@ export function interpolateQueryExpr(
   }
 
   if (typeof value === 'string') {
-    return prometheusSpecialRegexEscape(value);
+    // For single string values, preserve regex metacharacters so user-entered
+    // patterns like de.* work as expected in =~ matchers.
+    return escapePromQLRegexString(value);
   }
 
   const escapedValues = value.map((val) => prometheusSpecialRegexEscape(val));
@@ -66,6 +68,22 @@ export function prometheusSpecialRegexEscape<T>(value: T) {
   return value
     .replace(/\\/g, '\\\\\\\\') // escape backslashes
     .replace(/[$^*{}\[\]+?.()|]/g, '\\\\$&'); // escape regex metacharacters
+}
+
+// Escapes a string value for safe insertion into a PromQL regex string literal,
+// while preserving regex metacharacters so user-entered patterns like foo.*bar work.
+// Only escapes backslashes and quotes (the characters that would break the string literal).
+function escapePromQLRegexString(value: string): string {
+  if (config.featureToggles.prometheusSpecialCharsInLabelValues) {
+    return value
+      .replace(/\\/g, '\\\\\\\\') // escape backslashes (two-layer: PromQL string + RE2)
+      .replace(/"/g, '\\\\\\"'); // escape double quotes for PromQL string literal
+  }
+
+  // classic behavior
+  return value
+    .replace(/\\/g, '\\\\\\\\') // escape backslashes (two-layer: PromQL string + RE2)
+    .replace(/'/g, "\\\\'"); // escape single quotes
 }
 
 // NOTE: the following 2 exported functions are very similar to the prometheus*Escape
