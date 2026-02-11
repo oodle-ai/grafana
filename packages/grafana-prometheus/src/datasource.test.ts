@@ -631,16 +631,24 @@ describe('PrometheusDatasource', () => {
         customVariable.multi = true;
       });
 
-      it('should regex escape values if the value is a string', () => {
+      it('should regex escape values without .* pattern', () => {
         expect(ds.interpolateQueryExpr('looking*glass', customVariable)).toEqual('looking\\\\*glass');
+      });
+
+      it('should preserve regex metacharacters when value contains .*', () => {
+        expect(ds.interpolateQueryExpr('de.*', customVariable)).toEqual('de.*');
       });
 
       it('should return pipe separated values if the value is an array of strings', () => {
         expect(ds.interpolateQueryExpr(['a|bc', 'de|f'], customVariable)).toEqual('(a\\\\|bc|de\\\\|f)');
       });
 
-      it('should return 1 regex escaped value if there is just 1 value in an array of strings', () => {
+      it('should regex escape 1-element array without .* pattern', () => {
         expect(ds.interpolateQueryExpr(['looking*glass'], customVariable)).toEqual('looking\\\\*glass');
+      });
+
+      it('should preserve regex metacharacters for 1-element array containing .*', () => {
+        expect(ds.interpolateQueryExpr(['de.*'], customVariable)).toEqual('de.*');
       });
     });
 
@@ -649,16 +657,24 @@ describe('PrometheusDatasource', () => {
         customVariable.includeAll = true;
       });
 
-      it('should regex escape values if the array is a string', () => {
+      it('should regex escape values without .* pattern', () => {
         expect(ds.interpolateQueryExpr('looking*glass', customVariable)).toEqual('looking\\\\*glass');
+      });
+
+      it('should preserve regex metacharacters when value contains .*', () => {
+        expect(ds.interpolateQueryExpr('de.*', customVariable)).toEqual('de.*');
       });
 
       it('should return pipe separated values if the value is an array of strings', () => {
         expect(ds.interpolateQueryExpr(['a|bc', 'de|f'], customVariable)).toEqual('(a\\\\|bc|de\\\\|f)');
       });
 
-      it('should return 1 regex escaped value if there is just 1 value in an array of strings', () => {
+      it('should regex escape 1-element array without .* pattern', () => {
         expect(ds.interpolateQueryExpr(['looking*glass'], customVariable)).toEqual('looking\\\\*glass');
+      });
+
+      it('should preserve regex metacharacters for 1-element array containing .*', () => {
+        expect(ds.interpolateQueryExpr(['de.*'], customVariable)).toEqual('de.*');
       });
     });
   });
