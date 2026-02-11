@@ -14,17 +14,20 @@ export function interpolateQueryExpr(
   }
 
   if (typeof value === 'string') {
-    // For single string values, preserve regex metacharacters so user-entered
-    // patterns like de.* work as expected in =~ matchers.
-    return escapePromQLRegexString(value);
+    // If the value looks like an intentional regex pattern (contains .*),
+    // preserve metacharacters so it works as expected in =~ matchers.
+    // Otherwise use the original escape path for literal label values.
+    return looksLikeRegex(value) ? escapePromQLRegexString(value) : prometheusSpecialRegexEscape(value);
   }
 
+  // Single-element array: same logic as single string.
+  // (templateSrv always passes single selections as a 1-element array for multi/includeAll variables)
+  if (value.length === 1) {
+    return looksLikeRegex(value[0]) ? escapePromQLRegexString(value[0]) : prometheusSpecialRegexEscape(value[0]);
+  }
+
+  // Multiple values: escape all regex metacharacters in each value to build a safe (val1|val2) alternation.
   const escapedValues = value.map((val) => prometheusSpecialRegexEscape(val));
-
-  if (escapedValues.length === 1) {
-    return escapedValues[0];
-  }
-
   return '(' + escapedValues.join('|') + ')';
 }
 
@@ -68,6 +71,11 @@ export function prometheusSpecialRegexEscape<T>(value: T) {
   return value
     .replace(/\\/g, '\\\\\\\\') // escape backslashes
     .replace(/[$^*{}\[\]+?.()|]/g, '\\\\$&'); // escape regex metacharacters
+}
+
+// Returns true if the value contains .* indicating the user intended it as a regex pattern.
+function looksLikeRegex(value: string): boolean {
+  return value.includes('.*');
 }
 
 // Escapes a string value for safe insertion into a PromQL regex string literal,
