@@ -58,6 +58,21 @@ type JsonData struct {
 	SecureDSProxyUsername   string `json:"secureSocksProxyUsername"`
 	AllowCleartextPasswords bool   `json:"allowCleartextPasswords"`
 	AuthenticationType      string `json:"authenticationType"`
+	// OodleAgentName, when set, indicates this
+	// datasource is routed through an Oodle agent.
+	// The postgres plugin builds the routing-encoded
+	// database name at connection time.
+	OodleAgentName string `json:"oodleAgentName"`
+	// OodleInstance is the customer instance ID
+	// (server-resolved, not user-editable).
+	OodleInstance string `json:"oodleInstance"`
+	// OodlePgHost is the Postgres host:port reachable
+	// from the agent's network.
+	OodlePgHost string `json:"oodlePgHost"`
+	// OodleGatewayUrl is the gateway TCP proxy
+	// address used at connection time (the
+	// datasource url field shows the real PG host).
+	OodleGatewayUrl string `json:"oodleGatewayUrl"`
 }
 
 type DataSourceInfo struct {

@@ -308,7 +308,39 @@ func generateConnectionString(dsInfo sqleng.DataSourceInfo, tlsSettings tlsSetti
 		return "", err
 	}
 
+	// If this is an agent-routed datasource, override
+	// the host to the gateway (the datasource url
+	// shows the real PG host for display) and build
+	// the routing-encoded database name.
+	if dsInfo.JsonData.OodleAgentName != "" {
+		gwHost, gwPort, gwErr := parseNetworkAddress(
+			dsInfo.JsonData.OodleGatewayUrl,
+			logger,
+		)
+		if gwErr == nil {
+			params.host = gwHost
+			params.port = gwPort
+		}
+		params.database = fmt.Sprintf(
+			"%s/%s/%s/%s",
+			dsInfo.JsonData.OodleInstance,
+			dsInfo.JsonData.OodleAgentName,
+			dsInfo.JsonData.OodlePgHost,
+			dsInfo.Database,
+		)
+	}
+
 	connStr := buildBaseConnectionString(params)
+
+	if dsInfo.JsonData.OodleAgentName != "" {
+		token := dsInfo.DecryptedSecureJSONData["oodleDatasourceKey"]
+		if token != "" {
+			connStr += fmt.Sprintf(
+				" application_name='%s'",
+				escape(token),
+			)
+		}
+	}
 
 	connStr += fmt.Sprintf(" sslmode='%s'", escape(tlsSettings.Mode))
 
