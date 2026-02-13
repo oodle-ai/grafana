@@ -1,4 +1,5 @@
 import { css, cx } from '@emotion/css';
+import React from 'react';
 import { components, GroupBase, SingleValueProps } from 'react-select';
 
 import { GrafanaTheme2, SelectableValue, toIconName } from '@grafana/data';
@@ -57,6 +58,22 @@ export const SingleValue = <T extends unknown>(props: Props<T>) => {
   const styles = useStyles2(getStyles);
   const loading = useDelayedSwitch(data.loading || false, { delay: 250, duration: 750 });
   const icon = data.icon ? toIconName(data.icon) : undefined;
+  const valueTextRef = React.useRef<HTMLSpanElement>(null);
+
+  const onContextMenu = React.useCallback((e: React.MouseEvent<HTMLSpanElement>) => {
+    const el = valueTextRef.current;
+    if (!el) {
+      return;
+    }
+    const selection = window.getSelection();
+    if (!selection) {
+      return;
+    }
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }, []);
 
   return (
     <components.SingleValue
@@ -76,7 +93,16 @@ export const SingleValue = <T extends unknown>(props: Props<T>) => {
         </>
       )}
 
-      {!data.hideText && children}
+      {!data.hideText && (
+        <span
+          ref={valueTextRef}
+          onContextMenu={onContextMenu}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{ minWidth: 0, userSelect: 'text' }}
+        >
+          {children}
+        </span>
+      )}
     </components.SingleValue>
   );
 };

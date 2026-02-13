@@ -21,7 +21,7 @@ import { CustomInput } from './CustomInput';
 import { DropdownIndicator } from './DropdownIndicator';
 import { IndicatorsContainer } from './IndicatorsContainer';
 import { InputControl } from './InputControl';
-import { MultiValueContainer, MultiValueRemove } from './MultiValue';
+import { MultiValueContainer, MultiValueLabel, MultiValueRemove } from './MultiValue';
 import { SelectContainer } from './SelectContainer';
 import { SelectMenu, SelectMenuOptions, VirtualizedSelectMenu } from './SelectMenu';
 import { SelectOptionGroup } from './SelectOptionGroup';
@@ -60,7 +60,17 @@ const CustomControl = (props: any) => {
   return (
     <InputControl
       ref={innerRef}
-      innerProps={innerProps}
+      innerProps={{
+        ...innerProps,
+        onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => {
+          // Only forward left-click to react-select; allow right-click
+          // for native text selection and browser context menu
+          if (e.button !== 0) {
+            return;
+          }
+          innerProps.onMouseDown?.(e);
+        },
+      }}
       prefix={selectProps.prefix}
       focused={isFocused}
       invalid={!!selectProps.invalid}
@@ -406,6 +416,7 @@ export function SelectBase<T, Rest = {}>({
           },
           SelectContainer,
           MultiValueContainer: MultiValueContainer,
+          MultiValueLabel: MultiValueLabel,
           MultiValueRemove: !disabled ? MultiValueRemove : () => null,
           Input: CustomInput,
           ...components,

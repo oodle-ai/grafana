@@ -13,7 +13,8 @@ export default function resetSelectStyles(theme: GrafanaTheme2) {
     groupHeading: () => ({}),
     indicatorsContainer: () => ({}),
     indicatorSeparator: () => ({}),
-    input: function (originalStyles: CSSObjectWithLabel) {
+    input: function (originalStyles: CSSObjectWithLabel, props: { selectProps?: { menuIsOpen?: boolean } }) {
+      const menuIsOpen = props?.selectProps?.menuIsOpen ?? false;
       return {
         ...originalStyles,
         color: 'inherit',
@@ -22,6 +23,8 @@ export default function resetSelectStyles(theme: GrafanaTheme2) {
         // Set an explicit z-index here to ensure this element always overlays the singleValue
         zIndex: 1,
         overflow: 'hidden',
+        // When menu is closed, allow clicks to pass through to SingleValue for drag-select and right-click copy
+        pointerEvents: menuIsOpen ? undefined : ('none' as const),
       };
     },
     loadingIndicator: () => ({}),

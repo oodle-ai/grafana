@@ -30,14 +30,19 @@ function getDecoupledPlugins() {
   return packages.filter((pkg) => pkg.dir.includes('plugins/datasource')).map((pkg) => `${pkg.dir}/**`);
 }
 
-// When linking scenes for development, resolve the path to the src directory for sourcemaps
+// When linking scenes for development, resolve directly to the CJS dist entry.
+// The ESM build (dist/esm) has a rollup preserveModules bug that drops the
+// performanceUtils namespace export, so we force webpack to use the CJS build
+// which bundles everything correctly.
+// Run `yarn build` in the scenes package before starting Grafana.
 function scenesModule() {
   const scenesPath = path.resolve('./node_modules/@grafana/scenes');
   try {
     const status = fs.lstatSync(scenesPath);
     if (status.isSymbolicLink()) {
-      console.log(`scenes is linked to local scenes repo`);
-      return path.resolve(scenesPath + '/src');
+      const cjsEntry = path.resolve(scenesPath, 'dist/index.js');
+      console.log(`scenes is linked to local scenes repo (using CJS dist: ${cjsEntry})`);
+      return cjsEntry;
     }
   } catch (error) {
     console.error(`Error checking scenes path: ${error.message}`);
@@ -71,6 +76,21 @@ module.exports = (env = {}) => {
         // This is required to correctly resolve react-router-dom when linking with
         //  local version of @grafana/scenes
         'react-router-dom': path.resolve('./node_modules/react-router-dom'),
+
+        // Ensure linked scenes uses Grafana's rxjs to avoid duplicate instance type mismatches
+        rxjs: path.resolve('./node_modules/rxjs'),
+
+        // Ensure linked scenes resolves @grafana/* packages from Grafana's node_modules
+        // to avoid duplicate module instances (different React contexts, etc.).
+        // The `$` suffix = exact match only, so @grafana/ui/internal still resolves normally.
+        // @grafana/schema has NO `$` so deep subpath imports (e.g. /src/raw/...) also redirect.
+        '@grafana/schema': path.resolve('./node_modules/@grafana/schema'),
+        '@grafana/data$': path.resolve('./node_modules/@grafana/data'),
+        '@grafana/runtime$': path.resolve('./node_modules/@grafana/runtime'),
+        '@grafana/ui$': path.resolve('./node_modules/@grafana/ui'),
+        '@grafana/e2e-selectors$': path.resolve('./node_modules/@grafana/e2e-selectors'),
+        '@emotion/react$': path.resolve('./node_modules/@emotion/react'),
+
         '@grafana/scenes': scenesModule(),
       },
     },
