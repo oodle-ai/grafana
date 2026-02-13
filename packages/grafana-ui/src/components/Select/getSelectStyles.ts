@@ -139,6 +139,13 @@ export const getSelectStyles = stylesFactory((theme: GrafanaTheme2) => {
         background: theme.colors.emphasize(theme.colors.background.secondary),
       },
     }),
+    multiValueLabel: css({
+      label: 'grafana-select-multi-value-label',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      minWidth: 0,
+    }),
     multiValueRemove: css({
       label: 'grafana-select-multi-value-remove',
       margin: theme.spacing(0, 0.5),
