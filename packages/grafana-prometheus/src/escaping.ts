@@ -20,15 +20,12 @@ export function interpolateQueryExpr(
     return looksLikeRegex(value) ? escapePromQLRegexString(value) : prometheusSpecialRegexEscape(value);
   }
 
-  // Single-element array: same logic as single string.
-  // (templateSrv always passes single selections as a 1-element array for multi/includeAll variables)
-  if (value.length === 1) {
-    return looksLikeRegex(value[0]) ? escapePromQLRegexString(value[0]) : prometheusSpecialRegexEscape(value[0]);
-  }
-
-  // Multiple values: escape all regex metacharacters in each value to build a safe (val1|val2) alternation.
-  const escapedValues = value.map((val) => prometheusSpecialRegexEscape(val));
-  return '(' + escapedValues.join('|') + ')';
+  // For each value, preserve regex metacharacters if it looks like an intentional
+  // regex pattern (contains .*); otherwise escape them for literal matching.
+  const escapedValues = value.map((val) =>
+    looksLikeRegex(val) ? escapePromQLRegexString(val) : prometheusSpecialRegexEscape(val)
+  );
+  return escapedValues.length === 1 ? escapedValues[0] : '(' + escapedValues.join('|') + ')';
 }
 
 // no way to reuse one in the another or vice versa.
