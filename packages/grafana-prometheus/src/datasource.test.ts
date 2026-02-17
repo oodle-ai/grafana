@@ -643,6 +643,12 @@ describe('PrometheusDatasource', () => {
         expect(ds.interpolateQueryExpr(['a|bc', 'de|f'], customVariable)).toEqual('(a\\\\|bc|de\\\\|f)');
       });
 
+      it('should preserve regex metacharacters per-value in multi-value arrays', () => {
+        expect(ds.interpolateQueryExpr(['de.*', 'exact'], customVariable)).toEqual('(de.*|exact)');
+        expect(ds.interpolateQueryExpr(['foo.*bar', 'a|bc'], customVariable)).toEqual('(foo.*bar|a\\\\|bc)');
+        expect(ds.interpolateQueryExpr(['de.*', 'foo.*bar'], customVariable)).toEqual('(de.*|foo.*bar)');
+      });
+
       it('should regex escape 1-element array without .* pattern', () => {
         expect(ds.interpolateQueryExpr(['looking*glass'], customVariable)).toEqual('looking\\\\*glass');
       });
@@ -667,6 +673,12 @@ describe('PrometheusDatasource', () => {
 
       it('should return pipe separated values if the value is an array of strings', () => {
         expect(ds.interpolateQueryExpr(['a|bc', 'de|f'], customVariable)).toEqual('(a\\\\|bc|de\\\\|f)');
+      });
+
+      it('should preserve regex metacharacters per-value in multi-value arrays', () => {
+        expect(ds.interpolateQueryExpr(['de.*', 'exact'], customVariable)).toEqual('(de.*|exact)');
+        expect(ds.interpolateQueryExpr(['foo.*bar', 'a|bc'], customVariable)).toEqual('(foo.*bar|a\\\\|bc)');
+        expect(ds.interpolateQueryExpr(['de.*', 'foo.*bar'], customVariable)).toEqual('(de.*|foo.*bar)');
       });
 
       it('should regex escape 1-element array without .* pattern', () => {
