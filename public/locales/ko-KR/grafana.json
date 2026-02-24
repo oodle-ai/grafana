@@ -3508,7 +3508,7 @@
       "tip": "내비게이션 메뉴의 항목에 마우스를 갖다대고 북마크 아이콘을 클릭하면 여기에 추가됩니다."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "로딩 중"
   },
   "browse-dashboards": {

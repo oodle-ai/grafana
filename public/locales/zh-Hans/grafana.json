@@ -3508,7 +3508,7 @@
       "tip": "将光标悬停在导航菜单中的任何项目上，然后点击书签图标，即可将其添加到此处。"
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "正在加载"
   },
   "browse-dashboards": {

@@ -3520,7 +3520,7 @@
       "tip": "Beweeg de muisaanwijzer over een item in het navigatiemenu en klik op het bladwijzerpictogram om het hier toe te voegen."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "Bezig met laden"
   },
   "browse-dashboards": {

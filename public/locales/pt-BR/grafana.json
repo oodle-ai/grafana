@@ -3520,7 +3520,7 @@
       "tip": "Passe o mouse sobre um item no menu de navegação e clique no ícone de marcador para adicioná-lo aqui."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "Carregando"
   },
   "browse-dashboards": {

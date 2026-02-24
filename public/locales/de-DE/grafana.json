@@ -3520,7 +3520,7 @@
       "tip": "Fahren Sie mit der Maus über ein beliebiges Element im Navigationsmenü und klicken Sie auf das Lesezeichensymbol, um es hier hinzuzufügen."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "Wird geladen"
   },
   "browse-dashboards": {

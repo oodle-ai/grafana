@@ -3508,7 +3508,7 @@
       "tip": "Arahkan kursor ke item apa pun di menu navigasi dan klik ikon bookmark untuk menambahkannya di sini."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "Memuat"
   },
   "browse-dashboards": {

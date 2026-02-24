@@ -3520,7 +3520,7 @@
       "tip": "Passa il mouse su qualsiasi elemento nel menu di navigazione e fai clic sull'icona del segnalibro per aggiungerlo qui."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "Caricamento"
   },
   "browse-dashboards": {
