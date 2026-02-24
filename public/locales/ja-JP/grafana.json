@@ -3508,7 +3508,7 @@
       "tip": "ナビゲーションメニューの任意のアイテムにカーソルを合わせ、ブックマークアイコンをクリックしてここに追加します。"
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "読込中"
   },
   "browse-dashboards": {

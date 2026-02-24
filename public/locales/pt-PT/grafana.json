@@ -3520,7 +3520,7 @@
       "tip": "Passe o rato sobre qualquer item no menu de navegação e clique no ícone de favoritos para adicioná-lo aqui."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "A carregar"
   },
   "browse-dashboards": {

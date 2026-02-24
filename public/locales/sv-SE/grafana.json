@@ -3520,7 +3520,7 @@
       "tip": "Håll muspekaren över ett objekt i navigeringsmenyn och klicka på bokmärkesikonen för att lägga till det här."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "Laddar"
   },
   "browse-dashboards": {

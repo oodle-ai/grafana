@@ -3508,7 +3508,7 @@
       "tip": "將滑鼠懸停在導覽選單中的任一項目上，點擊書籤圖示即可將其加入此處。"
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "正在載入"
   },
   "browse-dashboards": {

@@ -3520,7 +3520,7 @@
       "tip": "Vigye az egérmutatót bármelyik elem fölé a navigációs menüben, és kattintson a könyvjelző ikonra az ide történő hozzáadáshoz."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "Betöltés"
   },
   "browse-dashboards": {

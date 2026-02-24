@@ -3544,7 +3544,7 @@
       "tip": "Najeďte myší na libovolnou položku v navigační nabídce a kliknutím na ikonu záložky ji sem přidejte."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "Načítání"
   },
   "browse-dashboards": {

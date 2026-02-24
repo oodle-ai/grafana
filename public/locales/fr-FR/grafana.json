@@ -3520,7 +3520,7 @@
       "tip": "Survolez n'importe quel élément du menu de navigation et cliquez sur l'icône du signet pour l'ajouter ici."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "Chargement en cours"
   },
   "browse-dashboards": {

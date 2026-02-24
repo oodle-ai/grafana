@@ -3520,7 +3520,7 @@
       "tip": "Hover over any item in the nav menu and click on the bookmark icon to add it here."
     }
   },
-  "bouncing-loader": {
+  "full-page-skeleton": {
     "label": "Loading"
   },
   "browse-dashboards": {
