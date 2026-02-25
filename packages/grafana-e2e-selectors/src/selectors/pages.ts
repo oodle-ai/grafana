@@ -238,6 +238,9 @@ export const versionedPages = {
           exportAsImage: {
             '12.1.0': 'data-testid new export button export as image',
           },
+          cloneDashboard: {
+            '12.1.0': 'data-testid new export button clone dashboard',
+          },
         },
       },
       playlistControls: {
