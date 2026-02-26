@@ -1,6 +1,6 @@
 import { PanelMenuItem, urlUtil, PluginExtensionLink } from '@grafana/data';
 import { t } from '@grafana/i18n';
-import { locationService } from '@grafana/runtime';
+import { getDataSourceSrv, locationService } from '@grafana/runtime';
 import { createErrorNotification } from 'app/core/copy/appNotification';
 import { notifyApp } from 'app/core/reducers/appNotification';
 import { contextSrv } from 'app/core/services/context_srv';
@@ -88,6 +88,7 @@ export function getPanelMenu(
   const onNavigateToExplore = (event: React.MouseEvent) => {
     event.preventDefault();
     const openInNewWindow = event.ctrlKey || event.metaKey ? (url: string) => window.open(url) : undefined;
+    /* eslint-disable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any */
     store.dispatch(
       navigateToExplore(panel, {
         timeRange: getTimeSrv().timeRange(),
@@ -95,6 +96,7 @@ export function getPanelMenu(
         openInNewWindow,
       }) as any
     );
+    /* eslint-enable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any */
   };
 
   const onToggleLegend = (event: React.MouseEvent) => {
@@ -172,7 +174,7 @@ export function getPanelMenu(
     subMenu: inspectMenu,
   });
 
-  const createAlert = async () => {
+  const createAlert = async (expression?: string) => {
     let formValues: Partial<RuleFormValues> | undefined;
     try {
       formValues = await panelToRuleFormValues(panel, dashboard);
@@ -181,22 +183,59 @@ export function getPanelMenu(
       dispatch(notifyApp(createErrorNotification(message)));
       return;
     }
-    const ruleFormUrl = urlUtil.renderUrl('/alerting/new', {
+    const params: Record<string, string> = {
       defaults: JSON.stringify(formValues),
       returnTo: window.location.pathname + window.location.search,
-    });
+    };
+    if (expression) {
+      params.query = expression;
+    }
+    const ruleFormUrl = urlUtil.renderUrl('/alerting/new', params);
 
     locationService.push(ruleFormUrl);
-  };
-
-  const onCreateAlert = (event: React.MouseEvent) => {
-    event.preventDefault();
-    createAlert();
   };
 
   const subMenu: PanelMenuItem[] = [];
   const canEdit = dashboard.canEditPanel(panel);
   const isCreateAlertMenuOptionAvailable = getCreateAlertInMenuAvailability();
+
+  const buildAlertMenuItem = (): PanelMenuItem => {
+    const promqlQueries = panel.targets.filter((q) => {
+      if (q.hide) {
+        return false;
+      }
+      const dsType = resolveQueryDatasourceType(q.datasource, panel.datasource);
+      return dsType === 'prometheus';
+    });
+
+    if (promqlQueries.length > 1) {
+      return {
+        text: t('panel.header-menu.new-alert-rule', `New alert rule`),
+        type: 'submenu',
+        subMenu: promqlQueries.map((q) => {
+          const expr = getQueryExpr(q);
+          const label =
+            expr && expr.length > 50 ? `${q.refId}: ${expr.substring(0, 50)}...` : `${q.refId}: ${expr ?? ''}`;
+          return {
+            text: label,
+            onClick: (e: React.MouseEvent) => {
+              e.preventDefault();
+              createAlert(expr);
+            },
+          };
+        }),
+      };
+    }
+
+    const expr = promqlQueries.length === 1 ? getQueryExpr(promqlQueries[0]) : undefined;
+    return {
+      text: t('panel.header-menu.new-alert-rule', `New alert rule`),
+      onClick: (e: React.MouseEvent) => {
+        e.preventDefault();
+        createAlert(expr);
+      },
+    };
+  };
 
   if (!(panel.isViewing || panel.isEditing)) {
     if (canEdit) {
@@ -232,10 +271,7 @@ export function getPanelMenu(
   }
 
   if (isCreateAlertMenuOptionAvailable) {
-    subMenu.push({
-      text: t('panel.header-menu.new-alert-rule', `New alert rule`),
-      onClick: onCreateAlert,
-    });
+    subMenu.push(buildAlertMenuItem());
   }
 
   if (panel.options.legend) {
@@ -252,10 +288,7 @@ export function getPanelMenu(
   if (panel.isEditing) {
     subMenu.length = 0;
     if (isCreateAlertMenuOptionAvailable) {
-      subMenu.push({
-        text: t('panel.header-menu.new-alert-rule', `New alert rule`),
-        onClick: onCreateAlert,
-      });
+      subMenu.push(buildAlertMenuItem());
     }
   }
 
@@ -296,4 +329,44 @@ export function getPanelMenu(
   }
 
   return menu;
+}
+
+function resolveQueryDatasourceType(
+  queryDs: unknown,
+  panelDs: { type?: string; uid?: string } | null | undefined
+): string | undefined {
+  const dsRef = getDatasourceRef(queryDs) ?? panelDs;
+  if (dsRef?.type) {
+    return dsRef.type;
+  }
+  if (dsRef?.uid) {
+    try {
+      const settings = getDataSourceSrv().getInstanceSettings({ uid: dsRef.uid });
+      return settings?.type;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+function getDatasourceRef(ds: unknown): { type?: string; uid?: string } | undefined {
+  if (ds != null && typeof ds === 'object') {
+    const ref: { type?: string; uid?: string } = {};
+    if ('type' in ds && typeof ds.type === 'string') {
+      ref.type = ds.type;
+    }
+    if ('uid' in ds && typeof ds.uid === 'string') {
+      ref.uid = ds.uid;
+    }
+    return ref.type || ref.uid ? ref : undefined;
+  }
+  return undefined;
+}
+
+function getQueryExpr(query: object): string | undefined {
+  if ('expr' in query && typeof query.expr === 'string') {
+    return query.expr;
+  }
+  return undefined;
 }

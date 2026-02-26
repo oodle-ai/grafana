@@ -2,7 +2,12 @@ import { withErrorBoundary } from '@grafana/ui';
 
 const OodleAlertsCreate = () => {
   if (window.parent) {
-    window.parent.location.href = '/alerts/create';
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get('query');
+    const url = query
+      ? `/alerts/create?query=${encodeURIComponent(query)}`
+      : '/alerts/create';
+    window.parent.location.href = url;
   }
   return null;
 };
