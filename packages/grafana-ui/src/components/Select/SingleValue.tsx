@@ -97,7 +97,6 @@ export const SingleValue = <T extends unknown>(props: Props<T>) => {
         <span
           ref={valueTextRef}
           onContextMenu={onContextMenu}
-          onMouseDown={(e) => e.stopPropagation()}
           style={{ minWidth: 0, userSelect: 'text' }}
         >
           {children}
