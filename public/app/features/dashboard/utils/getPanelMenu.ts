@@ -37,16 +37,12 @@ export function getPanelMenu(
 ): PanelMenuItem[] {
   const onViewPanel = (event: React.MouseEvent) => {
     event.preventDefault();
-    locationService.partial({
-      viewPanel: panel.id,
-    });
+    locationService.partial({ viewPanel: panel.id });
   };
 
   const onEditPanel = (event: React.MouseEvent) => {
     event.preventDefault();
-    locationService.partial({
-      editPanel: panel.id,
-    });
+    locationService.partial({ editPanel: panel.id });
   };
 
   const onSharePanel = (event: React.MouseEvent) => {
@@ -65,10 +61,7 @@ export function getPanelMenu(
   };
 
   const onInspectPanel = (tab?: InspectTab) => {
-    locationService.partial({
-      inspect: panel.id,
-      inspectTab: tab,
-    });
+    locationService.partial({ inspect: panel.id, inspectTab: tab });
   };
 
   const onDuplicatePanel = (event: React.MouseEvent) => {
@@ -91,11 +84,7 @@ export function getPanelMenu(
     const openInNewWindow = event.ctrlKey || event.metaKey ? (url: string) => window.open(url) : undefined;
     /* eslint-disable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any */
     store.dispatch(
-      navigateToExplore(panel, {
-        timeRange: getTimeSrv().timeRange(),
-        getExploreUrl,
-        openInNewWindow,
-      }) as any
+      navigateToExplore(panel, { timeRange: getTimeSrv().timeRange(), getExploreUrl, openInNewWindow }) as any
     );
     /* eslint-enable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any */
   };
@@ -108,12 +97,7 @@ export function getPanelMenu(
   const menu: PanelMenuItem[] = [];
 
   if (!panel.isEditing) {
-    menu.push({
-      text: t('panel.header-menu.view', `View`),
-      iconClassName: 'eye',
-      onClick: onViewPanel,
-      shortcut: 'v',
-    });
+    menu.push({ text: t('panel.header-menu.view', `View`), iconClassName: 'eye', onClick: onViewPanel, shortcut: 'v' });
   }
 
   if (dashboard.canEditPanel(panel) && !panel.isEditing) {
@@ -216,10 +200,8 @@ export function getPanelMenu(
         type: 'submenu',
         subMenu: promqlQueries.map((q) => {
           const expr = getQueryExpr(q);
-          const label =
-            expr && expr.length > 50 ? `${q.refId}: ${expr.substring(0, 50)}...` : `${q.refId}: ${expr ?? ''}`;
           return {
-            text: label,
+            text: `${q.refId}: ${expr ?? ''}`,
             onClick: (e: React.MouseEvent) => {
               e.preventDefault();
               createAlert(expr);
@@ -241,16 +223,9 @@ export function getPanelMenu(
 
   if (!(panel.isViewing || panel.isEditing)) {
     if (canEdit) {
-      subMenu.push({
-        text: t('panel.header-menu.duplicate', `Duplicate`),
-        onClick: onDuplicatePanel,
-        shortcut: 'p d',
-      });
+      subMenu.push({ text: t('panel.header-menu.duplicate', `Duplicate`), onClick: onDuplicatePanel, shortcut: 'p d' });
 
-      subMenu.push({
-        text: t('panel.header-menu.copy', `Copy`),
-        onClick: onCopyPanel,
-      });
+      subMenu.push({ text: t('panel.header-menu.copy', `Copy`), onClick: onCopyPanel });
 
       if (isPanelModelLibraryPanel(panel)) {
         subMenu.push({
@@ -265,10 +240,7 @@ export function getPanelMenu(
       }
     } else if (contextSrv.isEditor) {
       // An editor but the dashboard is not editable
-      subMenu.push({
-        text: t('panel.header-menu.copy', `Copy`),
-        onClick: onCopyPanel,
-      });
+      subMenu.push({ text: t('panel.header-menu.copy', `Copy`), onClick: onCopyPanel });
     }
   }
 
@@ -311,12 +283,7 @@ export function getPanelMenu(
   }
 
   if (subMenu.length) {
-    menu.push({
-      type: 'submenu',
-      text: t('panel.header-menu.more', `More...`),
-      iconClassName: 'cube',
-      subMenu,
-    });
+    menu.push({ type: 'submenu', text: t('panel.header-menu.more', `More...`), iconClassName: 'cube', subMenu });
   }
 
   if (dashboard.canEditPanel(panel) && !panel.isEditing && !panel.isViewing) {

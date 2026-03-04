@@ -249,9 +249,8 @@ export function panelMenuBehavior(menu: VizPanelMenu) {
       if (promqlQueries.length > 1) {
         const alertSubMenu: PanelMenuItem[] = promqlQueries.map((q) => {
           const expr = getQueryExpr(q);
-          const label = expr && expr.length > 50 ? `${q.refId}: ${expr.substring(0, 50)}...` : `${q.refId}: ${expr}`;
           return {
-            text: label,
+            text: `${q.refId}: ${expr ?? ''}`,
             onClick: () => onCreateAlert(panel, expr),
           };
         });
