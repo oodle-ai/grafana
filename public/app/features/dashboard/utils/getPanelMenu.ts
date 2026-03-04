@@ -82,11 +82,9 @@ export function getPanelMenu(
   const onNavigateToExplore = (event: React.MouseEvent) => {
     event.preventDefault();
     const openInNewWindow = event.ctrlKey || event.metaKey ? (url: string) => window.open(url) : undefined;
-    /* eslint-disable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any */
     store.dispatch(
       navigateToExplore(panel, { timeRange: getTimeSrv().timeRange(), getExploreUrl, openInNewWindow }) as any
     );
-    /* eslint-enable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any */
   };
 
   const onToggleLegend = (event: React.MouseEvent) => {
