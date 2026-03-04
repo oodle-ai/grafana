@@ -12517,6 +12517,7 @@
   },
   "share-dashboard": {
     "menu": {
+      "clone-dashboard-title": "Clone dashboard",
       "export-image-title": "Export as image",
       "export-json-title": "Export as JSON",
       "share-externally-title": "Share externally",

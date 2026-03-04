@@ -59,6 +59,20 @@ export default function ExportMenu({ dashboard }: { dashboard: DashboardScene })
       onClick: () => onMenuItemClick(shareDashboardType.image),
     });
 
+    menuItems.push({
+      shareId: 'clone',
+      testId: newExportButtonSelector.cloneDashboard,
+      icon: 'copy',
+      label: t('share-dashboard.menu.clone-dashboard-title', 'Clone dashboard'),
+      renderCondition: true,
+      onClick: (d: DashboardScene) => {
+        if (!d.state.isEditing) {
+          d.onEnterEditMode();
+        }
+        d.openSaveDrawer({ saveAsCopy: true });
+      },
+    });
+
     return menuItems.filter((item) => item.renderCondition);
   }, []);
 
