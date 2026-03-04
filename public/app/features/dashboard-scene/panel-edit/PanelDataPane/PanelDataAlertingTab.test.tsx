@@ -46,26 +46,15 @@ jest.spyOn(ruleActionButtons, 'matchesWidth').mockReturnValue(false);
 jest.spyOn(ruler, 'rulerUrlBuilder');
 jest.spyOn(alertingAbilities, 'useAlertRuleAbility');
 
-setPluginLinksHook(() => ({
-  links: [],
-  isLoading: false,
-}));
+setPluginLinksHook(() => ({ links: [], isLoading: false }));
 
 const dataSources = {
   prometheus: mockDataSource<PromOptions>(
-    {
-      name: 'Prometheus',
-      type: DataSourceType.Prometheus,
-      isDefault: false,
-    },
+    { name: 'Prometheus', type: DataSourceType.Prometheus, isDefault: false },
     { alerting: true, module: 'core:plugin/prometheus' }
   ),
   default: mockDataSource<PromOptions>(
-    {
-      name: 'Default',
-      type: DataSourceType.Prometheus,
-      isDefault: true,
-    },
+    { name: 'Default', type: DataSourceType.Prometheus, isDefault: true },
     { alerting: true, module: 'core:plugin/prometheus' }
   ),
   prometheusMinInterval: mockDataSource<PromOptions>(
@@ -98,13 +87,11 @@ const promResponse: PromRulesResponse = {
         rules: [
           mockPromAlertingRule({
             name: 'dashboardrule1',
+            labels: { severity: 'critical', _oodle_panel_id: '12-34' },
             alerts: [
               mockPromAlert({
                 labels: { severity: 'critical' },
-                annotations: {
-                  [Annotation.dashboardUID]: '12',
-                  [Annotation.panelID]: '34',
-                },
+                annotations: { [Annotation.dashboardUID]: '12', [Annotation.panelID]: '34' },
               }),
             ],
             totals: { alerting: 1 },
@@ -119,13 +106,11 @@ const promResponse: PromRulesResponse = {
         rules: [
           mockPromAlertingRule({
             name: 'dashboardrule2',
+            labels: { severity: 'critical', _oodle_panel_id: '12-34' },
             alerts: [
               mockPromAlert({
                 labels: { severity: 'critical' },
-                annotations: {
-                  [Annotation.dashboardUID]: '121',
-                  [Annotation.panelID]: '341',
-                },
+                annotations: { [Annotation.dashboardUID]: '121', [Annotation.panelID]: '341' },
               }),
             ],
             totals: { alerting: 1 },
@@ -140,41 +125,21 @@ const promResponse: PromRulesResponse = {
 
 const dashboard = {
   uid: '12',
-  time: {
-    from: 'now-6h',
-    to: 'now',
-  },
+  time: { from: 'now-6h', to: 'now' },
   timepicker: { refresh_intervals: ['5s', '30s', '1m'] },
-  templating: {
-    list: [],
-  },
-  meta: {
-    canSave: true,
-    folderId: 1,
-    folderTitle: 'super folder',
-  },
+  templating: { list: [] },
+  meta: { canSave: true, folderId: 1, folderTitle: 'super folder' },
   isSnapshot: () => false,
 } as unknown as DashboardModel;
 
 const panel = new PanelModel({
-  datasource: {
-    type: 'prometheus',
-    uid: dataSources.prometheus.uid,
-  },
+  datasource: { type: 'prometheus', uid: dataSources.prometheus.uid },
   title: 'mypanel',
   id: 34,
-  targets: [
-    {
-      expr: 'sum(some_metric [$__interval])) by (app)',
-      refId: 'A',
-    },
-  ],
+  targets: [{ expr: 'sum(some_metric [$__interval])) by (app)', refId: 'A' }],
 });
 
-const ui = {
-  row: byTestId('row'),
-  createButton: byTestId<HTMLButtonElement>('create-alert-rule-button'),
-};
+const ui = { row: byTestId('row'), createButton: byTestId<HTMLButtonElement>('create-alert-rule-button') };
 const server = setupMswServer();
 
 describe('PanelAlertTabContent', () => {
@@ -208,10 +173,8 @@ describe('PanelAlertTabContent', () => {
           rules: [
             mockRulerAlertingRule({
               alert: 'dashboardrule1',
-              annotations: {
-                [Annotation.dashboardUID]: '12',
-                [Annotation.panelID]: '34',
-              },
+              labels: { severity: 'warning', _oodle_panel_id: '12-34' },
+              annotations: { [Annotation.dashboardUID]: '12', [Annotation.panelID]: '34' },
             }),
           ],
         }),
@@ -220,10 +183,8 @@ describe('PanelAlertTabContent', () => {
           rules: [
             mockRulerAlertingRule({
               alert: 'dashboardrule2',
-              annotations: {
-                [Annotation.dashboardUID]: '121',
-                [Annotation.panelID]: '341',
-              },
+              labels: { severity: 'warning', _oodle_panel_id: '12-34' },
+              annotations: { [Annotation.dashboardUID]: '121', [Annotation.panelID]: '341' },
             }),
           ],
         },
@@ -232,13 +193,7 @@ describe('PanelAlertTabContent', () => {
   });
 
   it('Will take into account panel maxDataPoints', async () => {
-    dashboard.panels = [
-      new PanelModel({
-        ...panel,
-        maxDataPoints: 100,
-        interval: '10s',
-      }),
-    ];
+    dashboard.panels = [new PanelModel({ ...panel, maxDataPoints: 100, interval: '10s' })];
 
     renderAlertTab(dashboard, dashboard);
 
@@ -247,10 +202,7 @@ describe('PanelAlertTabContent', () => {
     expect(defaults.queries[0].model).toEqual({
       expr: 'sum(some_metric [5m])) by (app)',
       refId: 'A',
-      datasource: {
-        type: 'prometheus',
-        uid: 'mock-ds-2',
-      },
+      datasource: { type: 'prometheus', uid: 'mock-ds-2' },
       interval: '',
       intervalMs: 300000,
       maxDataPoints: 100,
@@ -258,14 +210,7 @@ describe('PanelAlertTabContent', () => {
   });
 
   it('Will work with default datasource', async () => {
-    dashboard.panels = [
-      new PanelModel({
-        ...panel,
-        datasource: undefined,
-        maxDataPoints: 100,
-        interval: '10s',
-      }),
-    ];
+    dashboard.panels = [new PanelModel({ ...panel, datasource: undefined, maxDataPoints: 100, interval: '10s' })];
 
     renderAlertTab(dashboard, dashboard);
     const defaults = await clickNewButton();
@@ -273,10 +218,7 @@ describe('PanelAlertTabContent', () => {
     expect(defaults.queries[0].model).toEqual({
       expr: 'sum(some_metric [5m])) by (app)',
       refId: 'A',
-      datasource: {
-        type: 'prometheus',
-        uid: 'mock-ds-3',
-      },
+      datasource: { type: 'prometheus', uid: 'mock-ds-3' },
       interval: '',
       intervalMs: 300000,
       maxDataPoints: 100,
@@ -287,10 +229,7 @@ describe('PanelAlertTabContent', () => {
     dashboard.panels = [
       new PanelModel({
         ...panel,
-        datasource: {
-          type: 'prometheus',
-          uid: dataSources.prometheusMinInterval.uid,
-        },
+        datasource: { type: 'prometheus', uid: dataSources.prometheusMinInterval.uid },
         maxDataPoints: 100,
       }),
     ];
@@ -301,10 +240,7 @@ describe('PanelAlertTabContent', () => {
     expect(defaults.queries[0].model).toEqual({
       expr: 'sum(some_metric [7m])) by (app)',
       refId: 'A',
-      datasource: {
-        type: 'prometheus',
-        uid: 'mock-ds-4',
-      },
+      datasource: { type: 'prometheus', uid: 'mock-ds-4' },
       interval: '',
       intervalMs: 420000,
       maxDataPoints: 100,

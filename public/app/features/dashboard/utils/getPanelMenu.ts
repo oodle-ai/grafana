@@ -26,6 +26,7 @@ import { SHARED_DASHBOARD_QUERY } from 'app/plugins/datasource/dashboard/constan
 import { dispatch, store } from 'app/store/store';
 
 import { getCreateAlertInMenuAvailability } from '../../alerting/unified/utils/access-control';
+import { OODLE_PANEL_ID_LABEL } from '../../dashboard-scene/panel-edit/PanelDataPane/constants';
 import { navigateToExplore } from '../../explore/state/main';
 import { getTimeSrv } from '../services/TimeSrv';
 
@@ -186,6 +187,7 @@ export function getPanelMenu(
     const params: Record<string, string> = {
       defaults: JSON.stringify(formValues),
       returnTo: window.location.pathname + window.location.search,
+      labels: JSON.stringify({ [OODLE_PANEL_ID_LABEL]: `${dashboard.uid}-${panel.id}` }),
     };
     if (expression) {
       params.query = expression;

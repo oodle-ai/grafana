@@ -38,6 +38,7 @@ import { ShareDrawer } from '../sharing/ShareDrawer/ShareDrawer';
 import { isRepeatCloneOrChildOf } from '../utils/clone';
 import { DashboardInteractions } from '../utils/interactions';
 import { getEditPanelUrl, tryGetExploreUrlForPanel } from '../utils/urlBuilders';
+import { OODLE_PANEL_ID_LABEL } from '../panel-edit/PanelDataPane/constants';
 import { getDashboardSceneFor, getPanelIdForVizPanel, getQueryRunnerFor, isLibraryPanel } from '../utils/utils';
 
 import { DashboardScene } from './DashboardScene';
@@ -550,9 +551,14 @@ export function onRemovePanel(dashboard: DashboardScene, panel: VizPanel) {
 const onCreateAlert = async (panel: VizPanel, expression?: string) => {
   try {
     const formValues = await scenesPanelToRuleFormValues(panel);
+    const dashboard = getDashboardSceneFor(panel);
+    const dashboardUid = dashboard.state.uid ?? '';
+    const panelId = getPanelIdForVizPanel(panel);
+
     const params: Record<string, string> = {
       defaults: JSON.stringify(formValues),
       returnTo: window.location.pathname + window.location.search,
+      labels: JSON.stringify({ [OODLE_PANEL_ID_LABEL]: `${dashboardUid}-${panelId}` }),
     };
     if (expression) {
       params.query = expression;

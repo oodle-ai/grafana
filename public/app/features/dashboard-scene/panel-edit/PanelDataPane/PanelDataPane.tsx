@@ -12,10 +12,10 @@ import {
   VizPanel,
 } from '@grafana/scenes';
 import { Container, ScrollContainer, TabContent, TabsBar, useStyles2 } from '@grafana/ui';
-// import { getConfig } from 'app/core/config';
-// import { contextSrv } from 'app/core/core';
-// import { getRulesPermissions } from 'app/features/alerting/unified/utils/access-control';
-// import { GRAFANA_RULES_SOURCE_NAME } from 'app/features/alerting/unified/utils/datasource';
+import { getConfig } from 'app/core/config';
+import { contextSrv } from 'app/core/core';
+import { getRulesPermissions } from 'app/features/alerting/unified/utils/access-control';
+import { GRAFANA_RULES_SOURCE_NAME } from 'app/features/alerting/unified/utils/datasource';
 
 import { PanelDataAlertingTab } from './PanelDataAlertingTab';
 import { PanelDataQueriesTab } from './PanelDataQueriesTab';
@@ -43,11 +43,7 @@ export class PanelDataPane extends SceneObjectBase<PanelDataPaneState> {
       tabs.push(new PanelDataAlertingTab({ panelRef }));
     }
 
-    return new PanelDataPane({
-      panelRef,
-      tabs,
-      tab: TabId.Queries,
-    });
+    return new PanelDataPane({ panelRef, tabs, tab: TabId.Queries });
   }
 
   public onChangeTab = (tab: PanelDataPaneTab) => {
@@ -95,18 +91,18 @@ function PanelDataPaneRendered({ model }: SceneComponentProps<PanelDataPane>) {
 }
 
 export function shouldShowAlertingTab(pluginId: string) {
-  return false;
-  // const { unifiedAlertingEnabled = false } = getConfig();
-  // const hasRuleReadPermissions = contextSrv.hasPermission(getRulesPermissions(GRAFANA_RULES_SOURCE_NAME).read);
-  // const isAlertingAvailable = unifiedAlertingEnabled && hasRuleReadPermissions;
-  // if (!isAlertingAvailable) {
-  //   return false;
-  // }
-  //
-  // const isGraph = pluginId === 'graph';
-  // const isTimeseries = pluginId === 'timeseries';
-  //
-  // return isGraph || isTimeseries;
+  //return false;
+  const { unifiedAlertingEnabled = false } = getConfig();
+  const hasRuleReadPermissions = contextSrv.hasPermission(getRulesPermissions(GRAFANA_RULES_SOURCE_NAME).read);
+  const isAlertingAvailable = unifiedAlertingEnabled && hasRuleReadPermissions;
+  if (!isAlertingAvailable) {
+    return false;
+  }
+
+  const isGraph = pluginId === 'graph';
+  const isTimeseries = pluginId === 'timeseries';
+
+  return isGraph || isTimeseries;
 }
 
 function getStyles(theme: GrafanaTheme2) {
@@ -128,13 +124,7 @@ function getStyles(theme: GrafanaTheme2) {
       flexGrow: 1,
       overflow: 'hidden',
     }),
-    tabContent: css({
-      padding: theme.spacing(2),
-      height: '100%',
-    }),
-    tabsBar: css({
-      flexShrink: 0,
-      paddingLeft: theme.spacing(2),
-    }),
+    tabContent: css({ padding: theme.spacing(2), height: '100%' }),
+    tabsBar: css({ flexShrink: 0, paddingLeft: theme.spacing(2) }),
   };
 }

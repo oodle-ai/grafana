@@ -1,13 +1,19 @@
 import { withErrorBoundary } from '@grafana/ui';
 
+const FORWARDED_PARAMS = ['query', 'labels'];
+
 const OodleAlertsCreate = () => {
   if (window.parent) {
-    const params = new URLSearchParams(window.location.search);
-    const query = params.get('query');
-    const url = query
-      ? `/alerts/create?query=${encodeURIComponent(query)}`
-      : '/alerts/create';
-    window.parent.location.href = url;
+    const source = new URLSearchParams(window.location.search);
+    const target = new URLSearchParams();
+    for (const key of FORWARDED_PARAMS) {
+      const value = source.get(key);
+      if (value) {
+        target.set(key, value);
+      }
+    }
+    const qs = target.toString();
+    window.parent.location.href = qs ? `/alerts/create?${qs}` : '/alerts/create';
   }
   return null;
 };
