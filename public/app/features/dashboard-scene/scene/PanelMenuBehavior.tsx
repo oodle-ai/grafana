@@ -12,7 +12,7 @@ import {
   urlUtil,
 } from '@grafana/data';
 import { t } from '@grafana/i18n';
-import { config, locationService } from '@grafana/runtime';
+import { config, getDataSourceSrv, locationService } from '@grafana/runtime';
 import { LocalValueVariable, sceneGraph, VizPanel, VizPanelMenu } from '@grafana/scenes';
 import { DataQuery, OptionsWithLegend } from '@grafana/schema';
 import appEvents from 'app/core/app_events';
@@ -38,6 +38,7 @@ import { ShareDrawer } from '../sharing/ShareDrawer/ShareDrawer';
 import { isRepeatCloneOrChildOf } from '../utils/clone';
 import { DashboardInteractions } from '../utils/interactions';
 import { getEditPanelUrl, tryGetExploreUrlForPanel } from '../utils/urlBuilders';
+import { OODLE_PANEL_ID_LABEL } from '../panel-edit/PanelDataPane/constants';
 import { getDashboardSceneFor, getPanelIdForVizPanel, getQueryRunnerFor, isLibraryPanel } from '../utils/utils';
 
 import { DashboardScene } from './DashboardScene';
@@ -243,11 +244,32 @@ export function panelMenuBehavior(menu: VizPanelMenu) {
     const isCreateAlertMenuOptionAvailable = getCreateAlertInMenuAvailability();
 
     if (isCreateAlertMenuOptionAvailable) {
-      moreSubMenu.push({
-        text: t('panel.header-menu.new-alert-rule', `New alert rule`),
-        iconClassName: 'bell',
-        onClick: (e) => onCreateAlert(panel),
-      });
+      const promqlQueries = getPromQLQueries(panel);
+
+      if (promqlQueries.length > 1) {
+        const alertSubMenu: PanelMenuItem[] = promqlQueries.map((q) => {
+          const expr = getQueryExpr(q);
+          return {
+            text: `${q.refId}: ${expr ?? ''}`,
+            onClick: () => onCreateAlert(panel, expr),
+          };
+        });
+
+        moreSubMenu.push({
+          text: t('panel.header-menu.new-alert-rule', `New alert rule`),
+          iconClassName: 'bell',
+          type: 'submenu',
+          subMenu: alertSubMenu,
+        });
+      } else {
+        const expr = promqlQueries.length === 1 ? getQueryExpr(promqlQueries[0]) : undefined;
+
+        moreSubMenu.push({
+          text: t('panel.header-menu.new-alert-rule', `New alert rule`),
+          iconClassName: 'bell',
+          onClick: () => onCreateAlert(panel, expr),
+        });
+      }
     }
 
     if (hasLegendOptions(panel.state.options) && !isEditingPanel) {
@@ -477,7 +499,7 @@ export function getPanelLinks(panel: VizPanel) {
 function createExtensionContext(panel: VizPanel, dashboard: DashboardScene): PluginExtensionPanelContext {
   const timeRange = sceneGraph.getTimeRange(panel);
   let queryRunner = getQueryRunnerFor(panel);
-  const targets: DataQuery[] = queryRunner?.state.queries as DataQuery[];
+  const targets: DataQuery[] = queryRunner?.state.queries ?? [];
   const id = getPanelIdForVizPanel(panel);
 
   let scopedVars = {};
@@ -525,13 +547,22 @@ export function onRemovePanel(dashboard: DashboardScene, panel: VizPanel) {
   );
 }
 
-const onCreateAlert = async (panel: VizPanel) => {
+const onCreateAlert = async (panel: VizPanel, expression?: string) => {
   try {
     const formValues = await scenesPanelToRuleFormValues(panel);
-    const ruleFormUrl = urlUtil.renderUrl('/alerting/new', {
+    const dashboard = getDashboardSceneFor(panel);
+    const dashboardUid = dashboard.state.uid ?? '';
+    const panelId = getPanelIdForVizPanel(panel);
+
+    const params: Record<string, string> = {
       defaults: JSON.stringify(formValues),
       returnTo: window.location.pathname + window.location.search,
-    });
+      labels: JSON.stringify({ [OODLE_PANEL_ID_LABEL]: `${dashboardUid}-${panelId}` }),
+    };
+    if (expression) {
+      params.query = expression;
+    }
+    const ruleFormUrl = urlUtil.renderUrl('/alerting/new', params);
     locationService.push(ruleFormUrl);
   } catch (err) {
     const message = `Error getting rule values from the panel: ${getMessageFromError(err)}`;
@@ -539,6 +570,63 @@ const onCreateAlert = async (panel: VizPanel) => {
     return;
   }
 };
+
+function getPromQLQueries(panel: VizPanel) {
+  const queryRunner = getQueryRunnerFor(panel);
+  if (!queryRunner) {
+    return [];
+  }
+
+  const queries = queryRunner.state.queries;
+
+  return queries.filter((q) => {
+    if (q.hide) {
+      return false;
+    }
+    const dsType = resolveQueryDatasourceType(q.datasource, queryRunner.state.datasource);
+    return dsType === 'prometheus';
+  });
+}
+
+function resolveQueryDatasourceType(
+  queryDs: unknown,
+  runnerDs: { type?: string; uid?: string } | null | undefined
+): string | undefined {
+  const dsRef = getDatasourceRef(queryDs) ?? runnerDs;
+  if (dsRef?.type) {
+    return dsRef.type;
+  }
+  if (dsRef?.uid) {
+    try {
+      const settings = getDataSourceSrv().getInstanceSettings({ uid: dsRef.uid });
+      return settings?.type;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+function getDatasourceRef(ds: unknown): { type?: string; uid?: string } | undefined {
+  if (ds != null && typeof ds === 'object') {
+    const ref: { type?: string; uid?: string } = {};
+    if ('type' in ds && typeof ds.type === 'string') {
+      ref.type = ds.type;
+    }
+    if ('uid' in ds && typeof ds.uid === 'string') {
+      ref.uid = ds.uid;
+    }
+    return ref.type || ref.uid ? ref : undefined;
+  }
+  return undefined;
+}
+
+function getQueryExpr(query: DataQuery): string | undefined {
+  if ('expr' in query && typeof query.expr === 'string') {
+    return query.expr;
+  }
+  return undefined;
+}
 
 export function toggleVizPanelLegend(vizPanel: VizPanel): void {
   const options = vizPanel.state.options;

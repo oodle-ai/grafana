@@ -1,17 +1,26 @@
 import { css } from '@emotion/css';
+import { useMemo } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
 import { Trans, t } from '@grafana/i18n';
-import { config } from '@grafana/runtime';
+import { config, getDataSourceSrv } from '@grafana/runtime';
 import { SceneComponentProps, SceneObjectBase, SceneObjectRef, SceneObjectState, VizPanel } from '@grafana/scenes';
 import { Alert, LoadingPlaceholder, Tab, useStyles2 } from '@grafana/ui';
 import { contextSrv } from 'app/core/core';
+import { alertRuleApi } from 'app/features/alerting/unified/api/alertRuleApi';
+import { GRAFANA_RULER_CONFIG } from 'app/features/alerting/unified/api/featureDiscoveryApi';
 import { RulesTable } from 'app/features/alerting/unified/components/rules/RulesTable';
-import { usePanelCombinedRules } from 'app/features/alerting/unified/hooks/usePanelCombinedRules';
+import { combineRulesNamespace } from 'app/features/alerting/unified/hooks/useCombinedRuleNamespaces';
 import { getRulesPermissions } from 'app/features/alerting/unified/utils/access-control';
-import { stringifyErrorLike } from 'app/features/alerting/unified/utils/misc';
+import {
+  getOodleRulesSources,
+  getPrometheusRulesSources,
+  GRAFANA_RULES_SOURCE_NAME,
+} from 'app/features/alerting/unified/utils/datasource';
+import { CombinedRule } from 'app/types/unified-alerting';
 
 import { getDashboardSceneFor, getPanelIdForVizPanel } from '../../utils/utils';
+import { OODLE_PANEL_ID_LABEL } from './constants';
 
 import { ScenesNewRuleFromPanelButton } from './NewAlertRuleButton';
 import { PanelDataPaneTab, PanelDataTabHeaderProps, TabId } from './types';
@@ -55,43 +64,106 @@ export class PanelDataAlertingTab extends SceneObjectBase<PanelDataAlertingTabSt
   }
 }
 
-export function PanelDataAlertingTabRendered({ model }: SceneComponentProps<PanelDataAlertingTab>) {
-  const styles = useStyles2(getStyles);
+function getExternalPrometheusSource() {
+  const oodleSources = getOodleRulesSources();
+  if (oodleSources.length > 0) {
+    return oodleSources[0];
+  }
 
-  const { errors, loading, rules } = usePanelCombinedRules({
-    dashboardUID: model.getDashboardUID(),
-    panelId: model.getLegacyPanelId(),
+  const promSources = getPrometheusRulesSources();
+  if (promSources.length === 0) {
+    return undefined;
+  }
+
+  try {
+    const defaultDs = getDataSourceSrv().getInstanceSettings('default');
+    return promSources.find((ds) => ds.uid === defaultDs?.uid) ?? promSources[0];
+  } catch {
+    return promSources[0];
+  }
+}
+
+function deduplicateRules(rules: CombinedRule[]): CombinedRule[] {
+  const seen = new Set<string>();
+  return rules.filter((rule) => {
+    const labels = rule.promRule?.labels ?? rule.labels ?? {};
+    const sortedLabels = Object.keys(labels)
+      .sort()
+      .map((k) => `${k}=${labels[k]}`)
+      .join(',');
+    const key = `${rule.name}|${sortedLabels}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function useAllAlertRules(panelIdLabel?: string) {
+  const externalSource = useMemo(() => getExternalPrometheusSource(), []);
+
+  const { currentData: grafanaPromRules, isLoading: grafanaPromLoading } =
+    alertRuleApi.endpoints.prometheusRuleNamespaces.useQuery({
+      ruleSourceName: GRAFANA_RULES_SOURCE_NAME,
+    });
+
+  const { currentData: rulerRules, isLoading: rulerLoading } = alertRuleApi.endpoints.rulerRules.useQuery({
+    rulerConfig: GRAFANA_RULER_CONFIG,
   });
 
-  const alert = errors.length ? (
-    <Alert
-      title={t(
-        'dashboard-scene.panel-data-alerting-tab-rendered.alert.title-errors-loading-rules',
-        'Errors loading rules'
-      )}
-      severity="error"
-    >
-      {errors.map((error, index) => (
-        <div key={index}>
-          <Trans
-            i18nKey="dashboard-scene.panel-data-alerting-tab-rendered.error-failed-to-load"
-            values={{ errorToDisplay: stringifyErrorLike(error) }}
-          >
-            Failed to load Grafana rules state: {'{{errorToDisplay}}'}
-          </Trans>
-        </div>
-      ))}
-    </Alert>
-  ) : null;
+  const { currentData: externalPromRules, isLoading: externalLoading } =
+    alertRuleApi.endpoints.prometheusRuleNamespaces.useQuery(
+      { ruleSourceName: externalSource?.name ?? '' },
+      { skip: !externalSource }
+    );
+
+  const rules = useMemo(() => {
+    const grafanaCombined = combineRulesNamespace(
+      GRAFANA_RULES_SOURCE_NAME,
+      grafanaPromRules ?? [],
+      rulerRules ?? undefined
+    );
+    const allNamespaces = [...grafanaCombined];
+
+    if (externalSource && externalPromRules && externalPromRules.length > 0) {
+      allNamespaces.push(...combineRulesNamespace(externalSource, externalPromRules));
+    }
+
+    const allRules = allNamespaces.flatMap((ns) => ns.groups).flatMap((group) => group.rules);
+    const deduplicated = deduplicateRules(allRules);
+
+    if (!panelIdLabel) {
+      return deduplicated;
+    }
+    return deduplicated.filter(
+      (rule) =>
+        rule.promRule?.labels?.[OODLE_PANEL_ID_LABEL] === panelIdLabel ||
+        rule.labels?.[OODLE_PANEL_ID_LABEL] === panelIdLabel
+    );
+  }, [grafanaPromRules, rulerRules, externalPromRules, externalSource, panelIdLabel]);
+
+  return { rules, loading: grafanaPromLoading || rulerLoading || externalLoading };
+}
+
+function getPanelIdLabel(model: PanelDataAlertingTab): string | undefined {
+  try {
+    return `${model.getDashboardUID()}-${model.getLegacyPanelId()}`;
+  } catch {
+    return undefined;
+  }
+}
+
+export function PanelDataAlertingTabRendered({ model }: SceneComponentProps<PanelDataAlertingTab>) {
+  const styles = useStyles2(getStyles);
+  const panelIdLabel = getPanelIdLabel(model);
+  const { rules, loading } = useAllAlertRules(panelIdLabel);
 
   if (loading && !rules.length) {
     return (
-      <>
-        {alert}
-        <LoadingPlaceholder
-          text={t('dashboard-scene.panel-data-alerting-tab-rendered.text-loading-rules', 'Loading rules...')}
-        />
-      </>
+      <LoadingPlaceholder
+        text={t('dashboard-scene.panel-data-alerting-tab-rendered.text-loading-rules', 'Loading rules...')}
+      />
     );
   }
 
@@ -101,8 +173,12 @@ export function PanelDataAlertingTabRendered({ model }: SceneComponentProps<Pane
   if (rules.length) {
     return (
       <>
+        {canCreateRules && (
+          <div className={styles.buttonRow}>
+            <ScenesNewRuleFromPanelButton panel={panel} />
+          </div>
+        )}
         <RulesTable rules={rules} />
-        {canCreateRules && <ScenesNewRuleFromPanelButton className={styles.newButton} panel={panel} />}
       </>
     );
   }
@@ -119,13 +195,16 @@ export function PanelDataAlertingTabRendered({ model }: SceneComponentProps<Pane
               There are no alert rules linked to this panel.
             </Trans>
           </p>
-          {canCreateRules && <ScenesNewRuleFromPanelButton panel={panel}></ScenesNewRuleFromPanelButton>}
+          {canCreateRules && <ScenesNewRuleFromPanelButton panel={panel} />}
         </>
       )}
       {isNew && !!dashboard.state.meta.canSave && (
         <Alert
           severity="info"
-          title={t('dashboard-scene.panel-data-alerting-tab-rendered.title-dashboard-not-saved', 'Dashboard not saved')}
+          title={t(
+            'dashboard-scene.panel-data-alerting-tab-rendered.title-dashboard-not-saved',
+            'Dashboard not saved'
+          )}
         >
           <Trans i18nKey="dashboard.panel-edit.alerting-tab.dashboard-not-saved">
             Dashboard must be saved before alerts can be added.
@@ -137,8 +216,10 @@ export function PanelDataAlertingTabRendered({ model }: SceneComponentProps<Pane
 }
 
 const getStyles = (theme: GrafanaTheme2) => ({
-  newButton: css({
-    marginTop: theme.spacing(3),
+  buttonRow: css({
+    display: 'flex',
+    gap: theme.spacing(1),
+    marginBottom: theme.spacing(2),
   }),
   noRulesWrapper: css({
     margin: theme.spacing(2),
@@ -146,18 +227,15 @@ const getStyles = (theme: GrafanaTheme2) => ({
     padding: theme.spacing(3),
   }),
 });
+
 interface PanelDataAlertingTabHeaderProps extends PanelDataTabHeaderProps {
   model: PanelDataAlertingTab;
 }
 
 function AlertingTab(props: PanelDataAlertingTabHeaderProps) {
   const { model } = props;
-
-  const { rules } = usePanelCombinedRules({
-    dashboardUID: model.getDashboardUID(),
-    panelId: model.getLegacyPanelId(),
-    poll: false,
-  });
+  const panelIdLabel = getPanelIdLabel(model);
+  const { rules } = useAllAlertRules(panelIdLabel);
 
   return (
     <Tab

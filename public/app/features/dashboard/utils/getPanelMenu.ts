@@ -1,6 +1,6 @@
 import { PanelMenuItem, urlUtil, PluginExtensionLink } from '@grafana/data';
 import { t } from '@grafana/i18n';
-import { locationService } from '@grafana/runtime';
+import { getDataSourceSrv, locationService } from '@grafana/runtime';
 import { createErrorNotification } from 'app/core/copy/appNotification';
 import { notifyApp } from 'app/core/reducers/appNotification';
 import { contextSrv } from 'app/core/services/context_srv';
@@ -26,6 +26,7 @@ import { SHARED_DASHBOARD_QUERY } from 'app/plugins/datasource/dashboard/constan
 import { dispatch, store } from 'app/store/store';
 
 import { getCreateAlertInMenuAvailability } from '../../alerting/unified/utils/access-control';
+import { OODLE_PANEL_ID_LABEL } from '../../dashboard-scene/panel-edit/PanelDataPane/constants';
 import { navigateToExplore } from '../../explore/state/main';
 import { getTimeSrv } from '../services/TimeSrv';
 
@@ -36,16 +37,12 @@ export function getPanelMenu(
 ): PanelMenuItem[] {
   const onViewPanel = (event: React.MouseEvent) => {
     event.preventDefault();
-    locationService.partial({
-      viewPanel: panel.id,
-    });
+    locationService.partial({ viewPanel: panel.id });
   };
 
   const onEditPanel = (event: React.MouseEvent) => {
     event.preventDefault();
-    locationService.partial({
-      editPanel: panel.id,
-    });
+    locationService.partial({ editPanel: panel.id });
   };
 
   const onSharePanel = (event: React.MouseEvent) => {
@@ -64,10 +61,7 @@ export function getPanelMenu(
   };
 
   const onInspectPanel = (tab?: InspectTab) => {
-    locationService.partial({
-      inspect: panel.id,
-      inspectTab: tab,
-    });
+    locationService.partial({ inspect: panel.id, inspectTab: tab });
   };
 
   const onDuplicatePanel = (event: React.MouseEvent) => {
@@ -89,11 +83,7 @@ export function getPanelMenu(
     event.preventDefault();
     const openInNewWindow = event.ctrlKey || event.metaKey ? (url: string) => window.open(url) : undefined;
     store.dispatch(
-      navigateToExplore(panel, {
-        timeRange: getTimeSrv().timeRange(),
-        getExploreUrl,
-        openInNewWindow,
-      }) as any
+      navigateToExplore(panel, { timeRange: getTimeSrv().timeRange(), getExploreUrl, openInNewWindow }) as any
     );
   };
 
@@ -105,12 +95,7 @@ export function getPanelMenu(
   const menu: PanelMenuItem[] = [];
 
   if (!panel.isEditing) {
-    menu.push({
-      text: t('panel.header-menu.view', `View`),
-      iconClassName: 'eye',
-      onClick: onViewPanel,
-      shortcut: 'v',
-    });
+    menu.push({ text: t('panel.header-menu.view', `View`), iconClassName: 'eye', onClick: onViewPanel, shortcut: 'v' });
   }
 
   if (dashboard.canEditPanel(panel) && !panel.isEditing) {
@@ -172,7 +157,7 @@ export function getPanelMenu(
     subMenu: inspectMenu,
   });
 
-  const createAlert = async () => {
+  const createAlert = async (expression?: string) => {
     let formValues: Partial<RuleFormValues> | undefined;
     try {
       formValues = await panelToRuleFormValues(panel, dashboard);
@@ -181,35 +166,64 @@ export function getPanelMenu(
       dispatch(notifyApp(createErrorNotification(message)));
       return;
     }
-    const ruleFormUrl = urlUtil.renderUrl('/alerting/new', {
+    const params: Record<string, string> = {
       defaults: JSON.stringify(formValues),
       returnTo: window.location.pathname + window.location.search,
-    });
+      labels: JSON.stringify({ [OODLE_PANEL_ID_LABEL]: `${dashboard.uid}-${panel.id}` }),
+    };
+    if (expression) {
+      params.query = expression;
+    }
+    const ruleFormUrl = urlUtil.renderUrl('/alerting/new', params);
 
     locationService.push(ruleFormUrl);
-  };
-
-  const onCreateAlert = (event: React.MouseEvent) => {
-    event.preventDefault();
-    createAlert();
   };
 
   const subMenu: PanelMenuItem[] = [];
   const canEdit = dashboard.canEditPanel(panel);
   const isCreateAlertMenuOptionAvailable = getCreateAlertInMenuAvailability();
 
+  const buildAlertMenuItem = (): PanelMenuItem => {
+    const promqlQueries = panel.targets.filter((q) => {
+      if (q.hide) {
+        return false;
+      }
+      const dsType = resolveQueryDatasourceType(q.datasource, panel.datasource);
+      return dsType === 'prometheus';
+    });
+
+    if (promqlQueries.length > 1) {
+      return {
+        text: t('panel.header-menu.new-alert-rule', `New alert rule`),
+        type: 'submenu',
+        subMenu: promqlQueries.map((q) => {
+          const expr = getQueryExpr(q);
+          return {
+            text: `${q.refId}: ${expr ?? ''}`,
+            onClick: (e: React.MouseEvent) => {
+              e.preventDefault();
+              createAlert(expr);
+            },
+          };
+        }),
+      };
+    }
+
+    const expr = promqlQueries.length === 1 ? getQueryExpr(promqlQueries[0]) : undefined;
+    return {
+      text: t('panel.header-menu.new-alert-rule', `New alert rule`),
+      onClick: (e: React.MouseEvent) => {
+        e.preventDefault();
+        createAlert(expr);
+      },
+    };
+  };
+
   if (!(panel.isViewing || panel.isEditing)) {
     if (canEdit) {
-      subMenu.push({
-        text: t('panel.header-menu.duplicate', `Duplicate`),
-        onClick: onDuplicatePanel,
-        shortcut: 'p d',
-      });
+      subMenu.push({ text: t('panel.header-menu.duplicate', `Duplicate`), onClick: onDuplicatePanel, shortcut: 'p d' });
 
-      subMenu.push({
-        text: t('panel.header-menu.copy', `Copy`),
-        onClick: onCopyPanel,
-      });
+      subMenu.push({ text: t('panel.header-menu.copy', `Copy`), onClick: onCopyPanel });
 
       if (isPanelModelLibraryPanel(panel)) {
         subMenu.push({
@@ -224,18 +238,12 @@ export function getPanelMenu(
       }
     } else if (contextSrv.isEditor) {
       // An editor but the dashboard is not editable
-      subMenu.push({
-        text: t('panel.header-menu.copy', `Copy`),
-        onClick: onCopyPanel,
-      });
+      subMenu.push({ text: t('panel.header-menu.copy', `Copy`), onClick: onCopyPanel });
     }
   }
 
   if (isCreateAlertMenuOptionAvailable) {
-    subMenu.push({
-      text: t('panel.header-menu.new-alert-rule', `New alert rule`),
-      onClick: onCreateAlert,
-    });
+    subMenu.push(buildAlertMenuItem());
   }
 
   if (panel.options.legend) {
@@ -252,10 +260,7 @@ export function getPanelMenu(
   if (panel.isEditing) {
     subMenu.length = 0;
     if (isCreateAlertMenuOptionAvailable) {
-      subMenu.push({
-        text: t('panel.header-menu.new-alert-rule', `New alert rule`),
-        onClick: onCreateAlert,
-      });
+      subMenu.push(buildAlertMenuItem());
     }
   }
 
@@ -276,12 +281,7 @@ export function getPanelMenu(
   }
 
   if (subMenu.length) {
-    menu.push({
-      type: 'submenu',
-      text: t('panel.header-menu.more', `More...`),
-      iconClassName: 'cube',
-      subMenu,
-    });
+    menu.push({ type: 'submenu', text: t('panel.header-menu.more', `More...`), iconClassName: 'cube', subMenu });
   }
 
   if (dashboard.canEditPanel(panel) && !panel.isEditing && !panel.isViewing) {
@@ -296,4 +296,44 @@ export function getPanelMenu(
   }
 
   return menu;
+}
+
+function resolveQueryDatasourceType(
+  queryDs: unknown,
+  panelDs: { type?: string; uid?: string } | null | undefined
+): string | undefined {
+  const dsRef = getDatasourceRef(queryDs) ?? panelDs;
+  if (dsRef?.type) {
+    return dsRef.type;
+  }
+  if (dsRef?.uid) {
+    try {
+      const settings = getDataSourceSrv().getInstanceSettings({ uid: dsRef.uid });
+      return settings?.type;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+function getDatasourceRef(ds: unknown): { type?: string; uid?: string } | undefined {
+  if (ds != null && typeof ds === 'object') {
+    const ref: { type?: string; uid?: string } = {};
+    if ('type' in ds && typeof ds.type === 'string') {
+      ref.type = ds.type;
+    }
+    if ('uid' in ds && typeof ds.uid === 'string') {
+      ref.uid = ds.uid;
+    }
+    return ref.type || ref.uid ? ref : undefined;
+  }
+  return undefined;
+}
+
+function getQueryExpr(query: object): string | undefined {
+  if ('expr' in query && typeof query.expr === 'string') {
+    return query.expr;
+  }
+  return undefined;
 }
