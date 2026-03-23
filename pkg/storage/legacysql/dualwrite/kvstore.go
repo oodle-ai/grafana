@@ -19,7 +19,8 @@ type keyvalueDB struct {
 const globalKVOrgID = 0
 
 // NOTE: this will replace any usage of "storage.dualwriting" and that will be removed
-const globalKVNamespace = "unified.dualwrite"
+// v2: reset after fixing silent auto-migration failures (service identity + BulkResponse.Error checks)
+const globalKVNamespace = "unified.dualwrite.v2"
 
 func (m *keyvalueDB) get(ctx context.Context, gr schema.GroupResource) (status StorageStatus, ok bool, err error) {
 	val, ok, err := m.db.Get(ctx, globalKVOrgID, globalKVNamespace, gr.String())

@@ -14,6 +14,7 @@ import (
 
 	dashboard "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1beta1"
 	folders "github.com/grafana/grafana/apps/folder/pkg/apis/folder/v1beta1"
+	"github.com/grafana/grafana/pkg/apimachinery/identity"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/grafana/grafana/pkg/infra/db"
 	"github.com/grafana/grafana/pkg/services/accesscontrol"
@@ -108,11 +109,18 @@ func (a *dashboardSqlAccess) migrateAllOrgs(ctx context.Context, opts MigrateOpt
 		orgOpts.AllOrgs = false
 		orgOpts.ExcludeNamespace = ""
 
-		rsp, err := a.migrateSingleOrg(ctx, orgOpts)
+		// Use service identity so the BulkProcess gRPC call has wildcard namespace
+		// permissions instead of the migration-triggering user's (org-scoped) identity.
+		orgCtx := identity.WithServiceIdentityContext(ctx, orgID)
+
+		rsp, err := a.migrateSingleOrg(orgCtx, orgOpts)
 		if err != nil {
 			return nil, fmt.Errorf("migrate org %d (namespace %s): %w", orgID, ns, err)
 		}
 		if rsp != nil {
+			if rsp.Error != nil {
+				return nil, fmt.Errorf("migrate org %d (namespace %s): bulk process error: %s", orgID, ns, rsp.Error.Message)
+			}
 			combined.Summary = append(combined.Summary, rsp.Summary...)
 		}
 	}
@@ -217,7 +225,14 @@ func (a *dashboardSqlAccess) migrateSingleOrg(ctx context.Context, opts MigrateO
 		}
 	}
 	a.log.Info("finished migrating legacy resources", "blobStore", blobStore)
-	return stream.CloseAndRecv()
+	rsp, err := stream.CloseAndRecv()
+	if err != nil {
+		return rsp, err
+	}
+	if rsp != nil && rsp.Error != nil {
+		return rsp, fmt.Errorf("bulk process error (namespace %s): %s", opts.Namespace, rsp.Error.Message)
+	}
+	return rsp, nil
 }
 
 func (a *dashboardSqlAccess) countValues(ctx context.Context, opts MigrateOptions) (*resourcepb.BulkResponse, error) {

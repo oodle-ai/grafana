@@ -102,6 +102,9 @@ func (s *storageSwapper) WipeUnifiedAndSetMigratedFlag(ctx context.Context, name
 		if err != nil {
 			return fmt.Errorf("error clearing unified %s / %w", gr, err)
 		}
+		if stats != nil && stats.Error != nil {
+			return fmt.Errorf("error clearing unified %s: %s (code %d)", gr, stats.Error.Message, stats.Error.Code)
+		}
 		logger.Info("cleared unified storage", "stats", stats)
 	}
 
