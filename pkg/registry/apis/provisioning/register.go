@@ -723,7 +723,7 @@ func (b *APIBuilder) GetPostStartHooks() (map[string]genericapiserver.PostStartH
 				b.clients,
 				export.ExportAll,
 			)
-			storageSwapper := migrate.NewStorageSwapper(b.unified, b.storageStatus)
+			storageSwapper := migrate.NewStorageSwapper(b.unified, b.storageStatus, &legacyResourceMigratorAdapter{migrator: b.legacyMigrator})
 			legacyMigrator := migrate.NewLegacyMigrator(
 				legacyResources,
 				storageSwapper,
@@ -1223,9 +1223,11 @@ func (b *APIBuilder) tryRunningOnlyUnifiedStorage() error {
 		return nil
 	}
 
-	// Count how many things exist
+	// Count how many things exist across ALL organizations.
+	// Using AllOrgs to avoid switching global storage mode when only one org is empty.
 	rsp, err := b.legacyMigrator.Migrate(ctx, legacy.MigrateOptions{
-		Namespace: "default", // FIXME! this works for single org, but need to check multi-org
+		Namespace: "default",
+		AllOrgs:   true,
 		Resources: []schema.GroupResource{{
 			Group: dashboard.GROUP, Resource: dashboard.DASHBOARD_RESOURCE,
 		}, {
@@ -1323,6 +1325,47 @@ func (b *APIBuilder) asRepository(ctx context.Context, obj runtime.Object, old r
 	}
 
 	return b.repoFactory.Build(ctx, r)
+}
+
+// legacyResourceMigratorAdapter adapts legacy.LegacyMigrator to the migrate.LegacyResourceMigrator
+// interface, operating across ALL organizations.
+type legacyResourceMigratorAdapter struct {
+	migrator legacy.LegacyMigrator
+}
+
+func (a *legacyResourceMigratorAdapter) CountLegacyResources(ctx context.Context, excludeNamespace string) (int64, error) {
+	rsp, err := a.migrator.Migrate(ctx, legacy.MigrateOptions{
+		Namespace:        "default",
+		AllOrgs:          true,
+		ExcludeNamespace: excludeNamespace,
+		Resources: []schema.GroupResource{
+			{Group: dashboard.GROUP, Resource: dashboard.DASHBOARD_RESOURCE},
+			{Group: folders.GROUP, Resource: folders.RESOURCE},
+		},
+		OnlyCount: true,
+	})
+	if err != nil {
+		return 0, err
+	}
+	var total int64
+	for _, s := range rsp.Summary {
+		total += s.Count
+	}
+	return total, nil
+}
+
+func (a *legacyResourceMigratorAdapter) MigrateAllToUnified(ctx context.Context, store migrate.BulkStoreClient, excludeNamespace string) error {
+	_, err := a.migrator.Migrate(ctx, legacy.MigrateOptions{
+		Namespace:        "default",
+		AllOrgs:          true,
+		ExcludeNamespace: excludeNamespace,
+		Resources: []schema.GroupResource{
+			{Group: dashboard.GROUP, Resource: dashboard.DASHBOARD_RESOURCE},
+			{Group: folders.GROUP, Resource: folders.RESOURCE},
+		},
+		Store: store,
+	})
+	return err
 }
 
 func getJSONResponse(ref string) *spec3.Responses {

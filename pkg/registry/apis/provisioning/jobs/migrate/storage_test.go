@@ -59,7 +59,7 @@ func TestStorageSwapper_StopReadingUnifiedStorage(t *testing.T) {
 				tt.setupMocks(bulk, dual)
 			}
 
-			swapper := NewStorageSwapper(bulk, dual)
+			swapper := NewStorageSwapper(bulk, dual, nil)
 			err := swapper.StopReadingUnifiedStorage(context.Background())
 
 			if tt.expectedError != "" {
@@ -113,13 +113,16 @@ func TestStorageSwapper_WipeUnifiedAndSetMigratedFlag(t *testing.T) {
 		{
 			name: "should fail if status update fails after bulk process",
 			setupMocks: func(bulk *MockBulkStoreClient, dual *dualwrite.MockService) {
-				gr := resources.SupportedProvisioningResources[0]
-				dual.On("Status", mock.Anything, gr.GroupResource()).Return(dualwrite.StorageStatus{}, nil)
+				// First loop: wipe unified storage for all resources
+				for _, gr := range resources.SupportedProvisioningResources {
+					dual.On("Status", mock.Anything, gr.GroupResource()).Return(dualwrite.StorageStatus{}, nil)
 
-				mockStream := NewBulkStore_BulkProcessClient(t)
-				mockStream.On("CloseAndRecv").Return(&resourcepb.BulkResponse{}, nil)
-				bulk.On("BulkProcess", mock.Anything, mock.Anything).Return(mockStream, nil)
+					mockStream := NewBulkStore_BulkProcessClient(t)
+					mockStream.On("CloseAndRecv").Return(&resourcepb.BulkResponse{}, nil)
+					bulk.On("BulkProcess", mock.Anything, mock.Anything).Return(mockStream, nil).Once()
+				}
 
+				// Second loop: Update fails on the first resource
 				dual.On("Update", mock.Anything, mock.MatchedBy(func(status dualwrite.StorageStatus) bool {
 					return status.ReadUnified && !status.WriteLegacy && status.Migrated > 0
 				})).Return(dualwrite.StorageStatus{}, errors.New("update failed"))
@@ -175,7 +178,7 @@ func TestStorageSwapper_WipeUnifiedAndSetMigratedFlag(t *testing.T) {
 
 					dual.On("Update", mock.Anything, mock.MatchedBy(func(status dualwrite.StorageStatus) bool {
 						return status.ReadUnified && !status.WriteLegacy && status.Migrated > 0
-					})).Return(dualwrite.StorageStatus{}, nil)
+					})).Return(dualwrite.StorageStatus{}, nil).Once()
 				}
 			},
 		},
@@ -190,7 +193,11 @@ func TestStorageSwapper_WipeUnifiedAndSetMigratedFlag(t *testing.T) {
 				tt.setupMocks(bulk, dual)
 			}
 
-			swapper := NewStorageSwapper(bulk, dual)
+			migrator := NewMockLegacyResourceMigrator(t)
+			migrator.On("CountLegacyResources", mock.Anything, mock.Anything).Maybe().Return(int64(0), nil)
+			migrator.On("MigrateAllToUnified", mock.Anything, mock.Anything, mock.Anything).Maybe().Return(nil)
+
+			swapper := NewStorageSwapper(bulk, dual, migrator)
 			err := swapper.WipeUnifiedAndSetMigratedFlag(context.Background(), "test-namespace")
 
 			if tt.expectedError != "" {
@@ -201,4 +208,82 @@ func TestStorageSwapper_WipeUnifiedAndSetMigratedFlag(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestStorageSwapper_WipeUnifiedAndSetMigratedFlag_LegacyResourcesExist(t *testing.T) {
+	t.Run("should skip auto-migration when no other orgs have legacy resources", func(t *testing.T) {
+		bulk := NewMockBulkStoreClient(t)
+		dual := dualwrite.NewMockService(t)
+
+		for _, gr := range resources.SupportedProvisioningResources {
+			dual.On("Status", mock.Anything, gr.GroupResource()).Return(dualwrite.StorageStatus{}, nil)
+
+			mockStream := NewBulkStore_BulkProcessClient(t)
+			mockStream.On("CloseAndRecv").Return(&resourcepb.BulkResponse{}, nil)
+			bulk.On("BulkProcess", mock.Anything, mock.Anything).Return(mockStream, nil).Once()
+
+			dual.On("Update", mock.Anything, mock.MatchedBy(func(status dualwrite.StorageStatus) bool {
+				return status.ReadUnified && !status.WriteLegacy && status.Migrated > 0
+			})).Return(dualwrite.StorageStatus{}, nil).Once()
+		}
+
+		migrator := NewMockLegacyResourceMigrator(t)
+		migrator.On("CountLegacyResources", mock.Anything, "test-namespace").Return(int64(0), nil)
+
+		swapper := NewStorageSwapper(bulk, dual, migrator)
+		err := swapper.WipeUnifiedAndSetMigratedFlag(context.Background(), "test-namespace")
+
+		require.NoError(t, err)
+		migrator.AssertNotCalled(t, "MigrateAllToUnified", mock.Anything, mock.Anything, mock.Anything)
+	})
+
+	t.Run("should auto-migrate when other orgs have legacy resources", func(t *testing.T) {
+		bulk := NewMockBulkStoreClient(t)
+		dual := dualwrite.NewMockService(t)
+
+		for _, gr := range resources.SupportedProvisioningResources {
+			dual.On("Status", mock.Anything, gr.GroupResource()).Return(dualwrite.StorageStatus{}, nil)
+
+			mockStream := NewBulkStore_BulkProcessClient(t)
+			mockStream.On("CloseAndRecv").Return(&resourcepb.BulkResponse{}, nil)
+			bulk.On("BulkProcess", mock.Anything, mock.Anything).Return(mockStream, nil).Once()
+
+			dual.On("Update", mock.Anything, mock.MatchedBy(func(status dualwrite.StorageStatus) bool {
+				return status.ReadUnified && !status.WriteLegacy && status.Migrated > 0
+			})).Return(dualwrite.StorageStatus{}, nil).Once()
+		}
+
+		migrator := NewMockLegacyResourceMigrator(t)
+		migrator.On("CountLegacyResources", mock.Anything, "test-namespace").Return(int64(42), nil)
+		migrator.On("MigrateAllToUnified", mock.Anything, bulk, "test-namespace").Return(nil)
+
+		swapper := NewStorageSwapper(bulk, dual, migrator)
+		err := swapper.WipeUnifiedAndSetMigratedFlag(context.Background(), "test-namespace")
+
+		require.NoError(t, err)
+		migrator.AssertCalled(t, "MigrateAllToUnified", mock.Anything, bulk, "test-namespace")
+	})
+
+	t.Run("should fail if auto-migration fails", func(t *testing.T) {
+		bulk := NewMockBulkStoreClient(t)
+		dual := dualwrite.NewMockService(t)
+
+		for _, gr := range resources.SupportedProvisioningResources {
+			dual.On("Status", mock.Anything, gr.GroupResource()).Return(dualwrite.StorageStatus{}, nil)
+
+			mockStream := NewBulkStore_BulkProcessClient(t)
+			mockStream.On("CloseAndRecv").Return(&resourcepb.BulkResponse{}, nil)
+			bulk.On("BulkProcess", mock.Anything, mock.Anything).Return(mockStream, nil).Once()
+		}
+
+		migrator := NewMockLegacyResourceMigrator(t)
+		migrator.On("CountLegacyResources", mock.Anything, "test-namespace").Return(int64(10), nil)
+		migrator.On("MigrateAllToUnified", mock.Anything, bulk, "test-namespace").Return(errors.New("migration failed"))
+
+		swapper := NewStorageSwapper(bulk, dual, migrator)
+		err := swapper.WipeUnifiedAndSetMigratedFlag(context.Background(), "test-namespace")
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "auto-migrate legacy resources")
+	})
 }

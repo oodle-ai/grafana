@@ -29,15 +29,17 @@ import (
 )
 
 type MigrateOptions struct {
-	Namespace    string
-	Store        resourcepb.BulkStoreClient
-	LargeObjects apistore.LargeObjectSupport
-	BlobStore    resourcepb.BlobStoreClient
-	Resources    []schema.GroupResource
-	WithHistory  bool   // only applies to dashboards
-	OnlyCount    bool   // just count the values
-	StackID      string // stack identifier for logging
-	Progress     func(count int, msg string)
+	Namespace        string
+	Store            resourcepb.BulkStoreClient
+	LargeObjects     apistore.LargeObjectSupport
+	BlobStore        resourcepb.BlobStoreClient
+	Resources        []schema.GroupResource
+	WithHistory      bool   // only applies to dashboards
+	OnlyCount        bool   // just count the values
+	AllOrgs          bool   // when true, operate across all organizations instead of a single namespace
+	ExcludeNamespace string // when AllOrgs is true, skip this namespace (already being handled separately)
+	StackID          string // stack identifier for logging
+	Progress         func(count int, msg string)
 }
 
 // Read from legacy and write into unified storage
@@ -69,6 +71,72 @@ type BlobStoreInfo struct {
 type migratorFunc = func(ctx context.Context, orgId int64, opts MigrateOptions, stream resourcepb.BulkStore_BulkProcessClient) (*BlobStoreInfo, error)
 
 func (a *dashboardSqlAccess) Migrate(ctx context.Context, opts MigrateOptions) (*resourcepb.BulkResponse, error) {
+	if opts.OnlyCount {
+		return a.countValues(ctx, opts)
+	}
+
+	if opts.AllOrgs {
+		return a.migrateAllOrgs(ctx, opts)
+	}
+
+	return a.migrateSingleOrg(ctx, opts)
+}
+
+// migrateAllOrgs migrates legacy resources for every organization into unified storage.
+// This is used when one org enables Git Sync and other orgs' data needs to be
+// migrated to unified storage so the global storage flag can be safely switched.
+func (a *dashboardSqlAccess) migrateAllOrgs(ctx context.Context, opts MigrateOptions) (*resourcepb.BulkResponse, error) {
+	if opts.Progress == nil {
+		opts.Progress = func(count int, msg string) {}
+	}
+
+	orgIDs, err := a.getAllOrgIDs(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("enumerate organizations: %w", err)
+	}
+
+	combined := &resourcepb.BulkResponse{}
+	for _, orgID := range orgIDs {
+		ns := a.namespacer(orgID)
+		if ns == opts.ExcludeNamespace {
+			a.log.Info("skipping excluded namespace during multi-org migration", "namespace", ns, "orgId", orgID)
+			continue
+		}
+
+		orgOpts := opts
+		orgOpts.Namespace = ns
+		orgOpts.AllOrgs = false
+		orgOpts.ExcludeNamespace = ""
+
+		rsp, err := a.migrateSingleOrg(ctx, orgOpts)
+		if err != nil {
+			return nil, fmt.Errorf("migrate org %d (namespace %s): %w", orgID, ns, err)
+		}
+		if rsp != nil {
+			combined.Summary = append(combined.Summary, rsp.Summary...)
+		}
+	}
+	return combined, nil
+}
+
+// getAllOrgIDs returns all distinct organization IDs that have dashboards or folders.
+func (a *dashboardSqlAccess) getAllOrgIDs(ctx context.Context) ([]int64, error) {
+	sql, err := a.sql(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var orgIDs []int64
+	err = sql.DB.WithDbSession(ctx, func(sess *sqlstore.DBSession) error {
+		return sess.SQL("SELECT DISTINCT org_id FROM " + sql.Table("dashboard")).Find(&orgIDs)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return orgIDs, nil
+}
+
+func (a *dashboardSqlAccess) migrateSingleOrg(ctx context.Context, opts MigrateOptions) (*resourcepb.BulkResponse, error) {
 	info, err := authlib.ParseNamespace(opts.Namespace)
 	if err != nil {
 		return nil, err
@@ -77,7 +145,6 @@ func (a *dashboardSqlAccess) Migrate(ctx context.Context, opts MigrateOptions) (
 		opts.Progress = func(count int, msg string) {} // noop
 	}
 
-	// Migrate everything
 	if len(opts.Resources) < 1 {
 		return nil, fmt.Errorf("missing resource selector")
 	}
@@ -117,9 +184,6 @@ func (a *dashboardSqlAccess) Migrate(ctx context.Context, opts MigrateOptions) (
 			return nil, fmt.Errorf("unsupported resource: %s", res)
 		}
 	}
-	if opts.OnlyCount {
-		return a.countValues(ctx, opts)
-	}
 
 	ctx = metadata.NewOutgoingContext(ctx, settings.ToMD())
 	if md, ok := metadata.FromOutgoingContext(ctx); ok {
@@ -138,9 +202,8 @@ func (a *dashboardSqlAccess) Migrate(ctx context.Context, opts MigrateOptions) (
 		return nil, err
 	}
 
-	// Now run each migration
 	blobStore := BlobStoreInfo{}
-	opts.StackID = fmt.Sprintf("%d", info.StackID) // Pass stack ID through options
+	opts.StackID = fmt.Sprintf("%d", info.StackID)
 	a.log.Info("start migrating legacy resources", "namespace", opts.Namespace, "orgId", info.OrgID, "stackId", info.StackID)
 	for _, m := range migratorFuncs {
 		blobs, err := m(ctx, info.OrgID, opts, stream)
@@ -162,11 +225,32 @@ func (a *dashboardSqlAccess) countValues(ctx context.Context, opts MigrateOption
 	if err != nil {
 		return nil, err
 	}
-	ns, err := authlib.ParseNamespace(opts.Namespace)
-	if err != nil {
-		return nil, err
+
+	var orgId int64
+	if !opts.AllOrgs {
+		ns, err := authlib.ParseNamespace(opts.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		orgId = ns.OrgID
 	}
-	orgId := ns.OrgID
+
+	orgFilter := " AND org_id=?"
+	orgArgs := func() []interface{} { return []interface{}{orgId} }
+	if opts.AllOrgs {
+		if opts.ExcludeNamespace != "" {
+			excludeNs, err := authlib.ParseNamespace(opts.ExcludeNamespace)
+			if err != nil {
+				return nil, err
+			}
+			orgFilter = " AND org_id!=?"
+			orgArgs = func() []interface{} { return []interface{}{excludeNs.OrgID} }
+		} else {
+			orgFilter = ""
+			orgArgs = func() []interface{} { return nil }
+		}
+	}
+
 	rsp := &resourcepb.BulkResponse{}
 	err = sql.DB.WithDbSession(ctx, func(sess *sqlstore.DBSession) error {
 		for _, res := range opts.Resources {
@@ -174,9 +258,9 @@ func (a *dashboardSqlAccess) countValues(ctx context.Context, opts MigrateOption
 			case "folder.grafana.app/folders":
 				summary := &resourcepb.BulkResponse_Summary{}
 				summary.Group = folders.GROUP
-				summary.Group = folders.RESOURCE
+				summary.Resource = folders.RESOURCE
 				_, err = sess.SQL("SELECT COUNT(*) FROM "+sql.Table("dashboard")+
-					" WHERE is_folder=TRUE AND org_id=?", orgId).Get(&summary.Count)
+					" WHERE is_folder=TRUE"+orgFilter, orgArgs()...).Get(&summary.Count)
 				rsp.Summary = append(rsp.Summary, summary)
 
 			case "dashboard.grafana.app/librarypanels":
@@ -184,7 +268,7 @@ func (a *dashboardSqlAccess) countValues(ctx context.Context, opts MigrateOption
 				summary.Group = dashboard.GROUP
 				summary.Resource = dashboard.LIBRARY_PANEL_RESOURCE
 				_, err = sess.SQL("SELECT COUNT(*) FROM "+sql.Table("library_element")+
-					" WHERE org_id=?", orgId).Get(&summary.Count)
+					" WHERE 1=1"+orgFilter, orgArgs()...).Get(&summary.Count)
 				rsp.Summary = append(rsp.Summary, summary)
 
 			case "dashboard.grafana.app/dashboards":
@@ -194,17 +278,17 @@ func (a *dashboardSqlAccess) countValues(ctx context.Context, opts MigrateOption
 				rsp.Summary = append(rsp.Summary, summary)
 
 				_, err = sess.SQL("SELECT COUNT(*) FROM "+sql.Table("dashboard")+
-					" WHERE is_folder=FALSE AND org_id=?", orgId).Get(&summary.Count)
+					" WHERE is_folder=FALSE"+orgFilter, orgArgs()...).Get(&summary.Count)
 				if err != nil {
 					return err
 				}
 
-				// Also count history
-				_, err = sess.SQL(`SELECT COUNT(*)
-						FROM `+sql.Table("dashboard_version")+` as dv
-						JOIN `+sql.Table("dashboard")+`         as dd
+				historyQuery := `SELECT COUNT(*)
+						FROM ` + sql.Table("dashboard_version") + ` as dv
+						JOIN ` + sql.Table("dashboard") + `         as dd
 						ON dd.id = dv.dashboard_id
-						WHERE org_id=?`, orgId).Get(&summary.History)
+						WHERE 1=1` + orgFilter
+				_, err = sess.SQL(historyQuery, orgArgs()...).Get(&summary.History)
 			}
 			if err != nil {
 				return err

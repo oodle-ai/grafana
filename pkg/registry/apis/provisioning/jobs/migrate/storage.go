@@ -22,6 +22,21 @@ type BulkStoreClient interface {
 	BulkProcess(ctx context.Context, opts ...grpc.CallOption) (resourcepb.BulkStore_BulkProcessClient, error)
 }
 
+// LegacyResourceMigrator handles migration of legacy resources across all organizations.
+// Used by StorageSwapper to ensure all orgs' data is in unified storage before
+// switching the global storage mode flag.
+//
+//go:generate mockery --name LegacyResourceMigrator --structname MockLegacyResourceMigrator --inpackage --filename mock_legacy_resource_migrator.go --with-expecter
+type LegacyResourceMigrator interface {
+	// CountLegacyResources returns the total count of legacy resources (dashboards + folders)
+	// across all organizations except excludeNamespace.
+	CountLegacyResources(ctx context.Context, excludeNamespace string) (int64, error)
+
+	// MigrateAllToUnified copies legacy resources from all organizations into unified storage.
+	// excludeNamespace is skipped (already being handled by the caller's own migration).
+	MigrateAllToUnified(ctx context.Context, store BulkStoreClient, excludeNamespace string) error
+}
+
 //go:generate mockery --name StorageSwapper --structname MockStorageSwapper --inpackage --filename mock_storage_swapper.go --with-expecter
 type StorageSwapper interface {
 	StopReadingUnifiedStorage(ctx context.Context) error
@@ -29,21 +44,20 @@ type StorageSwapper interface {
 }
 
 type storageSwapper struct {
-	// Direct access to unified storage... use carefully!
-	bulk BulkStoreClient
-	dual dualwrite.Service
+	bulk            BulkStoreClient
+	dual            dualwrite.Service
+	legacyMigrator  LegacyResourceMigrator
 }
 
-func NewStorageSwapper(bulk BulkStoreClient, dual dualwrite.Service) StorageSwapper {
+func NewStorageSwapper(bulk BulkStoreClient, dual dualwrite.Service, legacyMigrator LegacyResourceMigrator) StorageSwapper {
 	return &storageSwapper{
-		bulk: bulk,
-		dual: dual,
+		bulk:           bulk,
+		dual:           dual,
+		legacyMigrator: legacyMigrator,
 	}
 }
 
 func (s *storageSwapper) StopReadingUnifiedStorage(ctx context.Context) error {
-	// FIXME: dual writer is not namespaced which means that we would consider all namespaces migrated
-	// after one migrates
 	for _, gr := range resources.SupportedProvisioningResources {
 		status, _ := s.dual.Status(ctx, gr.GroupResource())
 		status.ReadUnified = false
@@ -59,6 +73,8 @@ func (s *storageSwapper) StopReadingUnifiedStorage(ctx context.Context) error {
 }
 
 func (s *storageSwapper) WipeUnifiedAndSetMigratedFlag(ctx context.Context, namespace string) error {
+	logger := logging.FromContext(ctx)
+
 	for _, gr := range resources.SupportedProvisioningResources {
 		status, _ := s.dual.Status(ctx, gr.GroupResource())
 		if status.ReadUnified {
@@ -86,13 +102,32 @@ func (s *storageSwapper) WipeUnifiedAndSetMigratedFlag(ctx context.Context, name
 		if err != nil {
 			return fmt.Errorf("error clearing unified %s / %w", gr, err)
 		}
-		logger := logging.FromContext(ctx)
-		logger.Error("cleared unified storage", "stats", stats)
+		logger.Info("cleared unified storage", "stats", stats)
+	}
 
-		status.Migrated = time.Now().UnixMilli() // but not really... since the sync is starting
+	// The dual-writer flags are global (not per-namespace), so before flipping them
+	// we must ensure all organizations' legacy data is in unified storage.
+	// Auto-migrate other orgs' resources so they remain visible after the switch.
+	if s.legacyMigrator != nil {
+		remaining, err := s.legacyMigrator.CountLegacyResources(ctx, namespace)
+		if err != nil {
+			return fmt.Errorf("check remaining legacy resources: %w", err)
+		}
+		if remaining > 0 {
+			logger.Info("auto-migrating legacy resources from other organizations to unified storage",
+				"remaining", remaining, "excludeNamespace", namespace)
+			if err := s.legacyMigrator.MigrateAllToUnified(ctx, s.bulk, namespace); err != nil {
+				return fmt.Errorf("auto-migrate legacy resources to unified storage: %w", err)
+			}
+		}
+	}
+
+	for _, gr := range resources.SupportedProvisioningResources {
+		status, _ := s.dual.Status(ctx, gr.GroupResource())
+		status.Migrated = time.Now().UnixMilli()
 		status.ReadUnified = true
-		status.WriteLegacy = false // keep legacy "clean"
-		_, err = s.dual.Update(ctx, status)
+		status.WriteLegacy = false
+		_, err := s.dual.Update(ctx, status)
 		if err != nil {
 			return err
 		}

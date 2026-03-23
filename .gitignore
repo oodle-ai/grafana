@@ -260,3 +260,7 @@ public/mockServiceWorker.js
 
 # Ignore grafana/hippocampus local cache folder
 .hippo
+
+.specstory
+.specstore/*
+.cursorindexingignore
