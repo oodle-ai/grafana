@@ -8,6 +8,7 @@ import {
   AbsoluteTimeRange,
   DataFrame,
   EventBus,
+  FieldType,
   getNextRefId,
   GrafanaTheme2,
   hasToggleableQueryFiltersSupport,
@@ -475,11 +476,70 @@ export class Explore extends PureComponent<Props, ExploreState> {
       panelTitle = panelTitleParam;
     }
 
-    const hideQueryEditor = searchParams.has('hideQueryBuilder');
-    const hideMiniOptions = searchParams.has('hideMiniOptions');
+    const hideQueryEditor = searchParams.has(
+      'hideQueryBuilder',
+    );
+    const hideMiniOptions = searchParams.has(
+      'hideMiniOptions',
+    );
+
+    let annotations = queryResponse.annotations;
+    const annotationsParam = searchParams.get(
+      'customAnnotations',
+    );
+    if (annotationsParam) {
+      try {
+        const parsed = JSON.parse(
+          annotationsParam,
+        ) as Array<{
+          timestamp: number;
+          text: string;
+          color?: string;
+        }>;
+        const customFrames: DataFrame[] = parsed.map(
+          (a) => ({
+            fields: [
+              {
+                name: 'time',
+                type: FieldType.time,
+                values: [a.timestamp],
+                config: {},
+              },
+              {
+                name: 'text',
+                type: FieldType.string,
+                values: [a.text],
+                config: {},
+              },
+              ...(a.color
+                ? [
+                    {
+                      name: 'color',
+                      type: FieldType.string,
+                      values: [a.color],
+                      config: {},
+                    },
+                  ]
+                : []),
+            ],
+            length: 1,
+          }),
+        );
+        annotations = [
+          ...(queryResponse.annotations ?? []),
+          ...customFrames,
+        ];
+      } catch {
+        // ignore malformed param
+      }
+    }
 
     return (
-      <ContentOutlineItem panelId="Graph" title={panelTitle} icon="graph-bar">
+      <ContentOutlineItem
+        panelId="Graph"
+        title={panelTitle}
+        icon="graph-bar"
+      >
         <GraphContainer
           title={panelTitle}
           data={graphResult!}
@@ -489,7 +549,7 @@ export class Explore extends PureComponent<Props, ExploreState> {
           timeZone={timeZone}
           updateTimeRange={this.onChangeTime}
           onChangeTime={this.onUpdateTimeRange}
-          annotations={queryResponse.annotations}
+          annotations={annotations}
           splitOpenFn={this.onSplitOpen('graph')}
           loadingState={queryResponse.state}
           eventBus={this.graphEventBus}
