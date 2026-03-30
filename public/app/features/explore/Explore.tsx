@@ -20,6 +20,7 @@ import {
   SupplementaryQueryType,
 } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
+import { t } from '@grafana/i18n';
 import { getDataSourceSrv, reportInteraction } from '@grafana/runtime';
 import { DataQuery } from '@grafana/schema';
 import {
@@ -32,7 +33,6 @@ import {
   withTheme2,
 } from '@grafana/ui';
 import { FILTER_FOR_OPERATOR, FILTER_OUT_OPERATOR } from '@grafana/ui/internal';
-import { t } from '@grafana/i18n';
 import { supportedFeatures } from 'app/core/history/richHistoryStorageProvider';
 import { MIXED_DATASOURCE_NAME } from 'app/plugins/datasource/mixed/MixedDataSource';
 import { StoreState } from 'app/types/store';
@@ -493,42 +493,51 @@ export class Explore extends PureComponent<Props, ExploreState> {
     }
 
     let annotations = queryResponse.annotations;
-    const annotationsParam = searchParams.get('customAnnotations');
+    const annotationsParam = searchParams.get(
+      'customAnnotations',
+    );
     if (annotationsParam) {
       try {
-        const parsed = JSON.parse(annotationsParam) as Array<{
+        const parsed = JSON.parse(
+          annotationsParam,
+        ) as Array<{
           timestamp: number;
           text: string;
           color?: string;
         }>;
-        const customFrames: DataFrame[] = parsed.map((a) => ({
-          fields: [
-            {
-              name: 'time',
-              type: FieldType.time,
-              values: [a.timestamp],
-              config: {},
-            },
-            {
-              name: 'text',
-              type: FieldType.string,
-              values: [a.text],
-              config: {},
-            },
-            ...(a.color
-              ? [
-                  {
-                    name: 'color',
-                    type: FieldType.string,
-                    values: [a.color],
-                    config: {},
-                  },
-                ]
-              : []),
-          ],
-          length: 1,
-        }));
-        annotations = [...(queryResponse.annotations ?? []), ...customFrames];
+        const customFrames: DataFrame[] = parsed.map(
+          (a) => ({
+            fields: [
+              {
+                name: 'time',
+                type: FieldType.time,
+                values: [a.timestamp],
+                config: {},
+              },
+              {
+                name: 'text',
+                type: FieldType.string,
+                values: [a.text],
+                config: {},
+              },
+              ...(a.color
+                ? [
+                    {
+                      name: 'color',
+                      type: FieldType.string,
+                      values: [a.color],
+                      config: {},
+                    },
+                  ]
+                : []),
+            ],
+            length: 1,
+          }),
+        );
+        annotations = [
+          ...(queryResponse.annotations ?? []),
+          ...customFrames,
+        ];
       } catch {
         // ignore malformed param
       }
