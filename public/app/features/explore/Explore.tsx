@@ -36,6 +36,7 @@ import { FILTER_FOR_OPERATOR, FILTER_OUT_OPERATOR } from '@grafana/ui/internal';
 import { supportedFeatures } from 'app/core/history/richHistoryStorageProvider';
 import { MIXED_DATASOURCE_NAME } from 'app/plugins/datasource/mixed/MixedDataSource';
 import { StoreState } from 'app/types/store';
+import { EXPLORE_GRAPH_STYLES, ExploreGraphStyle } from 'app/types/explore';
 
 import { getTimeZone } from '../profile/state/selectors';
 
@@ -75,6 +76,21 @@ import { updateTimeRange } from './state/time';
 
 const eventSourceOodleGrafana = 'oodle';
 const eventTypeUpdateThresholds = 'updateThresholds';
+
+const parseGraphStyleFromUrl = (graphStyle: string | null): ExploreGraphStyle | undefined => {
+  if (!graphStyle) {
+    return undefined;
+  }
+
+  const normalized = graphStyle.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (!normalized) {
+    return 'lines';
+  }
+
+  const matchedStyle = EXPLORE_GRAPH_STYLES.find((style) => style === normalized);
+
+  return matchedStyle ?? 'lines';
+};
 
 const getStyles = (queryBuilderOnly: boolean, hideQueryEditor: boolean, theme: GrafanaTheme2) => {
   return {
@@ -476,13 +492,6 @@ export class Explore extends PureComponent<Props, ExploreState> {
       panelTitle = panelTitleParam;
     }
 
-    const hideQueryEditor = searchParams.has(
-      'hideQueryBuilder',
-    );
-    const hideMiniOptions = searchParams.has(
-      'hideMiniOptions',
-    );
-
     let annotations = queryResponse.annotations;
     const annotationsParam = searchParams.get(
       'customAnnotations',
@@ -534,6 +543,11 @@ export class Explore extends PureComponent<Props, ExploreState> {
       }
     }
 
+    const graphStyleOverride = parseGraphStyleFromUrl(searchParams.get('graphStyle'));
+
+    const hideQueryEditor = searchParams.has('hideQueryBuilder');
+    const hideMiniOptions = searchParams.has('hideMiniOptions');
+
     return (
       <ContentOutlineItem
         panelId="Graph"
@@ -558,6 +572,7 @@ export class Explore extends PureComponent<Props, ExploreState> {
           queryBuilderOnly={queryBuilderOnly}
           hideQueryEditor={hideQueryEditor}
           hideMiniOptions={hideMiniOptions}
+          graphStyleOverride={graphStyleOverride}
         />
       </ContentOutlineItem>
     );

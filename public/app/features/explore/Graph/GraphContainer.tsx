@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import { ReactNode, useCallback, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 
 import {
   DataFrame,
@@ -47,6 +47,7 @@ interface Props extends Pick<PanelChromeProps, 'statusMessage'> {
   hideQueryEditor?: boolean;
   hideMiniOptions?: boolean;
   title?: string;
+  graphStyleOverride?: ExploreGraphStyle;
 }
 
 export const GraphContainer = ({
@@ -70,10 +71,17 @@ export const GraphContainer = ({
   queryBuilderOnly,
   hideQueryEditor,
   hideMiniOptions,
+  graphStyleOverride,
 }: Props) => {
-  const [graphStyle, setGraphStyle] = useState(loadGraphStyle);
+  const [graphStyle, setGraphStyle] = useState<ExploreGraphStyle>(() => graphStyleOverride ?? loadGraphStyle());
   const [timeRangeOption, setTimeRangeOption] = useState<ExploreTimeRangeOptions>('24h');
   const styles = useStyles2(getStyles);
+
+  useEffect(() => {
+    if (graphStyleOverride) {
+      setGraphStyle(graphStyleOverride);
+    }
+  }, [graphStyleOverride]);
 
   const onGraphStyleChange = useCallback((graphStyle: ExploreGraphStyle) => {
     storeGraphStyle(graphStyle);
