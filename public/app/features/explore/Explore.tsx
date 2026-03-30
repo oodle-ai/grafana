@@ -27,6 +27,7 @@ import {
   AdHocFilterItem,
   ErrorBoundaryAlert,
   PanelContainer,
+  RefreshPicker,
   ScrollContainer,
   Spinner,
   Themeable2,
@@ -65,6 +66,7 @@ import { splitOpen } from './state/main';
 import {
   addQueryRow,
   modifyQueries,
+  runQueries,
   scanStart,
   scanStopAction,
   selectIsWaitingForData,
@@ -72,7 +74,7 @@ import {
   setSupplementaryQueryEnabled,
 } from './state/query';
 import { isSplit, selectExploreDSMaps } from './state/selectors';
-import { updateTimeRange } from './state/time';
+import { changeRefreshInterval, updateTimeRange } from './state/time';
 
 const eventSourceOodleGrafana = 'oodle';
 const eventTypeUpdateThresholds = 'updateThresholds';
@@ -199,6 +201,27 @@ export class Explore extends PureComponent<Props, ExploreState> {
       warnThreshold: warnThreshold,
     };
   }
+
+  isWebsocketDisabledByUrl = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const disableWebsocketValue = searchParams.get('disableWebsocket');
+
+    if (!disableWebsocketValue) {
+      return true;
+    }
+
+    return disableWebsocketValue !== '0' && disableWebsocketValue.toLowerCase() !== 'false';
+  };
+
+  disableLiveModeIfRequired = () => {
+    const { isLive, exploreId, changeRefreshInterval, runQueries } = this.props;
+    if (!isLive || !this.isWebsocketDisabledByUrl()) {
+      return;
+    }
+
+    changeRefreshInterval({ exploreId, refreshInterval: RefreshPicker.offOption.value });
+    runQueries({ exploreId });
+  };
 
   onChangeTime = (rawRange: RawTimeRange) => {
     const { updateTimeRange, exploreId } = this.props;
@@ -458,6 +481,13 @@ export class Explore extends PureComponent<Props, ExploreState> {
   componentDidMount() {
     // Add event listener when the component mounts
     window.addEventListener('message', this.processThresholdEvent);
+    this.disableLiveModeIfRequired();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (!prevProps.isLive && this.props.isLive) {
+      this.disableLiveModeIfRequired();
+    }
   }
 
   componentWillUnmount() {
@@ -1034,7 +1064,9 @@ function mapStateToProps(state: StoreState, { exploreId }: ExploreProps) {
 const mapDispatchToProps = {
   changeDatasource,
   changeSize,
+  changeRefreshInterval,
   modifyQueries,
+  runQueries,
   scanStart,
   scanStopAction,
   setQueries,
