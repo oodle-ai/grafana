@@ -77,12 +77,12 @@ import { updateTimeRange } from './state/time';
 const eventSourceOodleGrafana = 'oodle';
 const eventTypeUpdateThresholds = 'updateThresholds';
 
-const parseGraphStyleFromUrl = (chartType: string | null): ExploreGraphStyle | undefined => {
-  if (!chartType) {
+const parseGraphStyleFromUrl = (graphStyle: string | null): ExploreGraphStyle | undefined => {
+  if (!graphStyle) {
     return undefined;
   }
 
-  const normalized = chartType.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const normalized = graphStyle.trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (!normalized) {
     return 'lines';
   }
@@ -543,7 +543,7 @@ export class Explore extends PureComponent<Props, ExploreState> {
       }
     }
 
-    const graphStyleOverride = parseGraphStyleFromUrl(searchParams.get('chartType') ?? searchParams.get('graphStyle'));
+    const graphStyleOverride = parseGraphStyleFromUrl(searchParams.get('graphStyle'));
 
     const hideQueryEditor = searchParams.has('hideQueryBuilder');
     const hideMiniOptions = searchParams.has('hideMiniOptions');
