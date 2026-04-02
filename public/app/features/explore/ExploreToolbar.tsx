@@ -253,7 +253,7 @@ export function ExploreToolbar({ exploreId, onChangeTime, onContentOutlineToogle
             hideTextValue={showSmallDataSourcePicker}
             width={showSmallDataSourcePicker ? 8 : undefined}
           />,
-          !queryBuilderOnly && isSingleTopNav && <ShortLinkButtonMenu key="share" />,
+          !queryBuilderOnly && isSingleTopNav && <ShortLinkButtonMenu key="share" size="md" />,
           !queryBuilderOnly && <ToolbarExtensionPoint
             key="toolbar-extension-point"
             exploreId={exploreId}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { IconName } from '@grafana/data';
+import { ComponentSize, IconName } from '@grafana/data';
 import { Trans, t } from '@grafana/i18n';
 import { reportInteraction, config } from '@grafana/runtime';
 import { Dropdown, Menu, MenuGroup, ButtonGroup, Button } from '@grafana/ui';
@@ -26,7 +26,13 @@ interface ShortLinkMenuItemData {
   absTime: boolean;
 }
 
-export function ShortLinkButtonMenu() {
+interface ShortLinkButtonMenuProps {
+  size?: ComponentSize;
+}
+
+export function ShortLinkButtonMenu({
+  size = 'sm',
+}: ShortLinkButtonMenuProps) {
   const defaultMode: ShortLinkMenuItemData = {
     key: 'copy-link',
     label: t('explore.toolbar.copy-shortened-link', 'Copy shortened URL'),
@@ -134,7 +140,7 @@ export function ShortLinkButtonMenu() {
       <Button
         tooltip={lastSelected.label}
         icon={lastSelected.icon}
-        size="sm"
+        size={size}
         variant="secondary"
         onClick={() => {
           const url = lastSelected.getUrl();
@@ -147,7 +153,7 @@ export function ShortLinkButtonMenu() {
       <Dropdown overlay={MenuActions} placement="bottom-end" onVisibleChange={setIsOpen}>
         <Button
           variant={'secondary'}
-          size="sm"
+          size={size}
           icon={isOpen ? 'angle-up' : 'angle-down'}
           aria-label={t('explore.toolbar.copy-shortened-link-menu', 'Open copy link options')}
         />
