@@ -14,7 +14,7 @@ ARG JS_SRC=js-builder
 
 # Dependabot cannot update dependencies listed in ARGs
 # By using FROM instructions we can delegate dependency updates to dependabot
-FROM alpine:3.23.0 AS alpine-base
+FROM alpine:3.23 AS alpine-base
 FROM ubuntu:22.04 AS ubuntu-base
 FROM golang:1.25.5-alpine AS go-builder-base
 FROM --platform=${JS_PLATFORM} node:24-alpine AS js-builder-base
@@ -167,12 +167,17 @@ ENV PATH="/usr/share/grafana/bin:$PATH" \
 WORKDIR $GF_PATHS_HOME
 
 # Install dependencies
+# apk upgrade pulls in the latest patched versions of base packages
+# (e.g. openssl, musl, zlib) from the Alpine 3.23 repos on every build,
+# so CVE fixes published after the base image tag are always applied.
 RUN if grep -i -q alpine /etc/issue; then \
+  apk upgrade --no-cache && \
   apk add --no-cache ca-certificates bash curl tzdata musl-utils && \
   apk info -vv | sort; \
   elif grep -i -q ubuntu /etc/issue; then \
   DEBIAN_FRONTEND=noninteractive && \
   apt-get update && \
+  apt-get upgrade -y && \
   apt-get install -y ca-certificates curl tzdata musl && \
   apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*; \
