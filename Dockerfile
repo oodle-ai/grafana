@@ -168,7 +168,7 @@ WORKDIR $GF_PATHS_HOME
 
 # Install dependencies
 # apk upgrade pulls in the latest patched versions of base packages
-# (e.g. openssl, musl, zlib) from the Alpine 3.23 repos on every build,
+# (e.g. openssl, musl, zlib) from the base repos on every build,
 # so CVE fixes published after the base image tag are always applied.
 RUN if grep -i -q alpine /etc/issue; then \
   apk upgrade --no-cache && \
