@@ -56,6 +56,11 @@ type ClientParams struct {
 	SyncTeams bool
 	// SyncOrgRoles will sync the roles from the identity to orgs in grafana
 	SyncOrgRoles bool
+	// AdditiveSyncOrgRoles when true, org role sync will only add/update
+	// memberships present in OrgRoles without removing memberships in other
+	// orgs. Useful in multi-tenant systems where a user can be part of multiple orgs, but
+	// any request, at any given time, carries a single org context.
+	AdditiveSyncOrgRoles bool
 	// CacheAuthProxyKey  if this key is set we will try to cache the user id for proxy client
 	CacheAuthProxyKey string
 	// LookUpParams are the arguments used to look up the entity in the DB.
