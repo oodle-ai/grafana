@@ -25,12 +25,14 @@ import (
 )
 
 const (
-	proxyFieldName   = "Name"
-	proxyFieldEmail  = "Email"
-	proxyFieldLogin  = "Login"
-	proxyFieldRole   = "Role"
-	proxyFieldGroups = "Groups"
-	proxyCachePrefix = "authn-proxy-sync-ttl"
+	proxyFieldName        = "Name"
+	proxyFieldEmail       = "Email"
+	proxyFieldLogin       = "Login"
+	proxyFieldRole        = "Role"
+	proxyFieldGroups      = "Groups"
+	proxyCachePrefix      = "authn-proxy-sync-ttl"
+	proxyCacheKeySep      = "\x00"
+	proxyCacheKeyValueSep = "="
 )
 
 var proxyFields = [...]string{proxyFieldName, proxyFieldEmail, proxyFieldLogin, proxyFieldRole, proxyFieldGroups}
@@ -86,7 +88,7 @@ func (c *Proxy) Authenticate(ctx context.Context, r *authn.Request) (*authn.Iden
 	}
 
 	additional := getAdditionalProxyHeaders(r, c.cfg)
-	cacheKey, ok := getProxyCacheKey(username, additional)
+	cacheKey, ok := getProxyCacheKey(username, additional, r.OrgID)
 
 	if c.cfg.AuthProxy.SyncTTL != 0 && ok {
 		identity, errCache := c.retrieveIDFromCache(ctx, cacheKey, r)
@@ -174,10 +176,11 @@ func (c *Proxy) Hook(ctx context.Context, id *authn.Identity, r *authn.Request) 
 	// 1. Name = x; Role = Admin			# cache missed, new user created and cached with key Name=x;Role=Admin
 	// 2. Name = x; Role = Editor			# cache missed, the user got updated and cached with key Name=x;Role=Editor
 	// 3. Name = x; Role = Admin			# cache hit with key Name=x;Role=Admin, no update, the user stays with Role=Editor
-	// To avoid such a problem we also cache the key used using `prefix:[username]`.
-	// Then whenever we get a cache miss due to changes in any header we use it to invalidate the previous item.
+	// To avoid such a problem we also cache the key used using `prefix:[username]:[orgID]`.
+	// Then whenever we get a cache miss due to changes in any header for the same org,
+	// we use it to invalidate the previous item without evicting other orgs' cache entries.
 	username := getProxyHeader(r, c.cfg.AuthProxy.HeaderName, c.cfg.AuthProxy.HeadersEncoded)
-	userKey := fmt.Sprintf("%s:%s", proxyCachePrefix, username)
+	userKey := getProxyUserCacheKey(username, r.OrgID)
 
 	// invalidate previously cached user id
 	if prevCacheKey, err := c.cache.Get(ctx, userKey); err == nil && len(prevCacheKey) > 0 {
@@ -268,11 +271,16 @@ func getAdditionalProxyHeaders(r *authn.Request, cfg *setting.Cfg) map[string]st
 	return additional
 }
 
-func getProxyCacheKey(username string, additional map[string]string) (string, bool) {
+func getProxyCacheKey(username string, additional map[string]string, orgID int64) (string, bool) {
 	key := strings.Builder{}
 	key.WriteString(username)
+	key.WriteString(proxyCacheKeySep)
+	key.WriteString(strconv.FormatInt(orgID, 10))
 	for _, k := range proxyFields {
 		if v, ok := additional[k]; ok {
+			key.WriteString(proxyCacheKeySep)
+			key.WriteString(k)
+			key.WriteString(proxyCacheKeyValueSep)
 			key.WriteString(v)
 		}
 	}
@@ -283,4 +291,8 @@ func getProxyCacheKey(username string, additional map[string]string) (string, bo
 	}
 
 	return strings.Join([]string{proxyCachePrefix, hex.EncodeToString(hash.Sum(nil))}, ":"), true
+}
+
+func getProxyUserCacheKey(username string, orgID int64) string {
+	return fmt.Sprintf("%s:%s:%d", proxyCachePrefix, username, orgID)
 }
