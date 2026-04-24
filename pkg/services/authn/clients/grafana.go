@@ -43,12 +43,13 @@ func (c *Grafana) AuthenticateProxy(ctx context.Context, r *authn.Request, usern
 		AuthenticatedBy: login.AuthProxyAuthModule,
 		AuthID:          username,
 		ClientParams: authn.ClientParams{
-			SyncUser:        true,
-			SyncTeams:       true,
-			FetchSyncedUser: true,
-			SyncOrgRoles:    true,
-			SyncPermissions: true,
-			AllowSignUp:     c.cfg.AuthProxy.AutoSignUp,
+			SyncUser:             true,
+			SyncTeams:            true,
+			FetchSyncedUser:      true,
+			SyncOrgRoles:         true,
+			AdditiveSyncOrgRoles: true,
+			SyncPermissions:      true,
+			AllowSignUp:          c.cfg.AuthProxy.AutoSignUp,
 		},
 	}
 
@@ -79,7 +80,7 @@ func (c *Grafana) AuthenticateProxy(ctx context.Context, r *authn.Request, usern
 	}
 
 	if v, ok := additional[proxyFieldRole]; ok {
-		orgRoles, isGrafanaAdmin, _ := getRoles(c.cfg, func() (org.RoleType, *bool, error) {
+		orgRoles, isGrafanaAdmin, _ := getRolesForOrg(c.cfg, r.OrgID, func() (org.RoleType, *bool, error) {
 			return org.RoleType(v), nil, nil
 		})
 		identity.OrgRoles = orgRoles

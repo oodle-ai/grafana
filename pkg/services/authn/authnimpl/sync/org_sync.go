@@ -73,7 +73,12 @@ func (s *OrgSync) SyncOrgRolesHook(ctx context.Context, id *authn.Identity, _ *a
 
 		extRole := id.OrgRoles[orga.OrgID]
 		if extRole == "" {
-			deleteOrgIds = append(deleteOrgIds, orga.OrgID)
+			// Only schedule deletion when NOT in additive mode.
+			// In additive mode, absence from OrgRoles simply
+			// means "this request doesn't concern that org" - not "remove it".
+			if !id.ClientParams.AdditiveSyncOrgRoles {
+				deleteOrgIds = append(deleteOrgIds, orga.OrgID)
+			}
 		} else if extRole != orga.Role {
 			// update role
 			cmd := &org.UpdateOrgUserCommand{OrgID: orga.OrgID, UserID: userID, Role: extRole}

@@ -50,14 +50,43 @@ func TestGrafana_AuthenticateProxy(t *testing.T) {
 				AuthID:          "test",
 				Groups:          []string{"grp1", "grp2"},
 				ClientParams: authn.ClientParams{
-					SyncUser:        true,
-					SyncTeams:       true,
-					AllowSignUp:     true,
-					FetchSyncedUser: true,
-					SyncOrgRoles:    true,
+					SyncUser:             true,
+					SyncTeams:            true,
+					AllowSignUp:          true,
+					FetchSyncedUser:      true,
+					SyncOrgRoles:         true,
+					AdditiveSyncOrgRoles: true,
 					LookUpParams: login.UserLookupParams{
 						Email: strPtr("email@email.com"),
 						Login: strPtr("test"),
+					},
+				},
+			},
+		},
+		{
+			desc:     "should map role to request org when org header is set",
+			username: "test@test.com",
+			req:      &authn.Request{OrgID: 42, HTTPRequest: &http.Request{Header: map[string][]string{}}},
+			additional: map[string]string{
+				proxyFieldRole: "Editor",
+			},
+			proxyProperty: "email",
+			expectedIdentity: &authn.Identity{
+				OrgRoles:        map[int64]org.RoleType{42: org.RoleEditor},
+				Login:           "test@test.com",
+				Email:           "test@test.com",
+				AuthenticatedBy: login.AuthProxyAuthModule,
+				AuthID:          "test@test.com",
+				ClientParams: authn.ClientParams{
+					SyncUser:             true,
+					SyncTeams:            true,
+					AllowSignUp:          true,
+					FetchSyncedUser:      true,
+					SyncOrgRoles:         true,
+					AdditiveSyncOrgRoles: true,
+					LookUpParams: login.UserLookupParams{
+						Email: strPtr("test@test.com"),
+						Login: strPtr("test@test.com"),
 					},
 				},
 			},
@@ -73,10 +102,11 @@ func TestGrafana_AuthenticateProxy(t *testing.T) {
 				AuthenticatedBy: login.AuthProxyAuthModule,
 				AuthID:          "test@test.com",
 				ClientParams: authn.ClientParams{
-					SyncUser:     true,
-					SyncTeams:    true,
-					AllowSignUp:  true,
-					SyncOrgRoles: true,
+					SyncUser:             true,
+					SyncTeams:            true,
+					AllowSignUp:          true,
+					SyncOrgRoles:         true,
+					AdditiveSyncOrgRoles: true,
 					LookUpParams: login.UserLookupParams{
 						Email: strPtr("test@test.com"),
 						Login: strPtr("test@test.com"),
@@ -114,6 +144,7 @@ func TestGrafana_AuthenticateProxy(t *testing.T) {
 				assert.Equal(t, tt.expectedIdentity.ClientParams.SyncUser, identity.ClientParams.SyncUser)
 				assert.Equal(t, tt.expectedIdentity.ClientParams.AllowSignUp, identity.ClientParams.AllowSignUp)
 				assert.Equal(t, tt.expectedIdentity.ClientParams.SyncTeams, identity.ClientParams.SyncTeams)
+				assert.Equal(t, tt.expectedIdentity.ClientParams.AdditiveSyncOrgRoles, identity.ClientParams.AdditiveSyncOrgRoles)
 				assert.Equal(t, tt.expectedIdentity.ClientParams.EnableUser, identity.ClientParams.EnableUser)
 
 				assert.EqualValues(t, tt.expectedIdentity.ClientParams.LookUpParams.Email, identity.ClientParams.LookUpParams.Email)

@@ -135,6 +135,127 @@ func TestOrgSync_SyncOrgRolesHook(t *testing.T) {
 	}
 }
 
+func TestOrgSync_SyncOrgRolesHook_Additive(t *testing.T) {
+	t.Run("additive mode: existing memberships preserved when syncing new org", func(t *testing.T) {
+		orgService := &orgtest.MockService{}
+		orgService.On("GetUserOrgList", mock.Anything, mock.Anything).Return([]*org.UserOrgDTO{
+			{OrgID: 1, Role: org.RoleAdmin},
+			{OrgID: 3, Role: org.RoleViewer},
+		}, nil)
+		// Expect add for org 2, no remove calls
+		orgService.On("AddOrgUser", mock.Anything, mock.MatchedBy(func(cmd *org.AddOrgUserCommand) bool {
+			return cmd.OrgID == 2 && cmd.UserID == 1 && cmd.Role == org.RoleEditor
+		})).Return(nil)
+
+		s := &OrgSync{
+			userService:   &usertest.FakeUserService{ExpectedUser: &user.User{ID: 1}},
+			orgService:    orgService,
+			accessControl: &actest.FakeService{},
+			log:           log.NewNopLogger(),
+			tracer:        tracing.InitializeTracerForTest(),
+		}
+
+		id := &authn.Identity{
+			ID:       "1",
+			Type:     claims.TypeUser,
+			OrgRoles: map[int64]identity.RoleType{2: org.RoleEditor},
+			ClientParams: authn.ClientParams{
+				SyncOrgRoles:         true,
+				AdditiveSyncOrgRoles: true,
+			},
+		}
+
+		err := s.SyncOrgRolesHook(context.Background(), id, nil)
+		assert.NoError(t, err)
+
+		// Must NOT have called RemoveOrgUser
+		orgService.AssertNotCalled(t, "RemoveOrgUser", mock.Anything, mock.Anything)
+		// Must have called AddOrgUser for org 2
+		orgService.AssertCalled(t, "AddOrgUser", mock.Anything, mock.MatchedBy(func(cmd *org.AddOrgUserCommand) bool {
+			return cmd.OrgID == 2
+		}))
+	})
+
+	t.Run("additive mode: role update in request org, others untouched", func(t *testing.T) {
+		orgService := &orgtest.MockService{}
+		orgService.On("GetUserOrgList", mock.Anything, mock.Anything).Return([]*org.UserOrgDTO{
+			{OrgID: 1, Role: org.RoleAdmin},
+			{OrgID: 2, Role: org.RoleViewer},
+		}, nil)
+		orgService.On("UpdateOrgUser", mock.Anything, mock.MatchedBy(func(cmd *org.UpdateOrgUserCommand) bool {
+			return cmd.OrgID == 2 && cmd.UserID == 1 && cmd.Role == org.RoleEditor
+		})).Return(nil)
+
+		s := &OrgSync{
+			userService:   &usertest.FakeUserService{ExpectedUser: &user.User{ID: 1}},
+			orgService:    orgService,
+			accessControl: &actest.FakeService{},
+			log:           log.NewNopLogger(),
+			tracer:        tracing.InitializeTracerForTest(),
+		}
+
+		id := &authn.Identity{
+			ID:       "1",
+			Type:     claims.TypeUser,
+			OrgRoles: map[int64]identity.RoleType{2: org.RoleEditor},
+			ClientParams: authn.ClientParams{
+				SyncOrgRoles:         true,
+				AdditiveSyncOrgRoles: true,
+			},
+		}
+
+		err := s.SyncOrgRolesHook(context.Background(), id, nil)
+		assert.NoError(t, err)
+
+		orgService.AssertNotCalled(t, "RemoveOrgUser", mock.Anything, mock.Anything)
+		orgService.AssertCalled(t, "UpdateOrgUser", mock.Anything, mock.MatchedBy(func(cmd *org.UpdateOrgUserCommand) bool {
+			return cmd.OrgID == 2 && cmd.Role == org.RoleEditor
+		}))
+	})
+
+	t.Run("non-additive mode: memberships removed as before", func(t *testing.T) {
+		orgService := &orgtest.MockService{}
+		orgService.On("GetUserOrgList", mock.Anything, mock.Anything).Return([]*org.UserOrgDTO{
+			{OrgID: 1, Role: org.RoleAdmin},
+			{OrgID: 2, Role: org.RoleViewer},
+		}, nil)
+		orgService.On("UpdateOrgUser", mock.Anything, mock.MatchedBy(func(cmd *org.UpdateOrgUserCommand) bool {
+			return cmd.OrgID == 2 && cmd.UserID == 1 && cmd.Role == org.RoleEditor
+		})).Return(nil)
+		orgService.On("RemoveOrgUser", mock.Anything, mock.MatchedBy(func(cmd *org.RemoveOrgUserCommand) bool {
+			return cmd.OrgID == 1 && cmd.UserID == 1
+		})).Return(nil)
+
+		acService := &actest.FakeService{}
+
+		s := &OrgSync{
+			userService:   &usertest.FakeUserService{ExpectedUser: &user.User{ID: 1}},
+			orgService:    orgService,
+			accessControl: acService,
+			log:           log.NewNopLogger(),
+			tracer:        tracing.InitializeTracerForTest(),
+		}
+
+		id := &authn.Identity{
+			ID:       "1",
+			Type:     claims.TypeUser,
+			OrgRoles: map[int64]identity.RoleType{2: org.RoleEditor},
+			ClientParams: authn.ClientParams{
+				SyncOrgRoles:         true,
+				AdditiveSyncOrgRoles: false,
+			},
+		}
+
+		err := s.SyncOrgRolesHook(context.Background(), id, nil)
+		assert.NoError(t, err)
+
+		// org1 membership should be removed
+		orgService.AssertCalled(t, "RemoveOrgUser", mock.Anything, mock.MatchedBy(func(cmd *org.RemoveOrgUserCommand) bool {
+			return cmd.OrgID == 1
+		}))
+	})
+}
+
 func TestOrgSync_SetDefaultOrgHook(t *testing.T) {
 	testCases := []struct {
 		name              string
