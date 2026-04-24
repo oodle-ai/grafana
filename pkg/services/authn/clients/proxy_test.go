@@ -197,6 +197,29 @@ func (f fakeCache) Delete(ctx context.Context, key string) error {
 	return f.expectedErr
 }
 
+func TestGetProxyCacheKeyIncludesOrgID(t *testing.T) {
+	additional := map[string]string{
+		proxyFieldRole: "Admin",
+	}
+
+	org1Key, ok := getProxyCacheKey("johndoe", additional, 1)
+	require.True(t, ok)
+	org2Key, ok := getProxyCacheKey("johndoe", additional, 2)
+	require.True(t, ok)
+	require.NotEqual(t, org1Key, org2Key)
+
+	org1KeyAgain, ok := getProxyCacheKey("johndoe", additional, 1)
+	require.True(t, ok)
+	require.Equal(t, org1Key, org1KeyAgain)
+}
+
+func TestGetProxyUserCacheKeyIncludesOrgID(t *testing.T) {
+	require.NotEqual(t,
+		getProxyUserCacheKey("johndoe", 1),
+		getProxyUserCacheKey("johndoe", 2),
+	)
+}
+
 func TestProxy_Hook(t *testing.T) {
 	cfg := setting.NewCfg()
 	cfg.AuthProxy.HeaderName = "X-Username"
@@ -219,6 +242,7 @@ func TestProxy_Hook(t *testing.T) {
 				},
 			}
 			userReq := &authn.Request{
+				OrgID: 1,
 				HTTPRequest: &http.Request{
 					Header: map[string][]string{
 						"X-Username": {"johndoe"},
@@ -229,8 +253,8 @@ func TestProxy_Hook(t *testing.T) {
 			err = c.Hook(context.Background(), userIdentity, userReq)
 			assert.NoError(t, err)
 			expectedCache := map[string][]byte{
-				cacheKey: []byte("1"),
-				fmt.Sprintf("%s:%s", proxyCachePrefix, "johndoe"): []byte(fmt.Sprintf("users:johndoe-%s", role)),
+				cacheKey:                           []byte("1"),
+				getProxyUserCacheKey("johndoe", 1): []byte(fmt.Sprintf("users:johndoe-%s", role)),
 			}
 			assert.Equal(t, expectedCache, cache.data)
 		}
