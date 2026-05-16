@@ -3,7 +3,6 @@ package v2alpha1
 import (
 	_ "embed"
 	json "encoding/json"
-	fmt "fmt"
 	"strings"
 	"sync"
 
@@ -11,7 +10,6 @@ import (
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
-	"cuelang.org/go/cue/errors"
 
 	"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/cuevalidator"
 )
@@ -28,36 +26,21 @@ func ValidateDashboardSpec(obj *Dashboard) field.ErrorList {
 	validateAndTrimActionArrays(obj)
 
 	if err := getValidator().Validate(data); err != nil {
-		errs := field.ErrorList{}
-
-		for _, e := range errors.Errors(err) {
-			if
-			// We don't want to return confusing "empty disjunction" errors,
-			// because the users don't necessarily understand what to do with them.
-			// For empty disjunctions, CUE will also return more specific errors,
-			// so we can safely ignore the generic ones.
-			strings.Contains(e.Error(), "disjunction") ||
-				// We don't want to return errors about unknown fields either.
-				strings.Contains(e.Error(), "field not allowed") {
+		formatted := cuevalidator.FormatErrors(err)
+		errs := make(field.ErrorList, 0, len(formatted))
+		for _, fe := range formatted {
+			// Go marshals empty slices as nil, which the CUE validator
+			// rejects as a type mismatch. This is a known false positive;
+			// drop it so it doesn't leak to API callers.
+			if strings.Contains(fe.Message, "mismatched types null and list") {
 				continue
 			}
-
-			if strings.Contains(e.Error(), "mismatched types null and list") {
-				// Go populates empty slices as nil, which the cue validator does not like
-				continue
-			}
-
-			// We want to manually format the error message,
-			// because e.Error() contains the full CUE path.
-			format, args := e.Msg()
-
 			errs = append(errs, field.Invalid(
-				field.NewPath(formatErrorPath(e.Path())),
+				field.NewPath(formatErrorPath(fe.Path)),
 				field.OmitValueType{},
-				fmt.Sprintf(format, args...),
+				fe.Message,
 			))
 		}
-
 		return errs
 	}
 

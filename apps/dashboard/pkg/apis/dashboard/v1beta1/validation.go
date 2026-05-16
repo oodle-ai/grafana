@@ -11,7 +11,6 @@ import (
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
-	"cuelang.org/go/cue/errors"
 
 	"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/cuevalidator"
 	"github.com/grafana/grafana/apps/dashboard/pkg/migration/schemaversion"
@@ -35,31 +34,15 @@ func ValidateDashboardSpec(obj *Dashboard, forceValidation bool) (field.ErrorLis
 	}
 
 	if err := getValidator().Validate(data); err != nil {
-		errs := field.ErrorList{}
-
-		for _, e := range errors.Errors(err) {
-			if
-			// We don't want to return confusing "empty disjunction" errors,
-			// because the users don't necessarily understand what to do with them.
-			// For empty disjunctions, CUE will also return more specific errors,
-			// so we can safely ignore the generic ones.
-			strings.Contains(e.Error(), "disjunction") ||
-				// We don't want to return errors about unknown fields either.
-				strings.Contains(e.Error(), "field not allowed") {
-				continue
-			}
-
-			// We want to manually format the error message,
-			// because e.Error() contains the full CUE path.
-			format, args := e.Msg()
-
+		formatted := cuevalidator.FormatErrors(err)
+		errs := make(field.ErrorList, 0, len(formatted))
+		for _, fe := range formatted {
 			errs = append(errs, field.Invalid(
-				field.NewPath(formatErrorPath(e.Path())),
+				field.NewPath(formatErrorPath(fe.Path)),
 				field.OmitValueType{},
-				fmt.Sprintf(format, args...),
+				fe.Message,
 			))
 		}
-
 		return errs, schemaVersionError
 	}
 
