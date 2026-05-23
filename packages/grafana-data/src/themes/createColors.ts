@@ -92,6 +92,8 @@ export interface ThemeColors extends ThemeColorsBase<ThemeRichColor> {
 /** @internal */
 export type ThemeColorsInput = DeepPartial<ThemeColorsBase<ThemeRichColor>>;
 
+const oodleBlueBackgroundImage = 'linear-gradient(0deg, #0091CF 0%, #0091CF 100%)';
+
 class DarkColors implements ThemeColorsBase<Partial<ThemeRichColor>> {
   mode: ThemeColorsMode = 'dark';
 
@@ -163,8 +165,8 @@ class DarkColors implements ThemeColorsBase<Partial<ThemeRichColor>> {
   };
 
   gradients = {
-    brandHorizontal: 'linear-gradient(270deg, #F55F3E 0%, #FF8833 100%)',
-    brandVertical: 'linear-gradient(0.01deg, #F55F3E 0.01%, #FF8833 99.99%)',
+    brandHorizontal: oodleBlueBackgroundImage,
+    brandVertical: oodleBlueBackgroundImage,
   };
 
   contrastThreshold = 3;
@@ -246,8 +248,8 @@ class LightColors implements ThemeColorsBase<Partial<ThemeRichColor>> {
   };
 
   gradients = {
-    brandHorizontal: 'linear-gradient(90deg, #FF8833 0%, #F53E4C 100%)',
-    brandVertical: 'linear-gradient(0.01deg, #F53E4C -31.2%, #FF8833 113.07%)',
+    brandHorizontal: oodleBlueBackgroundImage,
+    brandVertical: oodleBlueBackgroundImage,
   };
 
   contrastThreshold = 3;
