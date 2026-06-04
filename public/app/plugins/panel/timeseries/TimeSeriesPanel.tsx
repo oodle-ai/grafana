@@ -21,6 +21,7 @@ import { EventBusPlugin, KeyboardPlugin, TooltipPlugin2, usePanelContext, useSty
 import { TimeRange2, TooltipHoverMode } from '@grafana/ui/internal';
 import { TimeSeries } from 'app/core/components/TimeSeries/TimeSeries';
 import { config } from 'app/core/config';
+import { useShowAllTimeSeries } from 'app/features/dashboard-scene/scene/ShowAllTimeSeriesContext';
 import { DataExplorerLink, getIndexPatternName } from 'app/features/logs/components/DataExplorerLink';
 import { useDatasourcesFromTargets } from 'app/features/logs/components/useDatasourcesFromTargets';
 
@@ -65,7 +66,10 @@ export const TimeSeriesPanel = ({
     eventBus,
     canExecuteActions,
   } = usePanelContext();
-  const [showAllSeries, toggleShowAllSeries] = useToggle(false);
+  const showAllTimeSeriesFromDashboard = useShowAllTimeSeries();
+  const [showAllSeriesLocal, toggleShowAllSeriesLocal] = useToggle(false);
+  const showAllSeries = showAllTimeSeriesFromDashboard || showAllSeriesLocal;
+  const toggleShowAllSeries = toggleShowAllSeriesLocal;
   const styles = useStyles2(getStyles);
   const [customAnnotations, setCustomAnnotations] = useState<DataFrame[]>([]);
   const dataSourcesMap = useDatasourcesFromTargets(data.request?.targets);
