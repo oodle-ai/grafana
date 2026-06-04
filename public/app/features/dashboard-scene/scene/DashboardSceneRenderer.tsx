@@ -12,6 +12,7 @@ import { DashboardEditPaneSplitter } from '../edit-pane/DashboardEditPaneSplitte
 
 import { DashboardScene } from './DashboardScene';
 import { PanelSearchLayout } from './PanelSearchLayout';
+import { ShowAllTimeSeriesContext } from './ShowAllTimeSeriesContext';
 import { SoloPanelContextProvider, useDefineSoloPanelContext } from './SoloPanelContext';
 
 export function DashboardSceneRenderer({ model }: SceneComponentProps<DashboardScene>) {
@@ -26,6 +27,7 @@ export function DashboardSceneRenderer({ model }: SceneComponentProps<DashboardS
     panelsPerRow,
     isEditing,
     layoutOrchestrator,
+    showAllTimeSeries,
   } = model.useState();
   const { type } = useParams();
   const location = useLocation();
@@ -96,7 +98,7 @@ export function DashboardSceneRenderer({ model }: SceneComponentProps<DashboardS
   }
 
   return (
-    <>
+    <ShowAllTimeSeriesContext.Provider value={showAllTimeSeries ?? false}>
       {layoutOrchestrator && <layoutOrchestrator.Component model={layoutOrchestrator} />}
       <Page navModel={navModel} pageNav={pageNav} layout={PageLayoutType.Custom}>
         {editPanel && <editPanel.Component model={editPanel} />}
@@ -110,6 +112,6 @@ export function DashboardSceneRenderer({ model }: SceneComponentProps<DashboardS
         )}
         {overlay && <overlay.Component model={overlay} />}
       </Page>
-    </>
+    </ShowAllTimeSeriesContext.Provider>
   );
 }

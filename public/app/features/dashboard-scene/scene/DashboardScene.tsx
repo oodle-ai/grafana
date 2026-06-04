@@ -148,6 +148,8 @@ export interface DashboardSceneState extends SceneObjectState {
   panelSearch?: string;
   /** How many panels to show per row for search results */
   panelsPerRow?: number;
+  /** When true, all time series panels show all series (bypass per-panel limit) */
+  showAllTimeSeries?: boolean;
   /** options pane */
   editPane: DashboardEditPane;
   /** Manages dragging/dropping of layout items */
@@ -222,6 +224,7 @@ export class DashboardScene extends SceneObjectBase<DashboardSceneState> impleme
     window.__grafanaSceneContext = this;
 
     this._initializePanelSearch();
+    this._initializeShowAllTimeSeries();
 
     if (this.state.isEditing) {
       this._initialUrlState = locationService.getLocation();
@@ -267,6 +270,14 @@ export class DashboardScene extends SceneObjectBase<DashboardSceneState> impleme
       const perRow = Number.parseInt(panelsPerRow, 10);
       this.setState({ panelsPerRow: Number.isInteger(perRow) ? perRow : undefined });
     }
+  }
+
+  private _initializeShowAllTimeSeries() {
+    if (this.state.showAllTimeSeries !== undefined) {
+      return;
+    }
+    const panelCount = this.getDashboardPanels().length;
+    this.setState({ showAllTimeSeries: panelCount < 50 });
   }
 
   public onEnterEditMode = () => {
@@ -739,6 +750,10 @@ export class DashboardScene extends SceneObjectBase<DashboardSceneState> impleme
 
   public getDashboardPanels() {
     return dashboardSceneGraph.getVizPanels(this);
+  }
+
+  public toggleShowAllTimeSeries() {
+    this.setState({ showAllTimeSeries: !this.state.showAllTimeSeries });
   }
 
   public getExpressionTypes(saveModel?: Dashboard | DashboardV2Spec): string[] | undefined {
