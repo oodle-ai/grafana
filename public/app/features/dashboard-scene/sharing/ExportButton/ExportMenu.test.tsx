@@ -9,20 +9,34 @@ import { DefaultGridLayoutManager } from '../../scene/layout-default/DefaultGrid
 import ExportMenu from './ExportMenu';
 
 describe('ExportMenu', () => {
+  beforeEach(() => {
+    config.featureToggles.sharingDashboardImage = false;
+    config.rendererAvailable = false;
+  });
+
   it('should render menu items', async () => {
     setup();
     expect(await screen.findByRole('menuitem', { name: /export as json/i })).toBeInTheDocument();
   });
 
   describe('sharingDashboardImage feature toggle', () => {
-    it('should render image export option when enabled', async () => {
+    it('should render image export option when enabled and the image renderer is available', async () => {
       config.featureToggles.sharingDashboardImage = true;
+      config.rendererAvailable = true;
       setup();
       expect(await screen.findByRole('menuitem', { name: /export as image/i })).toBeInTheDocument();
     });
 
     it('should not render image export option when disabled', async () => {
       config.featureToggles.sharingDashboardImage = false;
+      config.rendererAvailable = true;
+      setup();
+      expect(screen.queryByRole('menuitem', { name: /export as image/i })).not.toBeInTheDocument();
+    });
+
+    it('should not render image export option when the image renderer is not available', async () => {
+      config.featureToggles.sharingDashboardImage = true;
+      config.rendererAvailable = false;
       setup();
       expect(screen.queryByRole('menuitem', { name: /export as image/i })).not.toBeInTheDocument();
     });
