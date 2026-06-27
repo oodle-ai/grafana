@@ -77,6 +77,11 @@ function getStyles(theme: GrafanaTheme2) {
       position: 'fixed',
       right: 6,
       top: 88,
+      '@media print': {
+        position: 'static',
+        right: 'auto',
+        top: 'auto',
+      },
     }),
   };
 }

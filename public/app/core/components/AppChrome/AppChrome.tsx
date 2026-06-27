@@ -193,6 +193,9 @@ const getStyles = (theme: GrafanaTheme2, headerHeight: number) => {
       paddingTop: headerHeight,
       flexGrow: 1,
       height: 'auto',
+      '@media print': {
+        paddingTop: 0,
+      },
     }),
     contentWithSidebar: css({
       height: '100vh',
@@ -232,6 +235,10 @@ const getStyles = (theme: GrafanaTheme2, headerHeight: number) => {
       right: 0,
       background: theme.colors.background.primary,
       flexDirection: 'column',
+      '@media print': {
+        position: 'static',
+        zIndex: 'auto',
+      },
     }),
     topNavMenuDocked: css({
       left: MENU_WIDTH,

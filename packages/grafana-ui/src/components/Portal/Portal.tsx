@@ -70,6 +70,10 @@ const getStyles = (theme: GrafanaTheme2) => {
       top: 0,
       width: '100%',
       zIndex: theme.zIndex.portal,
+      '@media print': {
+        position: 'static',
+        zIndex: 'auto',
+      },
     }),
   };
 };
