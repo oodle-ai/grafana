@@ -220,6 +220,7 @@ export const availableIconsIndex = {
   'plus-square': true,
   power: true,
   'presentation-play': true,
+  print: true,
   process: true,
   'question-circle': true,
   'record-audio': true,

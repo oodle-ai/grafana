@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { config } from '@grafana/runtime';
 import { SceneTimeRange, VizPanel } from '@grafana/scenes';
@@ -14,9 +15,28 @@ describe('ExportMenu', () => {
     config.rendererAvailable = false;
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('should render menu items', async () => {
     setup();
     expect(await screen.findByRole('menuitem', { name: /export as json/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /print/i })).toBeInTheDocument();
+  });
+
+  it('should trigger the browser print dialog after the menu has had a chance to close', async () => {
+    const printSpy = jest.spyOn(window, 'print').mockImplementation(() => {});
+    const requestAnimationFrameSpy = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      callback(0);
+      return 0;
+    });
+
+    setup();
+    await userEvent.click(await screen.findByRole('menuitem', { name: /print/i }));
+
+    expect(requestAnimationFrameSpy).toHaveBeenCalledTimes(1);
+    expect(printSpy).toHaveBeenCalledTimes(1);
   });
 
   describe('sharingDashboardImage feature toggle', () => {

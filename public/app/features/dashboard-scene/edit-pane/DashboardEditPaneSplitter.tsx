@@ -193,6 +193,11 @@ function getStyles(theme: GrafanaTheme2, headerHeight: number) {
         background: theme.colors.background.canvas,
         top: headerHeight,
       },
+      '@media print': {
+        position: 'static',
+        zIndex: 'auto',
+        top: 'auto',
+      },
     }),
   };
 }

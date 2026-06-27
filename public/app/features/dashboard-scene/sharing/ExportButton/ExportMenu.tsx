@@ -60,6 +60,15 @@ export default function ExportMenu({ dashboard }: { dashboard: DashboardScene })
     });
 
     menuItems.push({
+      shareId: 'print',
+      testId: newExportButtonSelector.printDashboard,
+      icon: 'print',
+      label: t('share-dashboard.menu.print-title', 'Print'),
+      renderCondition: true,
+      onClick: () => requestAnimationFrame(() => window.print()),
+    });
+
+    menuItems.push({
       shareId: 'clone',
       testId: newExportButtonSelector.cloneDashboard,
       icon: 'copy',
