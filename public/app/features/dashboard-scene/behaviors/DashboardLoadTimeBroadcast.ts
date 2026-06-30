@@ -26,10 +26,6 @@ export function dashboardLoadTimeBroadcast(dashboard: DashboardScene) {
 
       if (loadStartTime === null) {
         loadStartTime = performance.now();
-        sendToParent('dashboardLoadStart', {
-          dashboardUid: dashboard.state.uid,
-          dashboardTitle: dashboard.state.title,
-        });
       }
     } else {
       debounceTimer = setTimeout(() => {
