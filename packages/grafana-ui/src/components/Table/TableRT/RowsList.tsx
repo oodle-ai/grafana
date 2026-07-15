@@ -64,6 +64,9 @@ interface RowsListProps {
   getActions?: GetActionsFunction;
   replaceVariables?: InterpolateFunction;
   setInspectCell?: TableInspectCellCallback;
+  /** When true, renders all rows directly with content-visibility: auto instead of virtualizing with react-window.
+   *  This allows browser find-in-page (Cmd+F) to find text in off-screen rows. */
+  disableVirtualization?: boolean;
 }
 
 export const RowsList = (props: RowsListProps) => {
@@ -93,6 +96,7 @@ export const RowsList = (props: RowsListProps) => {
     getActions,
     replaceVariables,
     setInspectCell,
+    disableVirtualization = false,
   } = props;
 
   const [rowHighlightIndex, setRowHighlightIndex] = useState<number | undefined>(initialRowIndex);
@@ -430,6 +434,21 @@ export const RowsList = (props: RowsListProps) => {
       listRef.current.resetAfterIndex(0);
     }
   }, [rows, listRef]);
+
+  if (disableVirtualization) {
+    return (
+      <CustomScrollbar scrollTop={scrollTop}>
+        {Array.from({ length: itemCount }, (_, index) => (
+          <RenderRow
+            key={index}
+            index={index}
+            style={{ height: tableStyles.rowHeight }}
+            rowHighlightIndex={rowHighlightIndex}
+          />
+        ))}
+      </CustomScrollbar>
+    );
+  }
 
   return (
     <CustomScrollbar onScroll={handleScroll} hideHorizontalTrack={true} scrollTop={scrollTop}>

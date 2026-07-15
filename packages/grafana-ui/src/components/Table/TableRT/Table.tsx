@@ -351,6 +351,7 @@ export const Table = memo((props: Props) => {
                 ref={variableSizeListScrollbarRef}
               >
                 <RowsList
+                  disableVirtualization
                   headerGroups={headerGroups}
                   data={data}
                   rows={rows}
