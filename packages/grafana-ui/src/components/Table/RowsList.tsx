@@ -53,6 +53,9 @@ interface RowsListProps {
   initialRowIndex?: number;
   headerGroups: HeaderGroup[];
   longestField?: Field;
+  /** When true, renders all rows directly with content-visibility: auto instead of virtualizing with react-window.
+   *  This allows browser find-in-page (Cmd+F) to find text in off-screen rows. */
+  disableVirtualization?: boolean;
 }
 
 export const RowsList = (props: RowsListProps) => {
@@ -78,6 +81,7 @@ export const RowsList = (props: RowsListProps) => {
     initialRowIndex = undefined,
     headerGroups,
     longestField,
+    disableVirtualization = false,
   } = props;
 
   const [rowHighlightIndex, setRowHighlightIndex] = useState<number | undefined>(initialRowIndex);
@@ -400,6 +404,21 @@ export const RowsList = (props: RowsListProps) => {
 
   // Key the virtualizer for expanded rows
   const expandedKey = Object.keys(tableState.expanded).join('|');
+
+  if (disableVirtualization) {
+    return (
+      <CustomScrollbar scrollTop={scrollTop}>
+        {Array.from({ length: itemCount }, (_, index) => (
+          <RenderRow
+            key={index}
+            index={index}
+            style={{ height: tableStyles.rowHeight }}
+            rowHighlightIndex={rowHighlightIndex}
+          />
+        ))}
+      </CustomScrollbar>
+    );
+  }
 
   return (
     <>

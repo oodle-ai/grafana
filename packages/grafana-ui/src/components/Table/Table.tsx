@@ -314,6 +314,7 @@ export const Table = memo((props: Props) => {
           {itemCount > 0 ? (
             <div data-testid={selectors.components.Panels.Visualization.Table.body} ref={variableSizeListScrollbarRef}>
               <RowsList
+                disableVirtualization
                 headerGroups={headerGroups}
                 data={data}
                 rows={rows}

@@ -248,6 +248,8 @@ export function useTableStyles(theme: GrafanaTheme2, cellHeightOption: TableCell
     row: css({
       label: 'row',
       borderBottom: `1px solid ${borderColor}`,
+      contentVisibility: 'auto',
+      containIntrinsicBlockSize: `${rowHeight}px`,
 
       '&:hover': {
         backgroundColor: theme.components.table.rowHoverBackground,
