@@ -33,6 +33,7 @@ import { DashboardDTO, DashboardDataDTO } from 'app/types/dashboard';
 
 import { addPanelsOnLoadBehavior } from '../addToDashboard/addPanelsOnLoadBehavior';
 import { dashboardAnalyticsInitializer } from '../behaviors/DashboardAnalyticsInitializerBehavior';
+import { dashboardLoadTimeBroadcast } from '../behaviors/DashboardLoadTimeBroadcast';
 import { AlertStatesDataLayer } from '../scene/AlertStatesDataLayer';
 import { DashboardAnnotationsDataLayer } from '../scene/DashboardAnnotationsDataLayer';
 import { DashboardControls } from '../scene/DashboardControls';
@@ -339,6 +340,9 @@ export function createDashboardSceneFromDashboardModel(oldModel: DashboardModel,
     // Analytics aggregator lifecycle management (initialization, observer registration, cleanup)
     behaviorList.push(dashboardAnalyticsInitializer);
   }
+
+  behaviorList.push(dashboardLoadTimeBroadcast);
+
   // Will be enabled in the dashboard creation below
 
   let body: DashboardLayoutManager;
