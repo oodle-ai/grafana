@@ -97,9 +97,8 @@ export const getErrorNodes = (query: string): SyntaxNode[] => {
     return [];
   }
 
-  // Check whether this is a trace ID or traceQL query by checking if it only contains hex characters
-  const hexOnlyRegex = /^[0-9A-Fa-f]*$/;
-  if (query.trim().match(hexOnlyRegex)) {
+  const traceIdRegex = /^[0-9A-Fa-f][0-9A-Fa-f:.\-]*$/;
+  if (query.trim().match(traceIdRegex)) {
     return [];
   }
 

@@ -337,9 +337,8 @@ export class TempoDatasource extends DataSourceWithBackend<TempoQuery, TempoJson
   }
 
   isTraceIdQuery(query: string): boolean {
-    const hexOnlyRegex = /^[0-9A-Fa-f]*$/;
-    // Check whether this is a trace ID or traceQL query by checking if it only contains hex characters
-    return !!query.trim().match(hexOnlyRegex);
+    const traceIdRegex = /^[0-9A-Fa-f][0-9A-Fa-f:.-]*$/;
+    return !!query.trim().match(traceIdRegex);
   }
 
   query(options: DataQueryRequest<TempoQuery>): Observable<DataQueryResponse> {

@@ -41,4 +41,25 @@ func TestTempo(t *testing.T) {
 		assert.Equal(t, 1, len(req.Header))
 		assert.Equal(t, "/api/v2/traces/traceID?start=1&end=2", req.URL.String())
 	})
+
+	t.Run("createRequest with colon in trace ID", func(t *testing.T) {
+		service := &Service{
+			logger: backend.NewLoggerWith(
+				"logger", "tempo-test",
+			),
+		}
+		req, err := service.createRequest(
+			context.Background(),
+			&DatasourceInfo{},
+			TraceRequestApiVersionV1,
+			"abc123:69c1a9d0",
+			1, 2,
+		)
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			"/api/traces/abc123:69c1a9d0?start=1&end=2",
+			req.URL.String(),
+		)
+	})
 }

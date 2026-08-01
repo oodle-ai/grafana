@@ -495,21 +495,14 @@ export function enhanceTraceQlMetricsResponse(
   return data;
 }
 
-function getDataLinks(instanceSettings: DataSourceInstanceSettings): DataLink[] {
-  const dataLinks: DataLink[] = [];
-
-  if (instanceSettings.uid) {
-    dataLinks.push({
+function getDataLinks(_instanceSettings: DataSourceInstanceSettings): DataLink[] {
+  return [
+    {
       title: 'View trace',
-      url: '',
-      internal: {
-        query: { query: '${__value.raw}', queryType: 'traceql' },
-        datasourceUid: instanceSettings.uid,
-        datasourceName: instanceSettings?.name ?? 'Data source not found',
-      },
-    });
-  }
-  return dataLinks;
+      url: '/traces/lookup?traceId=${__value.raw}',
+      targetBlank: true,
+    },
+  ];
 }
 
 export function formatTraceQLResponse(
