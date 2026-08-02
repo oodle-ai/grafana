@@ -1,4 +1,5 @@
 import { PluginLoadingStrategy } from '@grafana/data';
+import { config } from '@grafana/runtime';
 
 import { clearPluginSettingsCache } from '../pluginSettings';
 
@@ -38,9 +39,29 @@ export function resolvePluginUrlWithCache(url: string, defaultBust = CACHE_INITI
   if (!path) {
     return `${url}?_cache=${defaultBust}`;
   }
-  const version = cache[path]?.version;
-  const bust = version || defaultBust;
+  const info = cache[path];
+  const version = info?.version;
+  const bust = getCorePluginCacheBust(version) || version || defaultBust;
   return `${url}?_cache=${bust}`;
+}
+
+// Core plugins report the Grafana version as their plugin version,
+// so it is identical across every build of the same release. Their
+// module.js also has a stable filename, so busting on the version
+// leaves browsers serving a stale module for the asset max-age.
+// The build commit changes on every build, so use that instead.
+function getCorePluginCacheBust(
+  version: string | undefined,
+): string | undefined {
+  const grafanaVersion = config.buildInfo?.version;
+  if (!version || !grafanaVersion) {
+    return undefined;
+  }
+  if (version !== encodeURI(grafanaVersion)) {
+    return undefined;
+  }
+  const commit = config.buildInfo?.commit;
+  return commit ? encodeURIComponent(commit) : undefined;
 }
 
 export function getPluginInfoFromCache(path: string): PluginInfo | undefined {

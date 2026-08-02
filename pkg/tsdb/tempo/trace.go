@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -191,10 +192,19 @@ func (s *Service) createRequest(ctx context.Context, dsInfo *DatasourceInfo, api
 	var baseUrl string
 	var tempoQuery string
 
+	escapedID := url.PathEscape(traceID)
 	if apiVersion == TraceRequestApiVersionV1 {
-		baseUrl = fmt.Sprintf("%s/api/traces/%s", dsInfo.URL, traceID)
+		baseUrl = fmt.Sprintf(
+			"%s/api/traces/%s",
+			dsInfo.URL,
+			escapedID,
+		)
 	} else {
-		baseUrl = fmt.Sprintf("%s/api/v2/traces/%s", dsInfo.URL, traceID)
+		baseUrl = fmt.Sprintf(
+			"%s/api/v2/traces/%s",
+			dsInfo.URL,
+			escapedID,
+		)
 	}
 
 	if start == 0 || end == 0 {

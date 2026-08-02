@@ -495,21 +495,21 @@ export function enhanceTraceQlMetricsResponse(
   return data;
 }
 
-function getDataLinks(instanceSettings: DataSourceInstanceSettings): DataLink[] {
-  const dataLinks: DataLink[] = [];
+// Grafana prefixes any link starting with "/" with its app sub
+// path (locationUtil.assureBaseUrl), which would turn this into
+// /grafana-proxy/traces/lookup and route back into Grafana. The
+// leading "/.." cancels that one path segment out, and collapses
+// to "/" when Grafana is served from the root instead.
+const TRACE_LOOKUP_PATH = '/../traces/lookup';
 
-  if (instanceSettings.uid) {
-    dataLinks.push({
+function getDataLinks(_instanceSettings: DataSourceInstanceSettings): DataLink[] {
+  return [
+    {
       title: 'View trace',
-      url: '',
-      internal: {
-        query: { query: '${__value.raw}', queryType: 'traceql' },
-        datasourceUid: instanceSettings.uid,
-        datasourceName: instanceSettings?.name ?? 'Data source not found',
-      },
-    });
-  }
-  return dataLinks;
+      url: `${TRACE_LOOKUP_PATH}?traceId=\${__value.raw}`,
+      targetBlank: true,
+    },
+  ];
 }
 
 export function formatTraceQLResponse(
@@ -559,20 +559,7 @@ export function createTableFrameFromTraceQlQuery(
           custom: {
             width: 200,
           },
-          links: [
-            {
-              title: 'Trace: ${__value.raw}',
-              url: '',
-              internal: {
-                datasourceUid: instanceSettings.uid,
-                datasourceName: instanceSettings.name,
-                query: {
-                  query: '${__value.raw}',
-                  queryType: 'traceql',
-                },
-              },
-            },
-          ],
+          links: getDataLinks(instanceSettings),
         },
       },
       {
@@ -716,20 +703,8 @@ export function createTableFrameFromTraceQlQueryAsSpans(
           links: [
             {
               title: 'Span: ${__value.raw}',
-              url: '',
-              internal: {
-                datasourceUid: instanceSettings.uid,
-                datasourceName: instanceSettings.name,
-                query: {
-                  query: '${__data.fields.traceIdHidden}',
-                  queryType: 'traceql',
-                },
-                panelsState: {
-                  trace: {
-                    spanId: '${__value.raw}',
-                  },
-                },
-              },
+              url: `${TRACE_LOOKUP_PATH}?traceId=\${__data.fields.traceIdHidden}`,
+              targetBlank: true,
             },
           ],
         },
@@ -848,20 +823,8 @@ const traceSubFrame = (
           links: [
             {
               title: 'Span: ${__value.raw}',
-              url: '',
-              internal: {
-                datasourceUid: instanceSettings.uid,
-                datasourceName: instanceSettings.name,
-                query: {
-                  query: '${__data.fields.traceIdHidden}',
-                  queryType: 'traceql',
-                },
-                panelsState: {
-                  trace: {
-                    spanId: '${__value.raw}',
-                  },
-                },
-              },
+              url: `${TRACE_LOOKUP_PATH}?traceId=\${__data.fields.traceIdHidden}`,
+              targetBlank: true,
             },
           ],
         },
