@@ -80,9 +80,17 @@ const computeCriticalPath = (
     // return from recursion and walk backwards to one level depth to parent span
     // provide span's startTime as returningChildStartTime
     if (currentSpan.references.length) {
-      const parentSpanId: string = currentSpan.references.filter((reference) => reference.refType === 'CHILD_OF')[0]
-        .spanID;
-      computeCriticalPath(spanMap, parentSpanId, criticalPath, currentSpan.startTime);
+      const parentRef = currentSpan.references.find(
+        (ref) => ref.refType === 'CHILD_OF'
+      );
+      if (parentRef) {
+        computeCriticalPath(
+          spanMap,
+          parentRef.spanID,
+          criticalPath,
+          currentSpan.startTime,
+        );
+      }
     }
   }
   return criticalPath;
