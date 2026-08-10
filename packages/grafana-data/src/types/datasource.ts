@@ -540,6 +540,8 @@ export interface DataQueryResponse {
  * several sub-queries that resolve progressively (newest range first).
  */
 export interface QueryStreamProgress {
+  /** Request this progress belongs to, results of an older request may still be on screen */
+  requestId?: string;
   /** Start of the full requested time range (epoch ms) */
   fromMs: number;
   /** End of the full requested time range (epoch ms) */

@@ -128,7 +128,7 @@ describe('runRequest with query splitting', () => {
     expect(first.toMs).toBe(TO_MS);
     expect(first.loadedFromMs).toBeGreaterThan(FROM_MS);
     expect(first.totalParts).toBe(10);
-    expect(results[0].state).toBe(LoadingState.Streaming);
+    expect(results[0].state).toBe(LoadingState.Loading);
 
     // The range is relative ('now-8d' to 'now'), it must not be re-resolved between parts or the
     // axis would creep while the panel fills in

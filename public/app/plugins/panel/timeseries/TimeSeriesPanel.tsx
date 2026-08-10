@@ -263,7 +263,13 @@ export const TimeSeriesPanel = ({
         return (
           <>
             <KeyboardPlugin config={uplotConfig} />
-            <StreamingProgressPlugin config={uplotConfig} progress={data.streamProgress} />
+            <StreamingProgressPlugin
+              config={uplotConfig}
+              progress={data.streamProgress}
+              state={data.state}
+              panelId={id}
+              requestId={data.request?.requestId}
+            />
             {cursorSync !== DashboardCursorSync.Off && (
               <EventBusPlugin config={uplotConfig} eventBus={eventBus} frame={alignedFrame} />
             )}

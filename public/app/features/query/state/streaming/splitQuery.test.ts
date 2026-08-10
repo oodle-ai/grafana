@@ -128,7 +128,7 @@ describe('runSplitRequest', () => {
     expect(requestedRanges[2][1]).toBe(requestedRanges[1][0]);
     expect(requestedRanges[2][0]).toBe(request.range.from.valueOf());
 
-    expect(emissions.map((e) => e.state)).toEqual([LoadingState.Streaming, LoadingState.Streaming, LoadingState.Done]);
+    expect(emissions.map((e) => e.state)).toEqual([LoadingState.Loading, LoadingState.Loading, LoadingState.Done]);
 
     // Data grows from the right, the merged frame stays sorted by time
     expect(emissions[0].data[0].fields[0].values).toEqual([requestedRanges[0][0]]);

@@ -69,6 +69,17 @@ describe('mergeChunkFrames', () => {
     expect(labelsOf(secondEmission)).toEqual([{ job: 'a' }, { job: 'b' }]);
   });
 
+  it('keeps the nanosecond column aligned when only some parts carry one', () => {
+    const older = series('A', { job: 'a' }, [1000], [1]);
+    const newer = series('A', { job: 'a' }, [2000], [2]);
+    newer.fields[0].nanos = [500];
+
+    const merged = mergeChunkFrames([[older], [newer]]);
+
+    expect(merged[0].fields[0].values).toEqual([1000, 2000]);
+    expect(merged[0].fields[0].nanos).toEqual([0, 500]);
+  });
+
   it('keeps series apart when they only differ by refId', () => {
     const a = series('A', { job: 'a' }, [1000], [1]);
     const b = series('B', { job: 'a' }, [1000], [5]);

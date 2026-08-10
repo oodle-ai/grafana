@@ -1,4 +1,4 @@
-import { QueryStreamProgress } from '@grafana/data';
+import { LoadingState, QueryStreamProgress } from '@grafana/data';
 
 import { getUnloadedRegion } from './StreamingProgressPlugin';
 
@@ -14,24 +14,61 @@ const progress = (overrides: Partial<QueryStreamProgress> = {}): QueryStreamProg
 });
 
 describe('getUnloadedRegion', () => {
-  it('is empty when nothing is streaming', () => {
-    expect(getUnloadedRegion(undefined)).toBeNull();
-    expect(getUnloadedRegion(progress({ streaming: false }))).toBeNull();
+  it('is empty when no split query ran', () => {
+    expect(getUnloadedRegion(undefined, LoadingState.Done)).toBeNull();
   });
 
   it('covers the range that has not been loaded yet', () => {
-    expect(getUnloadedRegion(progress())).toEqual({ from: 1000, to: 1800 });
+    expect(getUnloadedRegion(progress(), LoadingState.Streaming)).toEqual({
+      from: 1000,
+      to: 1800,
+      isStreaming: true,
+      hasError: false,
+    });
   });
 
   it('is empty once the full range is loaded', () => {
-    expect(getUnloadedRegion(progress({ loadedFromMs: 1000 }))).toBeNull();
+    const done = progress({ loadedFromMs: 1000, streaming: false, completedParts: 5 });
+    expect(getUnloadedRegion(done, LoadingState.Done)).toBeNull();
+  });
+
+  it('stops streaming when the query was cancelled, without a final progress update', () => {
+    // Cancelling leaves the last progress reporting streaming, the panel state is the truth
+    expect(getUnloadedRegion(progress(), LoadingState.Done)).toEqual({
+      from: 1000,
+      to: 1800,
+      isStreaming: false,
+      hasError: false,
+    });
   });
 
   it('keeps covering the missing range after an error', () => {
-    expect(getUnloadedRegion(progress({ streaming: false, hasError: true }))).toEqual({ from: 1000, to: 1800 });
+    const failed = progress({ streaming: false, hasError: true });
+
+    expect(getUnloadedRegion(failed, LoadingState.Error)).toEqual({
+      from: 1000,
+      to: 1800,
+      isStreaming: false,
+      hasError: true,
+    });
+  });
+
+  it('ignores the progress of an older request that is still on screen', () => {
+    const stale = progress({ requestId: 'SQR1' });
+
+    // The panel keeps rendering the previous results while the new request loads
+    expect(getUnloadedRegion(stale, LoadingState.Loading, 'SQR2')).toBeNull();
+    expect(getUnloadedRegion(stale, LoadingState.Loading, 'SQR1')).not.toBeNull();
   });
 
   it('covers the right side when parts are loaded oldest first', () => {
-    expect(getUnloadedRegion(progress({ loadedFromMs: 1000, loadedToMs: 1500 }))).toEqual({ from: 1500, to: 2000 });
+    const ascending = progress({ loadedFromMs: 1000, loadedToMs: 1500 });
+
+    expect(getUnloadedRegion(ascending, LoadingState.Streaming)).toEqual({
+      from: 1500,
+      to: 2000,
+      isStreaming: true,
+      hasError: false,
+    });
   });
 });

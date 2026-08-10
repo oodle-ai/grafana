@@ -1,31 +1,57 @@
 import { css, keyframes } from '@emotion/css';
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import uPlot from 'uplot';
 
-import { GrafanaTheme2, QueryStreamProgress, colorManipulator } from '@grafana/data';
-import { UPlotConfigBuilder, useStyles2 } from '@grafana/ui';
+import { GrafanaTheme2, LoadingState, QueryStreamProgress, colorManipulator } from '@grafana/data';
+import { t } from '@grafana/i18n';
+import { Button, UPlotConfigBuilder, useStyles2 } from '@grafana/ui';
+
+import { canRetryPanelQueries, retryPanelQueries } from './streamingRetry';
 
 interface StreamingProgressPluginProps {
   config: UPlotConfigBuilder;
   progress?: QueryStreamProgress;
+  /** Loading state of the panel, a cancelled query stops streaming without a final progress update */
+  state?: LoadingState;
+  /** Panel id, used to re-run the queries of this panel when the load was interrupted */
+  panelId: number;
+  /** Request currently rendered by the panel, progress of an older request is stale */
+  requestId?: string;
+}
+
+interface UnloadedRegion {
+  from: number;
+  to: number;
+  /** Parts are still arriving, as opposed to a load that was cancelled or that failed */
+  isStreaming: boolean;
+  hasError: boolean;
 }
 
 /**
- * Covers the part of the time range that has not been loaded yet, with the same shimmer used by
- * the loading skeletons, while a query that was split into several parts is resolving. Parts are
- * fetched newest first, so the shimmer shrinks from left to right as data arrives. When a part
- * fails, the remaining region turns into a static red shade instead.
+ * Covers the part of the time range that has not been loaded yet while a query that was split into
+ * several parts is resolving. Parts are fetched newest first, so the shimmer shrinks from left to
+ * right as data arrives. If the load is cancelled or a part fails, the region stops shimmering and
+ * offers to run the queries again.
  */
-export const StreamingProgressPlugin = ({ config, progress }: StreamingProgressPluginProps) => {
+export const StreamingProgressPlugin = ({
+  config,
+  progress,
+  state,
+  panelId,
+  requestId,
+}: StreamingProgressPluginProps) => {
   const styles = useStyles2(getStyles);
+  const region = getUnloadedRegion(progress, state, requestId);
 
   const plotRef = useRef<uPlot | null>(null);
   const elementRef = useRef<HTMLDivElement | null>(null);
-  const progressRef = useRef<QueryStreamProgress | undefined>(progress);
+  const regionRef = useRef<UnloadedRegion | null>(region);
   const stylesRef = useRef(styles);
   const updateRef = useRef<() => void>(() => {});
+  const [retryContainer, setRetryContainer] = useState<HTMLDivElement | null>(null);
 
-  progressRef.current = progress;
+  regionRef.current = region;
   stylesRef.current = styles;
 
   useLayoutEffect(() => {
@@ -37,16 +63,15 @@ export const StreamingProgressPlugin = ({ config, progress }: StreamingProgressP
         return;
       }
 
-      const current = progressRef.current;
-      const region = getUnloadedRegion(current);
+      const current = regionRef.current;
 
-      if (!region) {
+      if (!current) {
         el.style.display = 'none';
         return;
       }
 
-      const left = Math.max(0, u.valToPos(region.from, 'x'));
-      const right = Math.min(u.over.clientWidth, u.valToPos(region.to, 'x'));
+      const left = Math.max(0, u.valToPos(current.from, 'x'));
+      const right = Math.min(u.over.clientWidth, u.valToPos(current.to, 'x'));
       const width = right - left;
 
       if (!(width > 0)) {
@@ -54,15 +79,18 @@ export const StreamingProgressPlugin = ({ config, progress }: StreamingProgressP
         return;
       }
 
-      const hasError = Boolean(current?.hasError);
-      el.className = hasError ? stylesRef.current.error : stylesRef.current.loading;
+      el.className = current.hasError
+        ? stylesRef.current.error
+        : current.isStreaming
+          ? stylesRef.current.loading
+          : stylesRef.current.stopped;
       el.style.display = 'block';
       el.style.left = `${left}px`;
       el.style.width = `${width}px`;
 
       const sweep = el.firstElementChild;
       if (sweep instanceof HTMLElement) {
-        sweep.className = hasError ? '' : stylesRef.current.sweep;
+        sweep.className = current.isStreaming ? stylesRef.current.sweep : '';
       }
     };
 
@@ -75,8 +103,14 @@ export const StreamingProgressPlugin = ({ config, progress }: StreamingProgressP
       el.style.display = 'none';
       // The sweep travels inside the region, the region itself clips it
       el.appendChild(document.createElement('div'));
+      // The retry button is centered on the region, outside the clipping element
+      const retry = document.createElement('div');
+      retry.className = stylesRef.current.retry;
+      el.appendChild(retry);
+
       u.over.appendChild(el);
       elementRef.current = el;
+      setRetryContainer(retry);
 
       update();
     });
@@ -90,28 +124,65 @@ export const StreamingProgressPlugin = ({ config, progress }: StreamingProgressP
       elementRef.current?.remove();
       elementRef.current = null;
       plotRef.current = null;
+      setRetryContainer(null);
     };
   }, [config]);
 
   useEffect(() => {
     updateRef.current();
-  }, [progress, styles]);
+  }, [region, styles]);
 
-  return null;
+  const showRetry = region !== null && !region.isStreaming && canRetryPanelQueries(panelId);
+
+  if (!retryContainer || !showRetry) {
+    return null;
+  }
+
+  return createPortal(
+    <Button
+      size="sm"
+      variant="secondary"
+      icon="sync"
+      onClick={() => retryPanelQueries(panelId)}
+      title={t('timeseries.streaming.reload-tooltip', 'Run the queries again, the full range is loaded from scratch')}
+    >
+      {t('timeseries.streaming.reload', 'Reload')}
+    </Button>,
+    retryContainer
+  );
 };
 
-export function getUnloadedRegion(progress?: QueryStreamProgress): { from: number; to: number } | null {
-  if (!progress || (!progress.streaming && !progress.hasError)) {
+export function getUnloadedRegion(
+  progress?: QueryStreamProgress,
+  state?: LoadingState,
+  requestId?: string
+): UnloadedRegion | null {
+  if (!progress) {
+    return null;
+  }
+
+  // While a new request is loading, the panel keeps rendering the results of the previous one.
+  // Its progress describes a range that is not being loaded anymore, ignore it.
+  if (progress.requestId !== undefined && requestId !== undefined && progress.requestId !== requestId) {
+    return null;
+  }
+
+  // A cancelled query never reports a final progress, the panel state is the source of truth for
+  // whether parts are still on their way
+  const isStreaming = progress.streaming && state !== LoadingState.Done && state !== LoadingState.Error;
+  const hasError = Boolean(progress.hasError);
+
+  if (!isStreaming && !hasError && progress.completedParts >= progress.totalParts) {
     return null;
   }
 
   // Parts are fetched newest first, so the missing range is normally on the left
   if (progress.loadedFromMs > progress.fromMs) {
-    return { from: progress.fromMs, to: progress.loadedFromMs };
+    return { from: progress.fromMs, to: progress.loadedFromMs, isStreaming, hasError };
   }
 
   if (progress.loadedToMs < progress.toMs) {
-    return { from: progress.loadedToMs, to: progress.toMs };
+    return { from: progress.loadedToMs, to: progress.toMs, isStreaming, hasError };
   }
 
   return null;
@@ -142,6 +213,15 @@ const getStyles = (theme: GrafanaTheme2) => {
       overflow: 'hidden',
       backgroundColor: baseColor,
     }),
+    // Cancelled: no animation, and lighter, the range is not coming on its own anymore
+    stopped: css({
+      ...base,
+      backgroundColor: colorManipulator.alpha(baseColor, 0.5),
+    }),
+    error: css({
+      ...base,
+      backgroundColor: colorManipulator.alpha(theme.colors.error.main, 0.15),
+    }),
     sweep: css({
       position: 'absolute',
       top: 0,
@@ -157,10 +237,14 @@ const getStyles = (theme: GrafanaTheme2) => {
         animation: `${shimmer} 1.5s ease-in-out infinite`,
       },
     }),
-    error: css({
-      ...base,
-      backgroundColor: theme.colors.error.main,
-      opacity: 0.15,
+    retry: css({
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      // The region itself is inert, the button inside it is not
+      pointerEvents: 'auto',
+      whiteSpace: 'nowrap',
     }),
   };
 };

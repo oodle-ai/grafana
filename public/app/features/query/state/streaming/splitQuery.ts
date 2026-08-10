@@ -150,13 +150,14 @@ export function runSplitRequest(
         .reverse();
 
       const progress: QueryStreamProgress = {
+        requestId: request.requestId,
         fromMs,
         toMs,
         loadedFromMs,
         loadedToMs: toMs,
         completedParts,
         totalParts: ranges.length,
-        streaming: state === LoadingState.Streaming,
+        streaming: state === LoadingState.Loading,
         hasError: state === LoadingState.Error ? true : undefined,
       };
 
@@ -236,9 +237,10 @@ export function runSplitRequest(
           completedParts = index + 1;
           const isLast = range.isLast || index === ranges.length - 1;
 
-          // Partial results are Streaming, not Loading: consumers hide the panel body until the
-          // first non-Loading state arrives, which would keep the whole thing blank until the end
-          subscriber.next(buildResponse(isLast ? LoadingState.Done : LoadingState.Streaming, range.fromMs));
+          // Partial results stay Loading: scenes marks a query as completed on the first
+          // non-Loading state, which would drop the panel out of the running query set and take
+          // the Cancel button and the loading bar with it
+          subscriber.next(buildResponse(isLast ? LoadingState.Done : LoadingState.Loading, range.fromMs));
 
           if (isLast) {
             subscriber.complete();

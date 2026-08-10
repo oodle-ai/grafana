@@ -90,10 +90,14 @@ function concatFrames(frames: DataFrame[]): DataFrame {
   const template = frames[frames.length - 1];
   const timeFieldIndex = template.fields.findIndex((field) => field.type === FieldType.time);
 
+  // A part may be missing the nanosecond column even when another part has it, collect it as soon
+  // as any part carries one so the two arrays cannot drift out of sync
+  const hasNanos = frames.some((frame) => frame.fields.some((field) => field.nanos));
+
   const fields: Field[] = template.fields.map((field) => ({
     ...field,
     values: [],
-    nanos: field.nanos ? [] : undefined,
+    nanos: hasNanos && (field.nanos || field.type === FieldType.time) ? [] : undefined,
     // display/state caches are per-instance and must not be reused with a new value array
     state: null,
   }));
@@ -121,8 +125,8 @@ function concatFrames(frames: DataFrame[]): DataFrame {
       // Appending in a loop, spreading large value arrays can overflow the call stack
       for (let row = startIndex; row < source.values.length; row++) {
         target.values.push(source.values[row]);
-        if (target.nanos && source.nanos) {
-          target.nanos.push(source.nanos[row]);
+        if (target.nanos) {
+          target.nanos.push(source.nanos?.[row] ?? 0);
         }
       }
     }
