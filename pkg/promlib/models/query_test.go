@@ -29,8 +29,25 @@ func TestDDInterval(t *testing.T) {
 		timeRange        time.Duration
 		expectedInterval time.Duration
 	}{
+		// Short ranges: Datadog rolls up below the metric's native resolution.
+		{
+			timeRange:        10 * time.Minute,
+			expectedInterval: 2 * time.Second,
+		},
+		{
+			timeRange:        15 * time.Minute,
+			expectedInterval: 5 * time.Second,
+		},
 		{
 			timeRange:        30 * time.Minute,
+			expectedInterval: 10 * time.Second,
+		},
+		{
+			timeRange:        45 * time.Minute,
+			expectedInterval: 10 * time.Second,
+		},
+		{
+			timeRange:        50 * time.Minute,
 			expectedInterval: 20 * time.Second,
 		},
 		{
@@ -39,7 +56,7 @@ func TestDDInterval(t *testing.T) {
 		},
 		{
 			timeRange:        75 * time.Minute,
-			expectedInterval: 20 * time.Second,
+			expectedInterval: 30 * time.Second,
 		},
 		{
 			timeRange:        2 * time.Hour,
@@ -47,15 +64,19 @@ func TestDDInterval(t *testing.T) {
 		},
 		{
 			timeRange:        2*time.Hour + 30*time.Minute,
-			expectedInterval: 30 * time.Second,
+			expectedInterval: time.Minute,
 		},
 		{
 			timeRange:        3 * time.Hour,
 			expectedInterval: time.Minute,
 		},
 		{
-			timeRange:        5 * time.Hour,
+			timeRange:        4 * time.Hour,
 			expectedInterval: time.Minute,
+		},
+		{
+			timeRange:        5 * time.Hour,
+			expectedInterval: 2 * time.Minute,
 		},
 		{
 			timeRange:        8 * time.Hour,
@@ -67,15 +88,16 @@ func TestDDInterval(t *testing.T) {
 		},
 		{
 			timeRange:        12*time.Hour + 30*time.Minute,
-			expectedInterval: 2 * time.Minute,
+			expectedInterval: 5 * time.Minute,
 		},
 		{
 			timeRange:        24 * time.Hour,
 			expectedInterval: 5 * time.Minute,
 		},
 		{
+			// 25h == 150 * 10m, so Datadog switches to a 10m rollup exactly here.
 			timeRange:        25 * time.Hour,
-			expectedInterval: 5 * time.Minute,
+			expectedInterval: 10 * time.Minute,
 		},
 		{
 			timeRange:        48 * time.Hour,
@@ -83,7 +105,7 @@ func TestDDInterval(t *testing.T) {
 		},
 		{
 			timeRange:        50 * time.Hour,
-			expectedInterval: 10 * time.Minute,
+			expectedInterval: 20 * time.Minute,
 		},
 		{
 			timeRange:        72 * time.Hour,
@@ -91,7 +113,7 @@ func TestDDInterval(t *testing.T) {
 		},
 		{
 			timeRange:        75 * time.Hour,
-			expectedInterval: 20 * time.Minute,
+			expectedInterval: 30 * time.Minute,
 		},
 		{
 			timeRange:        144 * time.Hour,
@@ -99,7 +121,7 @@ func TestDDInterval(t *testing.T) {
 		},
 		{
 			timeRange:        150 * time.Hour,
-			expectedInterval: 30 * time.Minute,
+			expectedInterval: time.Hour,
 		},
 		{
 			timeRange:        7 * 24 * time.Hour,
@@ -107,7 +129,7 @@ func TestDDInterval(t *testing.T) {
 		},
 		{
 			timeRange:        15 * 24 * time.Hour,
-			expectedInterval: 4 * time.Hour,
+			expectedInterval: 2 * time.Hour,
 		},
 		{
 			timeRange:        31 * 24 * time.Hour,

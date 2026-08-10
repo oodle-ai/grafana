@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -412,23 +411,34 @@ type timeRangeToInterval struct {
 	intervalUpToTimeRange time.Duration
 }
 
-// These values were determined manually by observing when the step interval changes for time ranges up to 1 week.
-// Although Datadog documents the default rollup intervals based on time range here:
+// Datadog snaps a dashboard's step interval to a fixed set of "nice" rollup
+// granularities. Observed empirically in the DD UI for ranges from minutes up to
+// 30 days: it targets ~150 points, using the largest granularity that is
+// <= timeRange/150 and switching to the next granularity at timeRange = 150 * granularity
+// (e.g. the 5m -> 10m transition happens at exactly 150 * 10m = 25h). This tracks the
+// DD UI more reliably than the documented rollup table, which the values here were
+// previously (and less accurately) hand-tuned against:
 // https://docs.datadoghq.com/dashboards/functions/rollup/#rollup-interval-enforced-vs-custom
-// the actual step intervals seen in the UI do not always match the documented values.
-var defaultMaxInterval = 4 * time.Hour
-var defaultTimeRangeToIntervalSorted = []timeRangeToInterval{
-	{timeRange: time.Minute * 75, intervalUpToTimeRange: time.Second * 20},
-	{timeRange: (time.Hour * 2) + (time.Minute * 30), intervalUpToTimeRange: time.Second * 30},
-	{timeRange: time.Hour * 5, intervalUpToTimeRange: time.Minute * 1},
-	{timeRange: (time.Hour * 12) + (time.Minute * 30), intervalUpToTimeRange: time.Minute * 2},
-	{timeRange: time.Hour * (24 + 1), intervalUpToTimeRange: time.Minute * 5},
-	{timeRange: time.Hour * (48 + 2), intervalUpToTimeRange: time.Minute * 10},
-	{timeRange: time.Hour * (72 + 3), intervalUpToTimeRange: time.Minute * 20},
-	{timeRange: time.Hour * (144 + 6), intervalUpToTimeRange: time.Minute * 30},
-	{timeRange: time.Hour * 24 * 7, intervalUpToTimeRange: time.Hour},
-	{timeRange: time.Hour * 24 * 13, intervalUpToTimeRange: time.Hour * 2},
-	{timeRange: time.Hour * 24 * 31, intervalUpToTimeRange: time.Hour * 4},
+const datadogDefaultTargetPoints = 150
+
+// datadogDefaultNiceIntervals are the rollup granularities Datadog snaps to, ascending.
+// The largest value also acts as the max interval returned for very long ranges.
+var datadogDefaultNiceIntervals = []time.Duration{
+	time.Second * 1,
+	time.Second * 2,
+	time.Second * 5,
+	time.Second * 10,
+	time.Second * 20,
+	time.Second * 30,
+	time.Minute * 1,
+	time.Minute * 2,
+	time.Minute * 5,
+	time.Minute * 10,
+	time.Minute * 20,
+	time.Minute * 30,
+	time.Hour * 1,
+	time.Hour * 2,
+	time.Hour * 4,
 }
 
 var barChartMaxInterval = 12 * time.Hour
@@ -449,13 +459,15 @@ var barChartTimeRangeToIntervalSorted = []timeRangeToInterval{
 func CalculateIntervalDatadogDefault(
 	timeRange time.Duration,
 ) time.Duration {
-	for _, rangeToInterval := range defaultTimeRangeToIntervalSorted {
-		if timeRange <= rangeToInterval.timeRange {
-			return rangeToInterval.intervalUpToTimeRange
+	target := timeRange / datadogDefaultTargetPoints
+	interval := datadogDefaultNiceIntervals[0]
+	for _, niceInterval := range datadogDefaultNiceIntervals {
+		if niceInterval > target {
+			break
 		}
+		interval = niceInterval
 	}
-
-	return defaultMaxInterval
+	return interval
 }
 
 func CalculateIntervalDatadogBarChart(
@@ -555,10 +567,4 @@ var f embed.FS
 // QueryTypeDefinitionsJSON returns the query type definitions
 func QueryTypeDefinitionListJSON() (json.RawMessage, error) {
 	return f.ReadFile("query.types.json")
-}
-
-func init() {
-	sort.Slice(defaultTimeRangeToIntervalSorted, func(i, j int) bool {
-		return defaultTimeRangeToIntervalSorted[i].timeRange < defaultTimeRangeToIntervalSorted[j].timeRange
-	})
 }
