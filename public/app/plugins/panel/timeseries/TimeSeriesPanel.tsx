@@ -30,6 +30,7 @@ import { Options } from './panelcfg.gen';
 import { AnnotationsPlugin2 } from './plugins/AnnotationsPlugin2';
 import { ExemplarsPlugin, getVisibleLabels } from './plugins/ExemplarsPlugin';
 import { OutsideRangePlugin } from './plugins/OutsideRangePlugin';
+import { StreamingProgressBar } from './plugins/StreamingProgressBar';
 import { StreamingProgressPlugin } from './plugins/StreamingProgressPlugin';
 import { ThresholdControlsPlugin } from './plugins/ThresholdControlsPlugin';
 import { getPrepareTimeseriesSuggestion } from './suggestions';
@@ -213,6 +214,7 @@ export const TimeSeriesPanel = ({
 
   return (
     <div className={styles.panelWrapper}>
+      <StreamingProgressBar progress={data.streamProgress} />
       {hasIndexPatternTargets && (
         <div className={styles.panelHeader}>
           <DataExplorerLink

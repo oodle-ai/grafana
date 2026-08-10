@@ -2,7 +2,7 @@ import { css, keyframes } from '@emotion/css';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import uPlot from 'uplot';
 
-import { GrafanaTheme2, QueryStreamProgress } from '@grafana/data';
+import { GrafanaTheme2, QueryStreamProgress, colorManipulator } from '@grafana/data';
 import { UPlotConfigBuilder, useStyles2 } from '@grafana/ui';
 
 interface StreamingProgressPluginProps {
@@ -11,9 +11,10 @@ interface StreamingProgressPluginProps {
 }
 
 /**
- * Shades the part of the time range that has not been loaded yet while a query that was split
- * into several parts is resolving. Parts are fetched newest first, so the shaded region shrinks
- * from left to right as data arrives. When a part fails, the remaining region is shaded in red.
+ * Covers the part of the time range that has not been loaded yet, with the same shimmer used by
+ * the loading skeletons, while a query that was split into several parts is resolving. Parts are
+ * fetched newest first, so the shimmer shrinks from left to right as data arrives. When a part
+ * fails, the remaining region turns into a static red shade instead.
  */
 export const StreamingProgressPlugin = ({ config, progress }: StreamingProgressPluginProps) => {
   const styles = useStyles2(getStyles);
@@ -53,10 +54,16 @@ export const StreamingProgressPlugin = ({ config, progress }: StreamingProgressP
         return;
       }
 
-      el.className = current?.hasError ? stylesRef.current.error : stylesRef.current.loading;
+      const hasError = Boolean(current?.hasError);
+      el.className = hasError ? stylesRef.current.error : stylesRef.current.loading;
       el.style.display = 'block';
       el.style.left = `${left}px`;
       el.style.width = `${width}px`;
+
+      const sweep = el.firstElementChild;
+      if (sweep instanceof HTMLElement) {
+        sweep.className = hasError ? '' : stylesRef.current.sweep;
+      }
     };
 
     updateRef.current = update;
@@ -66,6 +73,8 @@ export const StreamingProgressPlugin = ({ config, progress }: StreamingProgressP
 
       const el = document.createElement('div');
       el.style.display = 'none';
+      // The sweep travels inside the region, the region itself clips it
+      el.appendChild(document.createElement('div'));
       u.over.appendChild(el);
       elementRef.current = el;
 
@@ -108,10 +117,18 @@ export function getUnloadedRegion(progress?: QueryStreamProgress): { from: numbe
   return null;
 }
 
+// The highlight travels across the skeleton and off its right edge, then starts over
+const shimmer = keyframes({
+  '0%': { transform: 'translateX(-100%)' },
+  '50%': { transform: 'translateX(350%)' },
+  '100%': { transform: 'translateX(-100%)' },
+});
+
+// Fallback for reduced motion: the block fades instead of sweeping
 const pulse = keyframes({
-  '0%': { opacity: 0.15 },
-  '50%': { opacity: 0.35 },
-  '100%': { opacity: 0.15 },
+  '0%': { opacity: 1 },
+  '50%': { opacity: 0.5 },
+  '100%': { opacity: 1 },
 });
 
 const getStyles = (theme: GrafanaTheme2) => {
@@ -125,10 +142,28 @@ const getStyles = (theme: GrafanaTheme2) => {
   return {
     loading: css({
       ...base,
-      backgroundColor: theme.isDark ? theme.colors.border.medium : theme.colors.text.secondary,
-      opacity: 0.25,
+      overflow: 'hidden',
+      backgroundColor: colorManipulator.alpha(theme.colors.text.secondary, theme.isDark ? 0.12 : 0.1),
+      // Without the sweep, fade the block instead so it still reads as loading
+      [theme.transitions.handleMotion('reduce')]: {
+        animation: `${pulse} 2s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
+      },
+    }),
+    sweep: css({
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: 0,
+      width: '35%',
+      backgroundImage: `linear-gradient(90deg, transparent, ${colorManipulator.alpha(
+        theme.colors.text.primary,
+        theme.isDark ? 0.12 : 0.08
+      )}, transparent)`,
+      [theme.transitions.handleMotion('reduce')]: {
+        display: 'none',
+      },
       [theme.transitions.handleMotion('no-preference')]: {
-        animation: `${pulse} 1.5s ease-in-out infinite`,
+        animation: `${shimmer} 1.5s ease-in-out infinite`,
       },
     }),
     error: css({
