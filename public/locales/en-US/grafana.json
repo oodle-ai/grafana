@@ -13321,6 +13321,10 @@
         "label-threshold": "Threshold"
       }
     },
+    "streaming": {
+      "reload": "Reload",
+      "reload-tooltip": "Run the queries again, the full range is loaded from scratch"
+    },
     "timezones-editor": {
       "tooltip-add-timezone": "Add timezone",
       "tooltip-remove-timezone": "Remove timezone"

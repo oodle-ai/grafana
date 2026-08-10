@@ -296,7 +296,7 @@
     "@grafana/plugin-ui": "^0.10.10",
     "@grafana/prometheus": "workspace:*",
     "@grafana/runtime": "workspace:*",
-    "@grafana/scenes": "git+https://github.com/oodle-ai/scenes.git#a236fbeaf48cd9699e5ba8e63efa104c05703214",
+    "@grafana/scenes": "git+https://github.com/oodle-ai/scenes.git#aebe30278bca28c6f4da225d914c82a3ad1584be",
     "@grafana/scenes-react": "6.52.0",
     "@grafana/schema": "workspace:*",
     "@grafana/sql": "workspace:*",

@@ -897,7 +897,7 @@ export interface FeatureToggles {
   */
   alertingJiraIntegration?: boolean;
   /**
-  *
+  * 
   * @default true
   */
   alertingUseNewSimplifiedRoutingHashAlgorithm?: boolean;
@@ -1246,5 +1246,14 @@ export interface FeatureToggles {
   * Enable template dashboards
   */
   dashboardTemplates?: boolean;
+  /**
+  * Enables Oodle Insight for Grafana
+  * @default false
+  */
   oodleInsight?: boolean;
+  /**
+  * Disables splitting long time range panel queries into parts that render progressively
+  * @default false
+  */
+  disableQuerySplitting?: boolean;
 }

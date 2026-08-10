@@ -359,7 +359,9 @@ export function PanelChrome({
         ref={ref}
       >
         <div className={styles.loadingBarContainer}>
-          {loadingState === LoadingState.Loading ? (
+          {/* Streaming keeps the bar running while partial results are already rendered, e.g. a
+              query split into several time ranges that fills the panel in as the parts arrive */}
+          {loadingState === LoadingState.Loading || loadingState === LoadingState.Streaming ? (
             <LoadingBar
               width={loadingBarWidth}
               ariaLabel={t('grafana-ui.panel-chrome.ariaLabel-panel-loading', 'Panel loading bar')}

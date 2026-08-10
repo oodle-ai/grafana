@@ -30,6 +30,7 @@ import { Options } from './panelcfg.gen';
 import { AnnotationsPlugin2 } from './plugins/AnnotationsPlugin2';
 import { ExemplarsPlugin, getVisibleLabels } from './plugins/ExemplarsPlugin';
 import { OutsideRangePlugin } from './plugins/OutsideRangePlugin';
+import { StreamingProgressPlugin } from './plugins/StreamingProgressPlugin';
 import { ThresholdControlsPlugin } from './plugins/ThresholdControlsPlugin';
 import { getPrepareTimeseriesSuggestion } from './suggestions';
 import { getTimezones, prepareGraphableFields } from './utils';
@@ -242,7 +243,10 @@ export const TimeSeriesPanel = ({
         </div>
       )}
     <TimeSeries
-      key={`timeseries-${showAllSeries}-${frames?.length}`}
+      // Remount when the series cap is toggled, that changes the series count without changing
+      // structureRev so uPlot would otherwise keep its old config. Data driven changes (a split
+      // query filling in older series) do bump structureRev and are reconfigured without a remount.
+      key={`timeseries-${showAllSeries}`}
       frames={frames}
       structureRev={data.structureRev}
       timeRange={timeRange}
@@ -259,6 +263,13 @@ export const TimeSeriesPanel = ({
         return (
           <>
             <KeyboardPlugin config={uplotConfig} />
+            <StreamingProgressPlugin
+              config={uplotConfig}
+              progress={data.streamProgress}
+              state={data.state}
+              panelId={id}
+              requestId={data.request?.requestId}
+            />
             {cursorSync !== DashboardCursorSync.Off && (
               <EventBusPlugin config={uplotConfig} eventBus={eventBus} frame={alignedFrame} />
             )}

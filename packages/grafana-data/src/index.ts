@@ -682,6 +682,7 @@ export {
   type LegacyResponseData,
   type DataQueryResponseData,
   type DataQueryResponse,
+  type QueryStreamProgress,
   type TestDataSourceResponse,
   type DataQueryError,
   type DataQueryRequest,

@@ -28,6 +28,7 @@ import { queryLogger } from '../utils';
 
 import { cancelNetworkRequestsOnUnsubscribe } from './processing/canceler';
 import { emitDataRequestEvent } from './queryAnalytics';
+import { getRequestSplitParts, runSplitRequest } from './streaming/splitQuery';
 
 type MapOfResponsePackets = { [str: string]: DataQueryResponse };
 
@@ -77,7 +78,10 @@ export function processResponsePacket(packet: DataQueryResponse, state: RunningQ
     }
   }
 
-  const timeRange = getRequestTimeRange(request, loadingState);
+  // Set when the request was split into several time ranges that resolve progressively
+  const streamProgress = packet.streamProgress ?? state.panelData.streamProgress;
+
+  const timeRange = getRequestTimeRange(request, loadingState, streamProgress !== undefined);
 
   const panelData: PanelData = {
     state: loadingState,
@@ -89,6 +93,10 @@ export function processResponsePacket(packet: DataQueryResponse, state: RunningQ
     timeRange,
   };
 
+  if (streamProgress) {
+    panelData.streamProgress = streamProgress;
+  }
+
   // we use a Set to deduplicate the traceIds
   const traceIdSet = new Set([...(state.panelData.traceIds ?? []), ...(packet.traceIds ?? [])]);
 
@@ -99,10 +107,12 @@ export function processResponsePacket(packet: DataQueryResponse, state: RunningQ
   return { packets, panelData };
 }
 
-function getRequestTimeRange(request: DataQueryRequest, loadingState: LoadingState): TimeRange {
+function getRequestTimeRange(request: DataQueryRequest, loadingState: LoadingState, isSplit: boolean): TimeRange {
   const range = request.range;
 
-  if (!isString(range.raw.from) || loadingState !== LoadingState.Streaming) {
+  // A split request streams parts of a fixed range, re-resolving `now` between them would make the
+  // axis creep while the panel is filling in
+  if (!isString(range.raw.from) || loadingState !== LoadingState.Streaming || isSplit) {
     return range;
   }
 
@@ -142,7 +152,7 @@ export function runRequest(
     return of(state.panelData);
   }
 
-  const dataObservable = callQueryMethodWithMigration(datasource, request, queryFunction).pipe(
+  const dataObservable = callQueryMethodWithSplitting(datasource, request, queryFunction).pipe(
     // Transform response packets into PanelData with merged results
     map((packet: DataQueryResponse) => {
       if (!isArray(packet.data)) {
@@ -183,6 +193,25 @@ export function runRequest(
   // mapTo will translate the timer event into state.panelData (which has state set to loading)
   // takeUntil will cancel the timer emit when first response packet is received on the dataObservable
   return merge(timer(200).pipe(mapTo(state.panelData), takeUntil(dataObservable)), dataObservable);
+}
+
+/**
+ * Long time ranges are split into several requests that are run newest range first, so that panels
+ * render the most recent data immediately and fill in from right to left. Requests that cannot be
+ * split (short ranges, unsupported panels/datasources, ...) are run as a single query.
+ */
+export function callQueryMethodWithSplitting(
+  datasource: DataSourceApi,
+  request: DataQueryRequest,
+  queryFunction?: typeof datasource.query
+): Observable<DataQueryResponse> {
+  const parts = getRequestSplitParts(datasource, request);
+
+  if (parts <= 1) {
+    return callQueryMethodWithMigration(datasource, request, queryFunction);
+  }
+
+  return runSplitRequest(datasource, request, queryFunction, parts, callQueryMethodWithMigration);
 }
 
 export function callQueryMethodWithMigration(

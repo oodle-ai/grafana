@@ -1,9 +1,9 @@
 import { useState } from 'react';
 
-import { ComponentSize, IconName } from '@grafana/data';
+import { IconName } from '@grafana/data';
 import { Trans, t } from '@grafana/i18n';
 import { reportInteraction, config } from '@grafana/runtime';
-import { Dropdown, Menu, MenuGroup, ButtonGroup, Button } from '@grafana/ui';
+import { ComponentSize, Dropdown, Menu, MenuGroup, ButtonGroup, Button } from '@grafana/ui';
 import { copyStringToClipboard } from 'app/core/utils/explore';
 import { createAndCopyShortLink } from 'app/core/utils/shortLinks';
 import { useSelector } from 'app/types/store';

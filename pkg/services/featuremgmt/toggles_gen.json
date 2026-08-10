@@ -1310,6 +1310,23 @@
     },
     {
       "metadata": {
+        "name": "disableQuerySplitting",
+        "resourceVersion": "1786350233733",
+        "creationTimestamp": "2026-08-10T00:00:00Z",
+        "annotations": {
+          "grafana.app/updatedTimestamp": "2026-08-10 08:23:53.733894 +0000 UTC"
+        }
+      },
+      "spec": {
+        "description": "Disables splitting long time range panel queries into parts that render progressively",
+        "stage": "experimental",
+        "codeowner": "@grafana/oodle-squad",
+        "frontend": true,
+        "expression": "false"
+      }
+    },
+    {
+      "metadata": {
         "name": "disableSSEDataplane",
         "resourceVersion": "1753448760331",
         "creationTimestamp": "2023-04-12T16:24:34Z"
@@ -2863,6 +2880,22 @@
     },
     {
       "metadata": {
+        "name": "oodleInsight",
+        "resourceVersion": "1786350233733",
+        "creationTimestamp": "2024-07-25T23:42:48Z",
+        "annotations": {
+          "grafana.app/updatedTimestamp": "2026-08-10 08:23:53.733894 +0000 UTC"
+        }
+      },
+      "spec": {
+        "description": "Enables Oodle Insight for Grafana",
+        "stage": "experimental",
+        "codeowner": "@grafana/oodle-squad",
+        "expression": "false"
+      }
+    },
+    {
+      "metadata": {
         "name": "otelLogsFormatting",
         "resourceVersion": "1753448760331",
         "creationTimestamp": "2025-07-16T15:42:14Z"
@@ -4264,18 +4297,6 @@
         "codeowner": "@grafana/identity-access-team",
         "hideFromAdminPage": true,
         "hideFromDocs": true
-      }
-    },
-    {
-      "metadata": {
-        "name": "oodleInsight",
-        "resourceVersion": "1721950968536",
-        "creationTimestamp": "2024-07-25T23:42:48Z"
-      },
-      "spec": {
-        "description": "Enables Oodle Insight for Grafana",
-        "stage": "experimental",
-        "codeowner": "@grafana/oodle-squad"
       }
     }
   ]
