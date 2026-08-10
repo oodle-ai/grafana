@@ -527,6 +527,35 @@ export interface DataQueryResponse {
    * traceIds related to the response, if available
    */
   traceIds?: string[];
+
+  /**
+   * Set when the response is a partial result of a query that was split into several
+   * time ranges and is being resolved progressively.
+   */
+  streamProgress?: QueryStreamProgress;
+}
+
+/**
+ * Describes how much of a time range has been loaded when a query is split into
+ * several sub-queries that resolve progressively (newest range first).
+ */
+export interface QueryStreamProgress {
+  /** Start of the full requested time range (epoch ms) */
+  fromMs: number;
+  /** End of the full requested time range (epoch ms) */
+  toMs: number;
+  /** Start of the contiguous time range loaded so far (epoch ms) */
+  loadedFromMs: number;
+  /** End of the contiguous time range loaded so far (epoch ms) */
+  loadedToMs: number;
+  /** How many parts have been resolved */
+  completedParts: number;
+  /** How many parts the range was split into */
+  totalParts: number;
+  /** True while more parts are still being fetched */
+  streaming: boolean;
+  /** True when a part failed and the remaining range will not be loaded */
+  hasError?: boolean;
 }
 
 export interface TestDataSourceResponse {

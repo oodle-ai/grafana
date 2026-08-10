@@ -1121,4 +1121,8 @@ const (
 	// FlagOodleInsight
 	// Enables Oodle Insight for Grafana
 	FlagOodleInsight = "oodleInsight"
+
+	// FlagDisableQuerySplitting
+	// Disables splitting long time range panel queries into parts that render progressively
+	FlagDisableQuerySplitting = "disableQuerySplitting"
 )

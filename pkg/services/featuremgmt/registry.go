@@ -2165,6 +2165,14 @@ var (
 			Owner:       grafanaOodleSquad,
 			Expression:  "false",
 		},
+		{
+			Name:         "disableQuerySplitting",
+			Description:  "Disables splitting long time range panel queries into parts that render progressively",
+			Stage:        FeatureStageExperimental,
+			Owner:        grafanaOodleSquad,
+			FrontendOnly: true,
+			Expression:   "false",
+		},
 	}
 )
 

@@ -30,6 +30,7 @@ import { Options } from './panelcfg.gen';
 import { AnnotationsPlugin2 } from './plugins/AnnotationsPlugin2';
 import { ExemplarsPlugin, getVisibleLabels } from './plugins/ExemplarsPlugin';
 import { OutsideRangePlugin } from './plugins/OutsideRangePlugin';
+import { StreamingProgressPlugin } from './plugins/StreamingProgressPlugin';
 import { ThresholdControlsPlugin } from './plugins/ThresholdControlsPlugin';
 import { getPrepareTimeseriesSuggestion } from './suggestions';
 import { getTimezones, prepareGraphableFields } from './utils';
@@ -259,6 +260,7 @@ export const TimeSeriesPanel = ({
         return (
           <>
             <KeyboardPlugin config={uplotConfig} />
+            <StreamingProgressPlugin config={uplotConfig} progress={data.streamProgress} />
             {cursorSync !== DashboardCursorSync.Off && (
               <EventBusPlugin config={uplotConfig} eventBus={eventBus} frame={alignedFrame} />
             )}

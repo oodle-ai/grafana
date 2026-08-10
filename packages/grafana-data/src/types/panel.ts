@@ -10,7 +10,7 @@ import { AlertStateInfo } from './alerts';
 import { PanelModel } from './dashboard';
 import { LoadingState, PreferredVisualisationType } from './data';
 import { DataFrame, FieldType } from './dataFrame';
-import { DataQueryError, DataQueryRequest, DataQueryTimings } from './datasource';
+import { DataQueryError, DataQueryRequest, DataQueryTimings, QueryStreamProgress } from './datasource';
 import { FieldConfigSource } from './fieldOverrides';
 import { IconName } from './icon';
 import { OptionEditorConfig } from './options';
@@ -69,6 +69,12 @@ export interface PanelData {
 
   /** traceIds collected during the processing of the requests */
   traceIds?: string[];
+
+  /**
+   * Set while a query that was split into several time ranges is resolving progressively.
+   * Panels can use this to indicate which part of the time range is not loaded yet.
+   */
+  streamProgress?: QueryStreamProgress;
 }
 
 export interface PanelProps<T = any> {
