@@ -78,7 +78,10 @@ export function processResponsePacket(packet: DataQueryResponse, state: RunningQ
     }
   }
 
-  const timeRange = getRequestTimeRange(request, loadingState);
+  // Set when the request was split into several time ranges that resolve progressively
+  const streamProgress = packet.streamProgress ?? state.panelData.streamProgress;
+
+  const timeRange = getRequestTimeRange(request, loadingState, streamProgress !== undefined);
 
   const panelData: PanelData = {
     state: loadingState,
@@ -90,8 +93,6 @@ export function processResponsePacket(packet: DataQueryResponse, state: RunningQ
     timeRange,
   };
 
-  // Set when the request was split into several time ranges that resolve progressively
-  const streamProgress = packet.streamProgress ?? state.panelData.streamProgress;
   if (streamProgress) {
     panelData.streamProgress = streamProgress;
   }
@@ -106,10 +107,12 @@ export function processResponsePacket(packet: DataQueryResponse, state: RunningQ
   return { packets, panelData };
 }
 
-function getRequestTimeRange(request: DataQueryRequest, loadingState: LoadingState): TimeRange {
+function getRequestTimeRange(request: DataQueryRequest, loadingState: LoadingState, isSplit: boolean): TimeRange {
   const range = request.range;
 
-  if (!isString(range.raw.from) || loadingState !== LoadingState.Streaming) {
+  // A split request streams parts of a fixed range, re-resolving `now` between them would make the
+  // axis creep while the panel is filling in
+  if (!isString(range.raw.from) || loadingState !== LoadingState.Streaming || isSplit) {
     return range;
   }
 

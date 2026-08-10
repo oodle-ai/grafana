@@ -53,25 +53,14 @@ export const DEFAULT_STREAMING_CONFIG: QueryStreamingConfig = {
  */
 export const STREAMING_CONFIG_STORAGE_KEY = 'grafana.query.streamingConfig';
 
-/**
- * Server side kill switch. Turning this feature toggle on disables query splitting for everyone,
- * whatever the stored config says:
- *
- *   GF_FEATURE_TOGGLES_ENABLE=disableQuerySplitting
- *
- * or in grafana.ini / custom.ini:
- *
- *   [feature_toggles]
- *   disableQuerySplitting = true
- */
-export const STREAMING_DISABLED_FEATURE_TOGGLE = 'disableQuerySplitting';
-
 let cached: QueryStreamingConfig | undefined;
 
 export function getQueryStreamingConfig(): QueryStreamingConfig {
   if (!cached) {
     cached = { ...DEFAULT_STREAMING_CONFIG, ...readOverrides() };
 
+    // Server side kill switch, set with GF_FEATURE_TOGGLES_ENABLE=disableQuerySplitting or
+    // `disableQuerySplitting = true` under [feature_toggles]. It wins over the stored config.
     if (config.featureToggles.disableQuerySplitting) {
       cached.enabled = false;
     }

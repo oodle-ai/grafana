@@ -99,6 +99,11 @@ export function scaleMaxDataPoints(
   return Math.max(1, Math.round((maxDataPoints * partDurationMs) / fullDurationMs));
 }
 
+/** Same keying as runRequest: packets with the same key replace each other, others add up */
+function getPacketKey(response: DataQueryResponse): string {
+  return response.key ?? response.data?.[0]?.refId ?? 'A';
+}
+
 function hasIncrementalQuery(datasource: DataSourceApi): boolean {
   return 'hasIncrementalQuery' in datasource && Boolean(datasource.hasIncrementalQuery);
 }
@@ -123,8 +128,9 @@ export function runSplitRequest(
   const responseKey = `${request.requestId}_split`;
 
   return new Observable<DataQueryResponse>((subscriber) => {
-    // Indexed by part, ranges are fetched newest first
-    const chunkData: Array<DataQueryResponseData[] | undefined> = new Array(ranges.length);
+    // Indexed by part (parts are fetched newest first). A part can answer with several packets,
+    // one per query for instance, which are keyed and replaced the same way runRequest does it.
+    const chunkPackets: Array<Map<string, DataQueryResponseData[]> | undefined> = new Array(ranges.length);
     const traceIds = new Set<string>();
 
     let subscription: Subscription | null = null;
@@ -138,8 +144,10 @@ export function runSplitRequest(
       error?: DataQueryError,
       errors?: DataQueryError[]
     ): DataQueryResponse => {
-      // Chunks are stored newest first, merge them oldest first
-      const ordered = [...chunkData].reverse();
+      // Parts are stored newest first, merge them oldest first
+      const ordered = chunkPackets
+        .map((packets) => (packets ? Array.from(packets.values()).flat() : undefined))
+        .reverse();
 
       const progress: QueryStreamProgress = {
         fromMs,
@@ -148,7 +156,7 @@ export function runSplitRequest(
         loadedToMs: toMs,
         completedParts,
         totalParts: ranges.length,
-        streaming: state === LoadingState.Loading,
+        streaming: state === LoadingState.Streaming,
         hasError: state === LoadingState.Error ? true : undefined,
       };
 
@@ -194,7 +202,13 @@ export function runSplitRequest(
             return;
           }
 
-          chunkData[index] = response.data ?? [];
+          let packets = chunkPackets[index];
+          if (!packets) {
+            packets = new Map();
+            chunkPackets[index] = packets;
+          }
+          packets.set(getPacketKey(response), response.data ?? []);
+
           response.traceIds?.forEach((traceId) => traceIds.add(traceId));
 
           if (response.error || response.errors?.length) {
@@ -222,7 +236,9 @@ export function runSplitRequest(
           completedParts = index + 1;
           const isLast = range.isLast || index === ranges.length - 1;
 
-          subscriber.next(buildResponse(isLast ? LoadingState.Done : LoadingState.Loading, range.fromMs));
+          // Partial results are Streaming, not Loading: consumers hide the panel body until the
+          // first non-Loading state arrives, which would keep the whole thing blank until the end
+          subscriber.next(buildResponse(isLast ? LoadingState.Done : LoadingState.Streaming, range.fromMs));
 
           if (isLast) {
             subscriber.complete();

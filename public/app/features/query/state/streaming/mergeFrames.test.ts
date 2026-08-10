@@ -1,4 +1,4 @@
-import { DataFrame, FieldType, toDataFrame } from '@grafana/data';
+import { DataFrame, DataQueryResponseData, FieldType, toDataFrame } from '@grafana/data';
 
 import { mergeChunkFrames } from './mergeFrames';
 
@@ -52,6 +52,21 @@ describe('mergeChunkFrames', () => {
     expect(merged[0].fields[0].values).toEqual([1000, 2000]);
     expect(merged[1].fields[0].values).toEqual([2000]);
     expect(merged[1].fields[1].labels).toEqual({ job: 'b' });
+  });
+
+  it('keeps the series order stable as older parts arrive', () => {
+    // The newest part only knows about job=a, the older part also has job=b
+    const newest = series('A', { job: 'a' }, [2000], [2]);
+    const older = [series('A', { job: 'b' }, [1000], [9]), series('A', { job: 'a' }, [1000], [1])];
+
+    const firstEmission = mergeChunkFrames([undefined, [newest]]);
+    const secondEmission = mergeChunkFrames([older, [newest]]);
+
+    const labelsOf = (frames: DataQueryResponseData[]) => frames.map((frame) => frame.fields[1].labels);
+
+    // job=a must not be pushed down the list, the series index drives the palette color
+    expect(labelsOf(firstEmission)).toEqual([{ job: 'a' }]);
+    expect(labelsOf(secondEmission)).toEqual([{ job: 'a' }, { job: 'b' }]);
   });
 
   it('keeps series apart when they only differ by refId', () => {

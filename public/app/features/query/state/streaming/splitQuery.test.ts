@@ -1,4 +1,4 @@
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, from, of, throwError } from 'rxjs';
 
 import {
   CoreApp,
@@ -100,9 +100,9 @@ describe('getRequestSplitParts', () => {
 });
 
 describe('runSplitRequest', () => {
-  const frameFor = (times: number[], values: number[]) =>
+  const frameFor = (times: number[], values: number[], refId = 'A') =>
     toDataFrame({
-      refId: 'A',
+      refId,
       fields: [
         { name: 'Time', type: FieldType.time, values: times },
         { name: 'Value', type: FieldType.number, values, labels: { job: 'a' } },
@@ -128,7 +128,7 @@ describe('runSplitRequest', () => {
     expect(requestedRanges[2][1]).toBe(requestedRanges[1][0]);
     expect(requestedRanges[2][0]).toBe(request.range.from.valueOf());
 
-    expect(emissions.map((e) => e.state)).toEqual([LoadingState.Loading, LoadingState.Loading, LoadingState.Done]);
+    expect(emissions.map((e) => e.state)).toEqual([LoadingState.Streaming, LoadingState.Streaming, LoadingState.Done]);
 
     // Data grows from the right, the merged frame stays sorted by time
     expect(emissions[0].data[0].fields[0].values).toEqual([requestedRanges[0][0]]);
@@ -158,6 +158,24 @@ describe('runSplitRequest', () => {
       expect(req.intervalMs).toBe(request.intervalMs);
       expect(req.range.raw).toEqual(request.range.raw);
     });
+  });
+
+  it('keeps every packet when a part answers with one response per query', async () => {
+    const request = makeRequest();
+
+    const executor: QueryExecutor = (_ds, req) => {
+      const t = req.range.to.valueOf();
+      const packets: DataQueryResponse[] = [
+        { data: [frameFor([t], [1], 'A')], key: 'A' },
+        { data: [frameFor([t], [2], 'B')], key: 'B' },
+      ];
+      return from(packets);
+    };
+
+    const emissions = await collect(runSplitRequest(datasource, request, undefined, 2, executor));
+
+    // Two series per part, not just the packet that happened to arrive last
+    expect(emissions[emissions.length - 1].data.length).toBe(2);
   });
 
   it('reports the loaded portion of the range as it progresses', async () => {

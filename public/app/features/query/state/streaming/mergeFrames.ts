@@ -32,36 +32,50 @@ function isDataFrame(data: DataQueryResponseData): data is DataFrame {
  * time order and de-duplicated on the shared boundary timestamp. The most recent chunk is used
  * as the template for field config and metadata, so the merged frames look exactly like the
  * frames of an unsplit query.
+ *
+ * Series are ordered by the most recent chunk they appear in, so a series keeps its position in
+ * the list as older parts arrive. That position decides the palette color, and a series changing
+ * color halfway through loading is very visible.
  */
 export function mergeChunkFrames(chunks: Array<DataQueryResponseData[] | undefined>): DataQueryResponseData[] {
-  const byKey = new Map<string, DataFrame[]>();
+  const byKey = new Map<string, Array<{ chunk: number; frame: DataFrame }>>();
   const order: string[] = [];
   const passThrough: DataQueryResponseData[] = [];
+  let passThroughChunk: number | undefined;
 
-  for (const chunk of chunks) {
-    if (!chunk) {
+  // Newest chunk first, so the series it contains keep the lowest indexes
+  for (let chunk = chunks.length - 1; chunk >= 0; chunk--) {
+    const frames = chunks[chunk];
+    if (!frames) {
       continue;
     }
 
-    for (const data of chunk) {
+    for (const data of frames) {
       if (!isDataFrame(data)) {
         // Not a frame (e.g. a legacy response) - nothing sensible to merge, keep the newest one
-        passThrough.push(data);
+        if (passThroughChunk === undefined || passThroughChunk === chunk) {
+          passThroughChunk = chunk;
+          passThrough.push(data);
+        }
         continue;
       }
 
       const key = getFrameKey(data);
       const existing = byKey.get(key);
       if (existing) {
-        existing.push(data);
+        existing.push({ chunk, frame: data });
       } else {
-        byKey.set(key, [data]);
+        byKey.set(key, [{ chunk, frame: data }]);
         order.push(key);
       }
     }
   }
 
-  const merged: DataQueryResponseData[] = order.map((key) => concatFrames(byKey.get(key)!));
+  const merged: DataQueryResponseData[] = order.map((key) => {
+    const entries = byKey.get(key)!;
+    // Collected newest first, concatenate the values in time order
+    return concatFrames(entries.sort((a, b) => a.chunk - b.chunk).map((entry) => entry.frame));
+  });
 
   return merged.concat(passThrough);
 }

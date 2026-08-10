@@ -117,18 +117,10 @@ export function getUnloadedRegion(progress?: QueryStreamProgress): { from: numbe
   return null;
 }
 
-// The highlight travels across the skeleton and off its right edge, then starts over
+// Same shape as the react-loading-skeleton sweep: a highlight crossing the block and starting over
 const shimmer = keyframes({
   '0%': { transform: 'translateX(-100%)' },
-  '50%': { transform: 'translateX(350%)' },
-  '100%': { transform: 'translateX(-100%)' },
-});
-
-// Fallback for reduced motion: the block fades instead of sweeping
-const pulse = keyframes({
-  '0%': { opacity: 1 },
-  '50%': { opacity: 0.5 },
-  '100%': { opacity: 1 },
+  '60%, 100%': { transform: 'translateX(350%)' },
 });
 
 const getStyles = (theme: GrafanaTheme2) => {
@@ -139,15 +131,16 @@ const getStyles = (theme: GrafanaTheme2) => {
     pointerEvents: 'none' as const,
   };
 
+  // The skeleton palette configured for react-loading-skeleton in ConfigProvider, kept translucent
+  // so the grid lines of the empty region still show through
+  const baseColor = colorManipulator.alpha(theme.colors.emphasize(theme.colors.background.secondary), 0.75);
+  const highlightColor = theme.colors.emphasize(theme.colors.background.secondary, 0.1);
+
   return {
     loading: css({
       ...base,
       overflow: 'hidden',
-      backgroundColor: colorManipulator.alpha(theme.colors.text.secondary, theme.isDark ? 0.12 : 0.1),
-      // Without the sweep, fade the block instead so it still reads as loading
-      [theme.transitions.handleMotion('reduce')]: {
-        animation: `${pulse} 2s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
-      },
+      backgroundColor: baseColor,
     }),
     sweep: css({
       position: 'absolute',
@@ -155,10 +148,8 @@ const getStyles = (theme: GrafanaTheme2) => {
       bottom: 0,
       left: 0,
       width: '35%',
-      backgroundImage: `linear-gradient(90deg, transparent, ${colorManipulator.alpha(
-        theme.colors.text.primary,
-        theme.isDark ? 0.12 : 0.08
-      )}, transparent)`,
+      backgroundImage: `linear-gradient(90deg, transparent, ${highlightColor}, transparent)`,
+      opacity: 0.6,
       [theme.transitions.handleMotion('reduce')]: {
         display: 'none',
       },
