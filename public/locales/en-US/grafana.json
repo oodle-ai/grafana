@@ -14070,6 +14070,39 @@
       "tooltip-statistic-should-calculated-series": "The statistic that should be calculated for this time series.",
       "tooltip-time-field": "The time field that will be used for the time series. If not selected the first found will be used."
     },
+    "top-k-transformer-editor": {
+      "calculation": {
+        "max": "Max",
+        "mean": "Avg",
+        "min": "Min",
+        "sum": "Sum"
+      },
+      "calculation-description": {
+        "max": "Rank by the highest value of each series over the whole time range",
+        "mean": "Rank by the average value of each series over the whole time range",
+        "min": "Rank by the lowest value of each series over the whole time range",
+        "sum": "Rank by the sum of all values of each series over the whole time range"
+      },
+      "description": {
+        "top-k": "Keep only the top or bottom K series, ranked by their max, min, average or sum over the whole time range."
+      },
+      "direction": {
+        "bottom": "Bottom",
+        "top": "Top"
+      },
+      "direction-description": {
+        "bottom": "Keep the lowest scoring series",
+        "top": "Keep the highest scoring series"
+      },
+      "label-direction": "Direction",
+      "label-rank-by": "Rank by",
+      "label-series-count": "Series count",
+      "name": {
+        "top-k": "Top/Bottom K"
+      },
+      "tooltip-direction": "Keep the highest or the lowest ranked series.",
+      "tooltip-series-count": "Number of series to keep. The remaining series are dropped."
+    },
     "transpose-transfomer-editor": {
       "label-first-field-name": "First field name",
       "label-remaining-fields-name": "Remaining fields name",

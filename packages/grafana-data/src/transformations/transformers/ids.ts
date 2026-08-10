@@ -45,4 +45,5 @@ export enum DataTransformerID {
   groupToNestedTable = 'groupToNestedTable',
   eventDistribution = 'eventDistribution',
   ignoreRow = 'ignoreRow',
+  topK = 'topK',
 }

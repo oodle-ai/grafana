@@ -27,6 +27,7 @@ import { renameFieldsTransformer } from './transformers/rename';
 import { renameByRegexTransformer } from './transformers/renameByRegex';
 import { seriesToRowsTransformer } from './transformers/seriesToRows';
 import { sortByTransformer } from './transformers/sortBy';
+import { topKTransformer } from './transformers/topK';
 import { transposeTransformer } from './transformers/transpose';
 
 export const standardTransformers = {
@@ -63,4 +64,5 @@ export const standardTransformers = {
   transposeTransformer,
   eventDistributionTransformer,
   ignoreRowTransformer,
+  topKTransformer,
 };
