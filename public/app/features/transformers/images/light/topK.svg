@@ -1,0 +1,28 @@
+<svg width="72" height="48" viewBox="0 0 72 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_topK)">
+<!-- Chart area -->
+<rect x="12" y="8" width="48" height="32" stroke="#24292E" stroke-width="1.5" fill="white"/>
+
+<!-- Axes -->
+<line x1="12" y1="40" x2="60" y2="40" stroke="#C7C7C7" stroke-width="1"/>
+<line x1="12" y1="8" x2="12" y2="40" stroke="#C7C7C7" stroke-width="1"/>
+
+<!-- Top series - kept -->
+<path d="M14 20 L26 14 L38 17 L50 11 L58 13" stroke="#3865AB" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M14 26 L26 22 L38 25 L50 19 L58 21" stroke="#37872D" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M14 31 L26 28 L38 30 L50 26 L58 28" stroke="#E0B400" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+
+<!-- Dropped series -->
+<path d="M14 36 L26 34 L38 36 L50 33 L58 35" stroke="#FF6B6B" stroke-width="1.5" fill="none" stroke-dasharray="3 2" opacity="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M14 38 L26 37 L38 38 L50 36 L58 38" stroke="#FF6B6B" stroke-width="1.5" fill="none" stroke-dasharray="3 2" opacity="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+
+<!-- Cut-off marker between kept and dropped -->
+<line x1="12" y1="33.5" x2="60" y2="33.5" stroke="#FF6B6B" stroke-width="1" stroke-dasharray="2 2" opacity="0.8"/>
+</g>
+
+<defs>
+<clipPath id="clip0_topK">
+<rect width="72" height="48" fill="white"/>
+</clipPath>
+</defs>
+</svg>

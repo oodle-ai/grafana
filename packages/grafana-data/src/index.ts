@@ -441,6 +441,11 @@ export { type GroupingToMatrixTransformerOptions } from './transformations/trans
 export { type IgnoreRowTransformerOptions } from './transformations/transformers/ignoreRow';
 export { type EventDistributionTransformerOptions } from './transformations/transformers/eventDistribution';
 export {
+  type TopKTransformerOptions,
+  type TopKCalculation,
+  type TopKDirection,
+} from './transformations/transformers/topK';
+export {
   type PluginContextType,
   type DataSourcePluginContextType,
   PluginContext,
