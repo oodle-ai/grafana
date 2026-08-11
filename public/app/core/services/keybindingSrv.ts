@@ -172,7 +172,7 @@ export class KeybindingSrv {
     }
 
     const { kioskMode } = this.chromeService.state.getValue();
-    if (kioskMode) {
+    if (kioskMode && !search.disableKioskExit) {
       this.chromeService.exitKioskMode();
     }
   }
