@@ -88,10 +88,6 @@ export const StreamingProgressPlugin = ({
       el.style.left = `${left}px`;
       el.style.width = `${width}px`;
 
-      const sweep = el.firstElementChild;
-      if (sweep instanceof HTMLElement) {
-        sweep.className = current.isStreaming ? stylesRef.current.sweep : '';
-      }
     };
 
     updateRef.current = update;
@@ -211,7 +207,7 @@ const getStyles = (theme: GrafanaTheme2) => {
     loading: css({
       ...base,
       overflow: 'hidden',
-      backgroundColor: baseColor,
+      backgroundColor: 'transparent',
     }),
     // Cancelled: no animation, and lighter, the range is not coming on its own anymore
     stopped: css({
@@ -221,21 +217,6 @@ const getStyles = (theme: GrafanaTheme2) => {
     error: css({
       ...base,
       backgroundColor: colorManipulator.alpha(theme.colors.error.main, 0.15),
-    }),
-    sweep: css({
-      position: 'absolute',
-      top: 0,
-      bottom: 0,
-      left: 0,
-      width: '35%',
-      backgroundImage: `linear-gradient(90deg, transparent, ${highlightColor}, transparent)`,
-      opacity: 0.6,
-      [theme.transitions.handleMotion('reduce')]: {
-        display: 'none',
-      },
-      [theme.transitions.handleMotion('no-preference')]: {
-        animation: `${shimmer} 1.5s ease-in-out infinite`,
-      },
     }),
     retry: css({
       position: 'absolute',
