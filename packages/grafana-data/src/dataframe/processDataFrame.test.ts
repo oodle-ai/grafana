@@ -1,6 +1,9 @@
 import { dateTime } from '../datetime/moment_wrapper';
-import { TimeSeries, TableData } from '../types/data';
+import { TimeSeries, TableData, LoadingState } from '../types/data';
 import { FieldType, DataFrameDTO, Field } from '../types/dataFrame';
+import { QueryStreamProgress } from '../types/datasource';
+import { PanelData } from '../types/panel';
+import { getDefaultTimeRange } from '../types/time';
 
 import { ArrayDataFrame } from './ArrayDataFrame';
 import {
@@ -11,6 +14,7 @@ import {
   guessFieldTypes,
   isDataFrame,
   isTableData,
+  preProcessPanelData,
   reverseDataFrame,
   sortDataFrame,
   toDataFrame,
@@ -514,5 +518,46 @@ describe('guessFieldTypeForField', () => {
     field.values = [];
 
     expect(guessFieldTypeForField(field)).toBe(undefined);
+  });
+});
+
+describe('preProcessPanelData', () => {
+  const progress = (requestId: string): QueryStreamProgress => ({
+    requestId,
+    fromMs: 0,
+    toMs: 100,
+    loadedFromMs: 50,
+    loadedToMs: 100,
+    completedParts: 1,
+    totalParts: 2,
+    streaming: true,
+  });
+
+  const panelData = (overrides: Partial<PanelData>): PanelData => ({
+    state: LoadingState.Loading,
+    series: [],
+    timeRange: getDefaultTimeRange(),
+    ...overrides,
+  });
+
+  it('keeps rendering the last result while a request without data so far is loading', () => {
+    const last = panelData({ state: LoadingState.Done, series: [toDataFrame({ fields: [] })] });
+    const result = preProcessPanelData(panelData({}), last);
+
+    expect(result.series).toBe(last.series);
+    expect(result.state).toBe(LoadingState.Loading);
+  });
+
+  it('reports the progress of the request being loaded, not the one of the last result', () => {
+    // A split query whose newest parts came back empty: the panel still shows the previous result,
+    // but the unloaded region has to be the one of the request that is running
+    const last = panelData({ state: LoadingState.Done, series: [toDataFrame({ fields: [] })] });
+    last.streamProgress = progress('previous');
+
+    const loading = panelData({});
+    loading.streamProgress = progress('current');
+
+    expect(preProcessPanelData(loading, last).streamProgress).toEqual(progress('current'));
+    expect(preProcessPanelData(panelData({}), last).streamProgress).toBeUndefined();
   });
 });

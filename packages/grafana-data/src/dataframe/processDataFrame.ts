@@ -568,6 +568,9 @@ export function preProcessPanelData(data: PanelData, lastResult?: PanelData): Pa
       ...lastResult,
       state: LoadingState.Loading,
       request: data.request,
+      // Belongs to the request being loaded, the one of the last result describes a range that is
+      // not being loaded anymore
+      streamProgress: data.streamProgress,
     };
   }
 

@@ -11,6 +11,7 @@ import {
   dateTime,
   toDataFrame,
 } from '@grafana/data';
+import { config as runtimeConfig } from '@grafana/runtime';
 
 import { DEFAULT_STREAMING_CONFIG, QueryStreamingConfig } from './config';
 import { QueryExecutor, getRequestSplitParts, runSplitRequest } from './splitQuery';
@@ -88,6 +89,15 @@ describe('getRequestSplitParts', () => {
       expect(getRequestSplitParts(datasource, request, config)).toBe(1);
     }
   );
+
+  it('does not split on a public dashboard', () => {
+    runtimeConfig.publicDashboardAccessToken = 'token';
+    try {
+      expect(getRequestSplitParts(datasource, makeRequest(), config)).toBe(1);
+    } finally {
+      runtimeConfig.publicDashboardAccessToken = undefined;
+    }
+  });
 
   it('does not split when incremental querying is on', () => {
     const ds = { type: 'prometheus', hasIncrementalQuery: true } as unknown as DataSourceApi;

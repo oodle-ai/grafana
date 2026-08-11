@@ -10,7 +10,7 @@ import {
   QueryStreamProgress,
   dateTime,
 } from '@grafana/data';
-import { isExpressionReference, toDataQueryError } from '@grafana/runtime';
+import { config as runtimeConfig, isExpressionReference, toDataQueryError } from '@grafana/runtime';
 import { backendSrv } from 'app/core/services/backend_srv';
 
 import { QueryStreamingConfig, getQueryStreamingConfig } from './config';
@@ -51,6 +51,13 @@ export function getRequestSplitParts(
   }
 
   if (request.liveStreaming) {
+    return 1;
+  }
+
+  // Public dashboards go through their own endpoint, which rebuilds the queries from the saved
+  // dashboard and only receives the range and maxDataPoints of the request. There is no way to
+  // tell it the range of the unsplit request, so every part would pick its own step
+  if (runtimeConfig.publicDashboardAccessToken) {
     return 1;
   }
 
