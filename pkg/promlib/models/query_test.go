@@ -973,6 +973,92 @@ func mockQuery(expr string, interval string, intervalMs int64, timeRange *backen
 	}
 }
 
+// A request the frontend split into several parts must be parsed exactly like the unsplit request:
+// the step and every interval variable are a function of the range the user asked for, not of the
+// range of the part.
+func TestParseSplitRequest(t *testing.T) {
+	_, span := tracer.Start(context.Background(), "operation")
+	defer span.End()
+
+	fullRange := 7 * 24 * time.Hour
+	maxDataPoints := int64(1000)
+	// The parts a 7 day range is split into, newest first
+	parts := 10
+	partRange := fullRange / time.Duration(parts)
+
+	queryJSON := func(expr string, minStep string, split bool) string {
+		splitProps := ""
+		if split {
+			splitProps = fmt.Sprintf(`"fullTimeRangeMs": %d, "fullMaxDataPoints": %d,`, fullRange.Milliseconds(), maxDataPoints)
+		}
+		return fmt.Sprintf(`{
+			"expr": %q,
+			"format": "time_series",
+			"interval": %q,
+			"refId": "A",
+			%s
+			"intervalFactor": 1
+		}`, expr, minStep, splitProps)
+	}
+
+	for _, tc := range []struct {
+		name    string
+		expr    string
+		minStep string
+	}{
+		{name: "$__dd_interval", expr: "sum(rate(go_goroutines[$__dd_interval]))"},
+		{name: "$__large_interval", expr: "sum(rate(go_goroutines[$__large_interval]))"},
+		{name: "$__rate_interval", expr: "sum(rate(go_goroutines[$__rate_interval]))"},
+		{name: "$__interval", expr: "sum(rate(go_goroutines[$__interval]))"},
+		{name: "$__range", expr: "sum(rate(go_goroutines[$__range])) + $__range_s + $__range_ms"},
+		{name: "$__dd_interval as min step", expr: "sum(rate(go_goroutines[$__rate_interval]))", minStep: "$__dd_interval"},
+		{name: "$__large_interval as min step", expr: "sum(rate(go_goroutines[$__interval]))", minStep: "$__large_interval"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			unsplit := backend.DataQuery{
+				RefID:         "A",
+				JSON:          []byte(queryJSON(tc.expr, tc.minStep, false)),
+				MaxDataPoints: maxDataPoints,
+				TimeRange:     backend.TimeRange{From: now.Add(-fullRange), To: now},
+			}
+
+			expected, err := models.Parse(context.Background(), log.New(), span, unsplit, "15s", intervalCalculator, false)
+			require.NoError(t, err)
+
+			for part := 0; part < parts; part++ {
+				to := now.Add(-time.Duration(part) * partRange)
+				split := backend.DataQuery{
+					RefID: "A",
+					JSON:  []byte(queryJSON(tc.expr, tc.minStep, true)),
+					// Parts carry a maxDataPoints scaled down to their share of the range
+					MaxDataPoints: maxDataPoints / int64(parts),
+					TimeRange:     backend.TimeRange{From: to.Add(-partRange), To: to},
+				}
+
+				res, err := models.Parse(context.Background(), log.New(), span, split, "15s", intervalCalculator, false)
+				require.NoError(t, err)
+				require.Equal(t, expected.Expr, res.Expr, "part %d interpolated the query differently", part)
+				require.Equal(t, expected.Step, res.Step, "part %d uses a different step", part)
+			}
+		})
+	}
+
+	t.Run("query range is still the range of the part", func(t *testing.T) {
+		to := now.Add(-partRange)
+		split := backend.DataQuery{
+			RefID:         "A",
+			JSON:          []byte(queryJSON("go_goroutines", "", true)),
+			MaxDataPoints: maxDataPoints / int64(parts),
+			TimeRange:     backend.TimeRange{From: to.Add(-partRange), To: to},
+		}
+
+		res, err := models.Parse(context.Background(), log.New(), span, split, "15s", intervalCalculator, false)
+		require.NoError(t, err)
+		require.Equal(t, to.Add(-partRange), res.Start)
+		require.Equal(t, to, res.End)
+	})
+}
+
 func queryContext(json string, timeRange backend.TimeRange, queryInterval time.Duration) backend.DataQuery {
 	return backend.DataQuery{
 		Interval:  queryInterval,

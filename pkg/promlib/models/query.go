@@ -170,6 +170,41 @@ type internalQueryModel struct {
 	// Do not use this parameter.
 	UtcOffsetSec int64  `json:"utcOffsetSecDoNotUse,omitempty"`
 	Interval     string `json:"interval,omitempty"`
+
+	// Set when the query is one part of a request that the frontend split into several sub
+	// requests over consecutive parts of the requested range. They describe the range and the
+	// max data points of the unsplit request, everything that is derived from the range - the
+	// step, $__interval, $__rate_interval, $__dd_interval, $__large_interval, $__range - has to
+	// be calculated from those instead of from the range of the part. Otherwise every part is
+	// sampled at a different resolution and the merged result does not match the unsplit query.
+	FullTimeRangeMs   int64 `json:"fullTimeRangeMs,omitempty"`
+	FullMaxDataPoints int64 `json:"fullMaxDataPoints,omitempty"`
+}
+
+// intervalTimeRange returns the time range every range dependent value should be calculated from.
+// It is the query range, unless the query is a part of a split request, in which case it is the
+// range of the unsplit request. Only its duration is used, so it is anchored at the query end.
+func (m *internalQueryModel) intervalTimeRange(query backend.DataQuery) backend.TimeRange {
+	if m.FullTimeRangeMs <= 0 {
+		return query.TimeRange
+	}
+
+	fullRange := time.Duration(m.FullTimeRangeMs) * time.Millisecond
+
+	return backend.TimeRange{
+		From: query.TimeRange.To.Add(-fullRange),
+		To:   query.TimeRange.To,
+	}
+}
+
+// intervalMaxDataPoints returns the max data points the step should be calculated with. Parts of a
+// split request carry a scaled down value, the step has to stay the one of the unsplit request.
+func (m *internalQueryModel) intervalMaxDataPoints(query backend.DataQuery) int64 {
+	if m.FullTimeRangeMs <= 0 || m.FullMaxDataPoints <= 0 {
+		return query.MaxDataPoints
+	}
+
+	return m.FullMaxDataPoints
 }
 
 func Parse(ctx context.Context, log glog.Logger, span trace.Span, query backend.DataQuery, dsScrapeInterval string, intervalCalculator intervalv2.Calculator, fromAlert bool) (*Query, error) {
@@ -179,11 +214,13 @@ func Parse(ctx context.Context, log glog.Logger, span trace.Span, query backend.
 	}
 	span.SetAttributes(attribute.String("rawExpr", model.Expr))
 
-	// Interpolate variables in expr
-	timeRange := query.TimeRange.To.Sub(query.TimeRange.From)
+	// Interpolate variables in expr. Range dependent values are calculated from the range of the
+	// unsplit request when this query is one part of a split request.
+	intervalTimeRange := model.intervalTimeRange(query)
+	timeRange := intervalTimeRange.To.Sub(intervalTimeRange.From)
 
 	// Final step value for prometheus
-	calculatedStep, err := calculatePrometheusInterval(&model.Interval, dsScrapeInterval, int64(model.IntervalMS), model.IntervalFactor, query, intervalCalculator, timeRange)
+	calculatedStep, err := calculatePrometheusInterval(&model.Interval, dsScrapeInterval, int64(model.IntervalMS), model.IntervalFactor, intervalTimeRange, model.intervalMaxDataPoints(query), intervalCalculator)
 	if err != nil {
 		return nil, err
 	}
@@ -283,14 +320,18 @@ func (query *Query) TimeRange() TimeRange {
 	}
 }
 
+// calculatePrometheusInterval calculates the final step of the query. timeRange and maxDataPoints
+// describe the range the user asked for, which is not the range of the query itself when the
+// request was split into several parts.
 func calculatePrometheusInterval(
 	queryIntervalIn *string,
 	dsScrapeInterval string,
 	intervalMs, intervalFactor int64,
-	query backend.DataQuery,
+	timeRange backend.TimeRange,
+	maxDataPoints int64,
 	intervalCalculator intervalv2.Calculator,
-	timeRange time.Duration,
 ) (time.Duration, error) {
+	rangeDuration := timeRange.To.Sub(timeRange.From)
 	queryInterval := *queryIntervalIn
 	// we need to compare the original query model after it is overwritten below to variables so that we can
 	// calculate the rateInterval if it is equal to $__rate_interval or ${__rate_interval}
@@ -305,8 +346,8 @@ func calculatePrometheusInterval(
 	if err != nil {
 		return time.Duration(0), err
 	}
-	calculatedInterval := intervalCalculator.Calculate(query.TimeRange, minInterval, query.MaxDataPoints)
-	safeInterval := intervalCalculator.CalculateSafeInterval(query.TimeRange, int64(safeResolution))
+	calculatedInterval := intervalCalculator.Calculate(timeRange, minInterval, maxDataPoints)
+	safeInterval := intervalCalculator.CalculateSafeInterval(timeRange, int64(safeResolution))
 
 	adjustedInterval := safeInterval.Value
 	if calculatedInterval.Value > safeInterval.Value {
@@ -319,12 +360,12 @@ func calculatePrometheusInterval(
 		resInterval := calculateRateInterval(adjustedInterval, dsScrapeInterval)
 		return resInterval, nil
 	} else if originalQueryInterval == varDDInterval {
-		resInterval := CalculateIntervalDatadogDefault(timeRange)
+		resInterval := CalculateIntervalDatadogDefault(rangeDuration)
 		// The below fix is only applied to DD interval to avoid changing behavior of default grafana.
 		*queryIntervalIn = resInterval.String()
 		return resInterval, nil
 	} else if originalQueryInterval == varLargeInterval {
-		resInterval := CalculateIntervalDatadogBarChart(timeRange)
+		resInterval := CalculateIntervalDatadogBarChart(rangeDuration)
 		return resInterval, nil
 	} else {
 		queryIntervalFactor := intervalFactor

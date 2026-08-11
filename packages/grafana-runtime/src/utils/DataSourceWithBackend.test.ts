@@ -148,6 +148,40 @@ describe('DataSourceWithBackend', () => {
     `);
   });
 
+  test('sends the range of the unsplit request with every part of a split request', () => {
+    const { mock, ds } = createMockDatasource();
+    const range = getDefaultTimeRange();
+    ds.query({
+      maxDataPoints: 10,
+      intervalMs: 5000,
+      targets: [{ refId: 'A' }],
+      range,
+      splitOrigin: {
+        fromMs: range.from.valueOf() - 10000,
+        toMs: range.to.valueOf(),
+        maxDataPoints: 100,
+      },
+    } as DataQueryRequest);
+
+    const query = mock.calls[0][0].data.queries[0];
+    expect(query.fullTimeRangeMs).toBe(range.to.valueOf() - range.from.valueOf() + 10000);
+    expect(query.fullMaxDataPoints).toBe(100);
+  });
+
+  test('does not send split properties for a regular request', () => {
+    const { mock, ds } = createMockDatasource();
+    ds.query({
+      maxDataPoints: 10,
+      intervalMs: 5000,
+      targets: [{ refId: 'A' }],
+      range: getDefaultTimeRange(),
+    } as DataQueryRequest);
+
+    const query = mock.calls[0][0].data.queries[0];
+    expect(query).not.toHaveProperty('fullTimeRangeMs');
+    expect(query).not.toHaveProperty('fullMaxDataPoints');
+  });
+
   test('correctly passes datasource headers', () => {
     const { mock, ds } = createMockDatasource();
     ds.query({

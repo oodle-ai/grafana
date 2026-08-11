@@ -75,8 +75,10 @@ export function getRequestSplitParts(
       return 1;
     }
 
-    // $__range, $__range_s and $__range_ms would be interpolated per part and change the query
-    if ('expr' in target && typeof target.expr === 'string' && target.expr.includes('$__range')) {
+    // $__range is interpolated from the full range (see splitOrigin), so the parts do return the
+    // right numbers, but a `[$__range]` window is evaluated once per part and each evaluation
+    // still reads the whole range, which multiplies the work done by the datasource
+    if ('expr' in target && typeof target.expr === 'string' && hasRangeVariable(target.expr)) {
       return 1;
     }
   }
@@ -85,6 +87,11 @@ export function getRequestSplitParts(
   const toMs = request.range.to.valueOf();
 
   return calculateStreamingParts(toMs - fromMs, config.thresholds);
+}
+
+/** Matches both `$__range`, `$__range_s`, `$__range_ms` and their `${...}` spelling */
+function hasRangeVariable(expr: string): boolean {
+  return expr.includes('$__range') || expr.includes('${__range');
 }
 
 export function scaleMaxDataPoints(
@@ -186,6 +193,13 @@ export function runSplitRequest(
         // Datasources derive the step from range/maxDataPoints, keep the ratio of the full
         // request so every part is sampled at the same resolution
         maxDataPoints: scaleMaxDataPoints(request.maxDataPoints, range.toMs - range.fromMs, toMs - fromMs),
+        // The step and the interval variables ($__interval, $__rate_interval, $__dd_interval,
+        // $__large_interval, $__range) must not be derived from the range of the part
+        splitOrigin: {
+          fromMs,
+          toMs,
+          maxDataPoints: request.maxDataPoints,
+        },
         range: {
           from: dateTime(range.fromMs),
           to: dateTime(range.toMs),

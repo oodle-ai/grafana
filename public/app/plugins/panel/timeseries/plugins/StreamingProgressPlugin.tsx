@@ -1,4 +1,4 @@
-import { css, keyframes } from '@emotion/css';
+import { css } from '@emotion/css';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import uPlot from 'uplot';
@@ -184,12 +184,6 @@ export function getUnloadedRegion(
   return null;
 }
 
-// Same shape as the react-loading-skeleton sweep: a highlight crossing the block and starting over
-const shimmer = keyframes({
-  '0%': { transform: 'translateX(-100%)' },
-  '60%, 100%': { transform: 'translateX(350%)' },
-});
-
 const getStyles = (theme: GrafanaTheme2) => {
   const base = {
     position: 'absolute' as const,
@@ -201,7 +195,6 @@ const getStyles = (theme: GrafanaTheme2) => {
   // The skeleton palette configured for react-loading-skeleton in ConfigProvider, kept translucent
   // so the grid lines of the empty region still show through
   const baseColor = colorManipulator.alpha(theme.colors.emphasize(theme.colors.background.secondary), 0.75);
-  const highlightColor = theme.colors.emphasize(theme.colors.background.secondary, 0.1);
 
   return {
     loading: css({
