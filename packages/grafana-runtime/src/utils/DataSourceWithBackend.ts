@@ -139,7 +139,26 @@ class DataSourceWithBackend<
       return publicDashboardQueryHandler(request);
     }
 
-    const { intervalMs, maxDataPoints, queryCachingTTL, range, requestId, hideFromInspector = false } = request;
+    const {
+      intervalMs,
+      maxDataPoints,
+      queryCachingTTL,
+      range,
+      requestId,
+      hideFromInspector = false,
+      splitOrigin,
+    } = request;
+
+    // A request that covers only a part of the range the user asked for still has to calculate
+    // its step and its interval variables from the full range, otherwise the parts of a split
+    // query end up sampled at different resolutions
+    const splitProps = splitOrigin
+      ? {
+          fullTimeRangeMs: splitOrigin.toMs - splitOrigin.fromMs,
+          fullMaxDataPoints: splitOrigin.maxDataPoints,
+        }
+      : undefined;
+
     let targets = request.targets;
 
     let hasExpr = false;
@@ -189,6 +208,7 @@ class DataSourceWithBackend<
         intervalMs,
         maxDataPoints,
         queryCachingTTL,
+        ...splitProps,
       };
     });
 

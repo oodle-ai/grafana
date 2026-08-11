@@ -686,6 +686,7 @@ export {
   type TestDataSourceResponse,
   type DataQueryError,
   type DataQueryRequest,
+  type QuerySplitOrigin,
   type DataQueryTimings,
   type QueryFix,
   type QueryFixType,

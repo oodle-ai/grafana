@@ -634,6 +634,28 @@ export interface DataQueryRequest<TQuery extends DataQuery = DataQuery> {
   queryGroupId?: string;
 
   scopes?: Scope[] | undefined;
+
+  /**
+   * Set when this request only covers a part of the range the user asked for, because the
+   * query was split into several sub requests that resolve progressively.
+   */
+  splitOrigin?: QuerySplitOrigin;
+}
+
+/**
+ * Describes the unsplit request a sub request was derived from. Everything that is a function of
+ * the query range - the step, `$__interval`, `$__rate_interval`, `$__dd_interval`,
+ * `$__large_interval`, `$__range` - has to be calculated from these values instead of from the
+ * range of the part, otherwise every part is sampled differently and the merged result does not
+ * match what an unsplit query would have returned.
+ */
+export interface QuerySplitOrigin {
+  /** Start of the full requested time range (epoch ms) */
+  fromMs: number;
+  /** End of the full requested time range (epoch ms) */
+  toMs: number;
+  /** maxDataPoints of the unsplit request, the parts get a scaled down value */
+  maxDataPoints?: number;
 }
 
 export interface DataQueryTimings {

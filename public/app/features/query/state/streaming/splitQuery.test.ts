@@ -11,6 +11,7 @@ import {
   dateTime,
   toDataFrame,
 } from '@grafana/data';
+import { config as runtimeConfig } from '@grafana/runtime';
 
 import { DEFAULT_STREAMING_CONFIG, QueryStreamingConfig } from './config';
 import { QueryExecutor, getRequestSplitParts, runSplitRequest } from './splitQuery';
@@ -81,9 +82,21 @@ describe('getRequestSplitParts', () => {
     expect(getRequestSplitParts(datasource, request, config)).toBe(1);
   });
 
-  it('does not split queries that use $__range', () => {
-    const request = makeRequest({ targets: [target({ refId: 'A', expr: 'sum_over_time(up[$__range])' })] });
-    expect(getRequestSplitParts(datasource, request, config)).toBe(1);
+  it.each(['sum_over_time(up[$__range])', 'sum_over_time(up[${__range}])', 'up + ${__range_s}'])(
+    'does not split queries that use the range variable in %s',
+    (expr) => {
+      const request = makeRequest({ targets: [target({ refId: 'A', expr })] });
+      expect(getRequestSplitParts(datasource, request, config)).toBe(1);
+    }
+  );
+
+  it('does not split on a public dashboard', () => {
+    runtimeConfig.publicDashboardAccessToken = 'token';
+    try {
+      expect(getRequestSplitParts(datasource, makeRequest(), config)).toBe(1);
+    } finally {
+      runtimeConfig.publicDashboardAccessToken = undefined;
+    }
   });
 
   it('does not split when incremental querying is on', () => {
@@ -157,6 +170,27 @@ describe('runSplitRequest', () => {
       // The step of the panel is untouched
       expect(req.intervalMs).toBe(request.intervalMs);
       expect(req.range.raw).toEqual(request.range.raw);
+    });
+  });
+
+  it('passes the range of the unsplit request to every part', async () => {
+    const request = makeRequest({ maxDataPoints: 1000 });
+    const requests: DataQueryRequest[] = [];
+
+    const executor: QueryExecutor = (_ds, req) => {
+      requests.push(req);
+      return of<DataQueryResponse>({ data: [] });
+    };
+
+    await collect(runSplitRequest(datasource, request, undefined, 4, executor));
+
+    expect(requests.length).toBe(4);
+    requests.forEach((req) => {
+      expect(req.splitOrigin).toEqual({
+        fromMs: request.range.from.valueOf(),
+        toMs: request.range.to.valueOf(),
+        maxDataPoints: 1000,
+      });
     });
   });
 
