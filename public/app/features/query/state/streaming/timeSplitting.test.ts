@@ -1,33 +1,29 @@
-import { DEFAULT_STREAMING_THRESHOLDS } from './config';
+import { DEFAULT_SPLIT_INTERVAL_MINUTES } from './config';
 import { calculateStreamingParts, minutesToMs, splitTimeRangeDescending } from './timeSplitting';
 
+const THIRTY_DAYS = minutesToMs(DEFAULT_SPLIT_INTERVAL_MINUTES);
+const DAY = minutesToMs(24 * 60);
+
 describe('calculateStreamingParts', () => {
-  it('does not split ranges shorter than 6 hours', () => {
-    expect(calculateStreamingParts(minutesToMs(359), DEFAULT_STREAMING_THRESHOLDS)).toBe(1);
-    expect(calculateStreamingParts(minutesToMs(60), DEFAULT_STREAMING_THRESHOLDS)).toBe(1);
-    expect(calculateStreamingParts(0, DEFAULT_STREAMING_THRESHOLDS)).toBe(1);
+  it('does not split ranges up to the split interval', () => {
+    expect(calculateStreamingParts(minutesToMs(60), THIRTY_DAYS)).toBe(1);
+    expect(calculateStreamingParts(7 * DAY, THIRTY_DAYS)).toBe(1);
+    expect(calculateStreamingParts(THIRTY_DAYS - 1, THIRTY_DAYS)).toBe(1);
+    expect(calculateStreamingParts(THIRTY_DAYS, THIRTY_DAYS)).toBe(1);
+    expect(calculateStreamingParts(0, THIRTY_DAYS)).toBe(1);
   });
 
-  it('picks the parts of the largest matching threshold', () => {
-    expect(calculateStreamingParts(minutesToMs(360), DEFAULT_STREAMING_THRESHOLDS)).toBe(2);
-    expect(calculateStreamingParts(minutesToMs(719), DEFAULT_STREAMING_THRESHOLDS)).toBe(2);
-    expect(calculateStreamingParts(minutesToMs(720), DEFAULT_STREAMING_THRESHOLDS)).toBe(3);
-    expect(calculateStreamingParts(minutesToMs(1440), DEFAULT_STREAMING_THRESHOLDS)).toBe(4);
-    expect(calculateStreamingParts(minutesToMs(2879), DEFAULT_STREAMING_THRESHOLDS)).toBe(4);
-    expect(calculateStreamingParts(minutesToMs(2880), DEFAULT_STREAMING_THRESHOLDS)).toBe(6);
-    expect(calculateStreamingParts(minutesToMs(4319), DEFAULT_STREAMING_THRESHOLDS)).toBe(6);
-    expect(calculateStreamingParts(minutesToMs(4320), DEFAULT_STREAMING_THRESHOLDS)).toBe(8);
-    expect(calculateStreamingParts(minutesToMs(10080), DEFAULT_STREAMING_THRESHOLDS)).toBe(10);
-    expect(calculateStreamingParts(minutesToMs(30 * 24 * 60), DEFAULT_STREAMING_THRESHOLDS)).toBe(10);
+  it('splits longer ranges into parts of at most the split interval', () => {
+    expect(calculateStreamingParts(THIRTY_DAYS + 1, THIRTY_DAYS)).toBe(2);
+    expect(calculateStreamingParts(45 * DAY, THIRTY_DAYS)).toBe(2);
+    expect(calculateStreamingParts(60 * DAY, THIRTY_DAYS)).toBe(2);
+    expect(calculateStreamingParts(90 * DAY, THIRTY_DAYS)).toBe(3);
+    expect(calculateStreamingParts(365 * DAY, THIRTY_DAYS)).toBe(13);
   });
 
-  it('does not depend on the order of the thresholds', () => {
-    const shuffled = [
-      { durationMinutes: 2880, parts: 6 },
-      { durationMinutes: 10080, parts: 10 },
-      { durationMinutes: 4320, parts: 8 },
-    ];
-    expect(calculateStreamingParts(minutesToMs(10080), shuffled)).toBe(10);
+  it('does not split when the interval is not usable', () => {
+    expect(calculateStreamingParts(90 * DAY, 0)).toBe(1);
+    expect(calculateStreamingParts(90 * DAY, -1)).toBe(1);
   });
 });
 

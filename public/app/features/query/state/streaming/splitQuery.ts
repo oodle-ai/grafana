@@ -15,7 +15,7 @@ import { backendSrv } from 'app/core/services/backend_srv';
 
 import { QueryStreamingConfig, getQueryStreamingConfig } from './config';
 import { mergeChunkFrames } from './mergeFrames';
-import { calculateStreamingParts, splitTimeRangeDescending } from './timeSplitting';
+import { calculateStreamingParts, minutesToMs, splitTimeRangeDescending } from './timeSplitting';
 
 /** Runs a single (sub) request, provided by the caller to avoid a circular import with runRequest */
 export type QueryExecutor = (
@@ -25,9 +25,10 @@ export type QueryExecutor = (
 ) => Observable<DataQueryResponse>;
 
 /**
- * Decides how many parts a request should be split into. Returns 1 when the request must be run
- * as a single query (splitting disabled, not a supported panel/datasource, query not splittable
- * by time, or time range too short).
+ * Decides how many parts a request should be split into, so that no part covers more than the
+ * configured split interval. Returns 1 when the request must be run as a single query (splitting
+ * disabled, not a supported panel/datasource, query not splittable by time, or time range within
+ * the split interval).
  */
 export function getRequestSplitParts(
   datasource: DataSourceApi,
@@ -93,7 +94,7 @@ export function getRequestSplitParts(
   const fromMs = request.range.from.valueOf();
   const toMs = request.range.to.valueOf();
 
-  return calculateStreamingParts(toMs - fromMs, config.thresholds);
+  return calculateStreamingParts(toMs - fromMs, minutesToMs(config.splitIntervalMinutes));
 }
 
 /** Matches both `$__range`, `$__range_s`, `$__range_ms` and their `${...}` spelling */

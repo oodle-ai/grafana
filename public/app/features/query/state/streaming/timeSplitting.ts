@@ -1,5 +1,3 @@
-import { StreamingThreshold } from './config';
-
 export interface StreamingTimeRange {
   /** Start of the part (epoch ms) */
   fromMs: number;
@@ -16,24 +14,15 @@ export function minutesToMs(minutes: number): number {
 }
 
 /**
- * Number of parts a time range should be split into, based on its duration.
- * Ranges shorter than the smallest threshold are not split (1 part).
+ * Number of parts a time range should be split into, so that no part covers more than
+ * `splitIntervalMs`. Ranges up to the split interval are not split (1 part).
  */
-export function calculateStreamingParts(durationMs: number, thresholds: StreamingThreshold[]): number {
-  if (!(durationMs > 0)) {
+export function calculateStreamingParts(durationMs: number, splitIntervalMs: number): number {
+  if (!(durationMs > 0) || !(splitIntervalMs > 0) || durationMs <= splitIntervalMs) {
     return 1;
   }
 
-  // Check the largest threshold first
-  const sorted = [...thresholds].sort((a, b) => b.durationMinutes - a.durationMinutes);
-
-  for (const threshold of sorted) {
-    if (durationMs >= minutesToMs(threshold.durationMinutes)) {
-      return Math.max(1, Math.floor(threshold.parts));
-    }
-  }
-
-  return 1;
+  return Math.ceil(durationMs / splitIntervalMs);
 }
 
 export function roundDownToStep(timestampMs: number, stepMs: number): number {
