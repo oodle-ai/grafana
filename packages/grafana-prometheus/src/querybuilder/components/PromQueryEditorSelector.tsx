@@ -1,6 +1,6 @@
 // Core Grafana history https://github.com/grafana/grafana/blob/v11.0.0-preview/public/app/plugins/datasource/prometheus/querybuilder/components/PromQueryEditorSelector.tsx
 import { isEqual } from 'lodash';
-import { memo, SyntheticEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { CoreApp, LoadingState } from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
@@ -76,7 +76,13 @@ export const PromQueryEditorSelector = memo<Props>((props) => {
   const [parseModalOpen, setParseModalOpen] = useState(false);
   const [queryPatternsModalOpen, setQueryPatternsModalOpen] = useState(false);
   const [dataIsStale, setDataIsStale] = useState(false);
-  const delayTrigger = useMemo(() => new DelayedTriggerState(onRunQuery), [onRunQuery]);
+  // Keep the trigger instance stable across renders. Some callers (e.g. the recording rule editor)
+  // pass a fresh onRunQuery on every render, which would otherwise rebuild the trigger and drop the
+  // pending auto submit. Read the latest callback through a ref instead.
+  const onRunQueryRef = useRef(onRunQuery);
+  onRunQueryRef.current = onRunQuery;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const delayTrigger = useMemo(() => new DelayedTriggerState(() => onRunQueryRef.current()), []);
 
   // Cleanup the delayTrigger timer on unmount to prevent state updates on unmounted component
   useEffect(() => {
@@ -158,8 +164,11 @@ export const PromQueryEditorSelector = memo<Props>((props) => {
   );
 
   useEffect(() => {
+    // A run started (from the toolbar, the editor, or the builder), so the pending auto submit
+    // from the last edit is redundant and would otherwise fire a duplicate query 3s later.
+    delayTrigger.reset();
     setDataIsStale(false);
-  }, [data]);
+  }, [data, delayTrigger]);
 
   useEffect(() => {
     window.parent.postMessage({
