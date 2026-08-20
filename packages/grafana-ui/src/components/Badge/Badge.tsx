@@ -20,25 +20,29 @@ export interface BadgeProps extends HTMLAttributes<HTMLDivElement> {
   color: BadgeColor;
   icon?: IconName;
   tooltip?: PopoverContent;
+  /** Keeps the tooltip open while the pointer is over it, so links inside it can be clicked. */
+  tooltipInteractive?: boolean;
 }
 
-const BadgeComponent = React.memo<BadgeProps>(({ icon, color, text, tooltip, className, ...otherProps }) => {
-  const styles = useStyles2(getStyles, color);
-  const badge = (
-    <div className={cx(styles.wrapper, className)} {...otherProps}>
-      {icon && <Icon name={icon} size="sm" />}
-      {text}
-    </div>
-  );
+const BadgeComponent = React.memo<BadgeProps>(
+  ({ icon, color, text, tooltip, tooltipInteractive, className, ...otherProps }) => {
+    const styles = useStyles2(getStyles, color);
+    const badge = (
+      <div className={cx(styles.wrapper, className)} {...otherProps}>
+        {icon && <Icon name={icon} size="sm" />}
+        {text}
+      </div>
+    );
 
-  return tooltip ? (
-    <Tooltip content={tooltip} placement="auto">
-      {badge}
-    </Tooltip>
-  ) : (
-    badge
-  );
-});
+    return tooltip ? (
+      <Tooltip content={tooltip} placement="auto" interactive={tooltipInteractive}>
+        {badge}
+      </Tooltip>
+    ) : (
+      badge
+    );
+  }
+);
 BadgeComponent.displayName = 'Badge';
 
 const BadgeSkeleton: SkeletonComponent = ({ rootProps }) => {

@@ -157,6 +157,8 @@ const BUILT_IN_VARIABLES = [
   { variable: '$__interval_ms', replacement: '79_999_999_999' },
   { variable: '$__interval', replacement: '711_999_999' },
   { variable: '$__rate_interval', replacement: '7999799979997999' },
+  { variable: '$__large_interval', replacement: '7_499_999_999_999' },
+  { variable: '$__dd_interval', replacement: '73_999_999_999' },
   { variable: '$__range_ms', replacement: '722_999_999' },
   { variable: '$__range_s', replacement: '79_299_999' },
   { variable: '$__range', replacement: '799_999' },

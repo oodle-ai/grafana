@@ -1,3 +1,5 @@
+import { DataTransformerConfig } from '@grafana/schema';
+
 import { AnnotationEvent } from '../types/annotations';
 import { DataFrame } from '../types/dataFrame';
 
@@ -68,4 +70,18 @@ export class DataSourceTestFailed extends BusEventBase {
 
 export class SetPanelAttentionEvent extends BusEventWithPayload<{ panelId: string | number }> {
   static type = 'set-panel-attention';
+}
+
+/**
+ * Published by a query editor to ask the panel it is being edited in to add transformations.
+ * Transformations that are already configured on the panel are ignored.
+ *
+ * @alpha
+ */
+export class AddPanelTransformationsEvent extends BusEventWithPayload<{
+  /** Only the panel with this id reacts. When unset, the panel currently being edited reacts. */
+  panelId?: number;
+  transformations: DataTransformerConfig[];
+}> {
+  static type = 'add-panel-transformations';
 }

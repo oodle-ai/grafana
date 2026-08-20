@@ -130,6 +130,7 @@ export {
   DataSourceTestSucceeded,
   DataSourceTestFailed,
   SetPanelAttentionEvent,
+  AddPanelTransformationsEvent,
 } from './events/common';
 
 // Field

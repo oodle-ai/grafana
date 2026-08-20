@@ -1,7 +1,14 @@
-import { CoreApp, DataSourceApi, DataSourceInstanceSettings, getDataSourceRef } from '@grafana/data';
+import {
+  AddPanelTransformationsEvent,
+  CoreApp,
+  DataSourceApi,
+  DataSourceInstanceSettings,
+  DataTransformerConfig,
+  getDataSourceRef,
+} from '@grafana/data';
 import { selectors } from '@grafana/e2e-selectors';
 import { t, Trans } from '@grafana/i18n';
-import { config, getDataSourceSrv } from '@grafana/runtime';
+import { config, getAppEvents, getDataSourceSrv } from '@grafana/runtime';
 import {
   SceneObjectBase,
   SceneComponentProps,
@@ -11,6 +18,7 @@ import {
   VizPanel,
   SceneObjectState,
   SceneDataQuery,
+  SceneDataTransformer,
 } from '@grafana/scenes';
 import { DataQuery, DataSourceRef } from '@grafana/schema';
 import { Button, Stack, Tab } from '@grafana/ui';
@@ -35,7 +43,7 @@ import { ExpressionDatasourceUID } from '../../../expressions/types';
 import { getDatasourceSrv } from '../../../plugins/datasource_srv';
 import { PanelInspectDrawer } from '../../inspect/PanelInspectDrawer';
 import { PanelTimeRange } from '../../scene/panel-timerange/PanelTimeRange';
-import { getDashboardSceneFor, getQueryRunnerFor } from '../../utils/utils';
+import { getDashboardSceneFor, getPanelIdForVizPanel, getQueryRunnerFor } from '../../utils/utils';
 import { getUpdatedHoverHeader } from '../getPanelFrameOptions';
 
 import { PanelDataPaneTab, TabId, PanelDataTabHeaderProps } from './types';
@@ -68,6 +76,40 @@ export class PanelDataQueriesTab extends SceneObjectBase<PanelDataQueriesTabStat
 
   private onActivate() {
     this.loadDataSource();
+
+    this._subs.add(
+      getAppEvents().subscribe(AddPanelTransformationsEvent, ({ payload }) => this.onAddTransformations(payload))
+    );
+  }
+
+  /**
+   * A query editor can ask the panel it is edited in to add transformations, for example when the
+   * Prometheus editor offers to replace a $__range query with a smaller interval plus a Reduce.
+   */
+  private onAddTransformations({ panelId, transformations }: AddPanelTransformationsEvent['payload']) {
+    const panel = this.state.panelRef.resolve();
+
+    // A falsy id means the sender could not identify its panel, in which case the panel being edited
+    // (this one) is the intended target.
+    if (panelId && getPanelIdForVizPanel(panel) !== panelId) {
+      return;
+    }
+
+    const transformer = panel.state.$data;
+    if (!(transformer instanceof SceneDataTransformer)) {
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const existing = (transformer.state.transformations ?? []) as unknown as DataTransformerConfig[];
+    const toAdd = transformations.filter((added) => !existing.some((current) => current.id === added.id));
+
+    if (toAdd.length === 0) {
+      return;
+    }
+
+    transformer.setState({ transformations: [...existing, ...toAdd] });
+    transformer.reprocessTransformations();
   }
 
   private async loadDataSource() {
