@@ -2,6 +2,7 @@ import { store } from '@grafana/data';
 import { config } from '@grafana/runtime';
 
 import {
+  DEFAULT_SPLIT_INTERVAL_MINUTES,
   DEFAULT_STREAMING_CONFIG,
   STREAMING_CONFIG_STORAGE_KEY,
   clearQueryStreamingConfigCache,
@@ -23,11 +24,11 @@ describe('getQueryStreamingConfig', () => {
   });
 
   it('overrides only the keys that are stored', () => {
-    setQueryStreamingConfig({ thresholds: [{ durationMinutes: 60, parts: 4 }] });
+    setQueryStreamingConfig({ splitIntervalMinutes: 60 });
 
     const config = getQueryStreamingConfig();
 
-    expect(config.thresholds).toEqual([{ durationMinutes: 60, parts: 4 }]);
+    expect(config.splitIntervalMinutes).toBe(60);
     expect(config.panelTypes).toEqual(DEFAULT_STREAMING_CONFIG.panelTypes);
     expect(config.enabled).toBe(true);
   });
@@ -45,30 +46,24 @@ describe('getQueryStreamingConfig', () => {
   });
 
   it('toggles the flag without losing the other stored settings', () => {
-    setQueryStreamingConfig({ thresholds: [{ durationMinutes: 60, parts: 4 }] });
+    setQueryStreamingConfig({ splitIntervalMinutes: 60 });
 
     setQuerySplittingEnabled(false);
     expect(isQuerySplittingEnabled()).toBe(false);
-    expect(getQueryStreamingConfig().thresholds).toEqual([{ durationMinutes: 60, parts: 4 }]);
+    expect(getQueryStreamingConfig().splitIntervalMinutes).toBe(60);
 
     setQuerySplittingEnabled(true);
     expect(isQuerySplittingEnabled()).toBe(true);
-    expect(getQueryStreamingConfig().thresholds).toEqual([{ durationMinutes: 60, parts: 4 }]);
+    expect(getQueryStreamingConfig().splitIntervalMinutes).toBe(60);
   });
 
-  it('splits ranges from 6 hours up by default', () => {
-    expect(getQueryStreamingConfig().thresholds).toEqual([
-      { durationMinutes: 10080, parts: 10 },
-      { durationMinutes: 4320, parts: 8 },
-      { durationMinutes: 2880, parts: 6 },
-      { durationMinutes: 1440, parts: 4 },
-      { durationMinutes: 720, parts: 3 },
-      { durationMinutes: 360, parts: 2 },
-    ]);
+  it('splits ranges longer than 30 days by default', () => {
+    expect(getQueryStreamingConfig().splitIntervalMinutes).toBe(DEFAULT_SPLIT_INTERVAL_MINUTES);
+    expect(DEFAULT_SPLIT_INTERVAL_MINUTES).toBe(30 * 24 * 60);
   });
 
   it('ignores malformed values', () => {
-    store.set(STREAMING_CONFIG_STORAGE_KEY, '{"thresholds": "nope", "panelTypes": [1]}');
+    store.set(STREAMING_CONFIG_STORAGE_KEY, '{"splitIntervalMinutes": "nope", "panelTypes": [1]}');
     clearQueryStreamingConfigCache();
 
     expect(getQueryStreamingConfig()).toEqual(DEFAULT_STREAMING_CONFIG);
