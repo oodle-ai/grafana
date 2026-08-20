@@ -22,6 +22,7 @@ import { changeEditorMode, getQueryWithDefaults } from '../state';
 import { PromQueryBuilderContainer } from './PromQueryBuilderContainer';
 import { PromQueryBuilderOptions } from './PromQueryBuilderOptions';
 import { PromQueryCodeEditor } from './PromQueryCodeEditor';
+import { PromQueryRangeVariableWarning } from './PromQueryRangeVariableWarning';
 
 const eventSourceOodleGrafana = 'oodle';
 const eventTypeUpdateThresholds = 'updateThresholds';
@@ -272,6 +273,13 @@ export const PromQueryEditorSelector = memo<Props>((props) => {
         </div>
       </EditorHeader>
       <Space v={0.5} />
+      <PromQueryRangeVariableWarning
+        query={query}
+        data={data}
+        editorMode={editorMode}
+        onChange={onChange}
+        onRunQuery={onRunQuery}
+      />
       <EditorRows>
         {editorMode === QueryEditorMode.Code && (
           <PromQueryCodeEditor {...props} query={query} showExplain={explain} onChange={onChangeInternal} />

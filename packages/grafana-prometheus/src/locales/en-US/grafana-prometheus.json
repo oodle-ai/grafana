@@ -446,6 +446,12 @@
         "placeholder-select-legend-mode": "Select legend mode",
         "tooltip-legend": "Series name override or template. Ex. {{templateExample}} will be replaced with label value for {{labelName}}."
       },
+      "prom-query-range-variable-warning": {
+        "docs": "Read the <2>docs</2> to learn more about this issue and how to optimize this query.",
+        "optimize-query": "Optimize query",
+        "title-builder": "$__range makes this a slow query",
+        "title-code": "Do not use $__range in this query"
+      },
       "query-builder-hints": {
         "hint-details": "hint: {{hintDetails}}"
       },

@@ -14,12 +14,14 @@ import {
   getDisplayProcessor,
   getFieldDisplayName,
   Labels,
+  QueryResultMetaNotice,
   sortDataFrame,
   TIME_SERIES_TIME_FIELD_NAME,
   TIME_SERIES_VALUE_FIELD_NAME,
 } from '@grafana/data';
 import { getDataSourceSrv } from '@grafana/runtime';
 
+import { isSlowRangeVariableQuery, RANGE_VARIABLE_DOCS_URL } from './rangeVariable';
 import { ExemplarTraceIdDestination, PromMetric, PromQuery, PromValue } from './types';
 
 // handles case-insensitive Inf, +Inf, -Inf (with optional "inity" suffix)
@@ -168,8 +170,44 @@ export function transformV2(
 
   return {
     ...response,
-    data: [...otherFrames, ...processedTableFrames, ...flattenedProcessedHeatmapFrames, ...processedExemplarFrames],
+    data: addRangeVariableNotices(
+      [...otherFrames, ...processedTableFrames, ...flattenedProcessedHeatmapFrames, ...processedExemplarFrames],
+      request
+    ),
   };
+}
+
+// Shown as a warning triangle in the panel header. Keep in sync with the query editor warning in
+// querybuilder/components/PromQueryRangeVariableWarning.tsx
+export const RANGE_VARIABLE_NOTICE: QueryResultMetaNotice = {
+  severity: 'warning',
+  text: '$__range makes this a slow query. Click to read more about this issue and how to optimize this query.',
+  link: RANGE_VARIABLE_DOCS_URL,
+};
+
+/**
+ * Flags the frames of every query that uses a global range variable, so the panel header shows a
+ * warning about the query being slow.
+ */
+function addRangeVariableNotices(frames: DataFrame[], request: DataQueryRequest<PromQuery>): DataFrame[] {
+  const slowRefIds = new Set(
+    request.targets.filter((target) => !target.hide && isSlowRangeVariableQuery(target)).map((target) => target.refId)
+  );
+
+  if (slowRefIds.size === 0) {
+    return frames;
+  }
+
+  return frames.map((frame) => {
+    if (!frame.refId || !slowRefIds.has(frame.refId)) {
+      return frame;
+    }
+
+    return {
+      ...frame,
+      meta: { ...frame.meta, notices: [...(frame.meta?.notices ?? []), RANGE_VARIABLE_NOTICE] },
+    };
+  });
 }
 
 const HISTOGRAM_QUANTILE_LABEL_NAME = 'le';

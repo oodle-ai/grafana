@@ -22,7 +22,7 @@ import { selectors } from '@grafana/e2e-selectors';
 import { Trans, t } from '@grafana/i18n';
 import { getDataSourceSrv, renderLimitedComponents, reportInteraction, usePluginComponents } from '@grafana/runtime';
 import { DataQuery } from '@grafana/schema';
-import { Badge, ErrorBoundaryAlert, List } from '@grafana/ui';
+import { Badge, ErrorBoundaryAlert, List, TextLink } from '@grafana/ui';
 import { OperationRowHelp } from 'app/core/components/QueryOperationRow/OperationRowHelp';
 import {
   QueryOperationAction,
@@ -189,7 +189,17 @@ export class QueryEditorRow<TQuery extends DataQuery> extends PureComponent<Prop
   }
 
   renderPluginEditor = () => {
-    const { query, onChange, queries, onRunQuery, onAddQuery, range, app = CoreApp.PanelEditor, history, queryBuilderOnly } = this.props;
+    const {
+      query,
+      onChange,
+      queries,
+      onRunQuery,
+      onAddQuery,
+      range,
+      app = CoreApp.PanelEditor,
+      history,
+      queryBuilderOnly,
+    } = this.props;
     const { datasource, data } = this.state;
 
     if (this.isWaitingForDatasourceToLoad()) {
@@ -332,8 +342,23 @@ export class QueryEditorRow<TQuery extends DataQuery> extends PureComponent<Prop
     const colour = type === 'warning' ? 'orange' : 'blue';
     const iconName = type === 'warning' ? 'exclamation-triangle' : 'file-landscape-alt';
 
-    const listItems = uniqueWarnings.map((warning) => warning.text);
-    const serializedWarnings = <List items={listItems} renderItem={(item) => <>{item}</>} />;
+    // A notice may point at documentation that explains it. The tooltip has to stay open while the
+    // pointer travels to that link, so it is only interactive when there is something to click.
+    const hasLinks = uniqueWarnings.some((warning) => Boolean(warning.link));
+    const serializedWarnings = (
+      <List
+        items={uniqueWarnings}
+        renderItem={(warning) =>
+          warning.link ? (
+            <TextLink href={warning.link} external>
+              {warning.text}
+            </TextLink>
+          ) : (
+            <>{warning.text}</>
+          )
+        }
+      />
+    );
 
     return (
       <Badge
@@ -346,6 +371,7 @@ export class QueryEditorRow<TQuery extends DataQuery> extends PureComponent<Prop
           </>
         }
         tooltip={serializedWarnings}
+        tooltipInteractive={hasLinks}
       />
     );
   };
