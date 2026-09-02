@@ -88,6 +88,11 @@ func New(
 }
 
 func (s *QueryData) Execute(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
+	// The query backends attribute a query to a person and a panel from
+	// these headers. Only this request carries them, and the code that
+	// builds the outgoing request sees a context alone.
+	ctx = client.WithForwardedHeaders(ctx, req.Headers)
+
 	fromAlert := req.Headers["FromAlert"] == "true"
 	logger := s.log.FromContext(ctx)
 	logger.Debug("Begin query execution", "fromAlert", fromAlert)

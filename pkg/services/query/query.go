@@ -40,6 +40,11 @@ const (
 	HeaderPanelPluginId  = "X-Panel-Plugin-Id"
 	HeaderQueryGroupID   = "X-Query-Group-Id"    // mainly useful for finding related queries with query chunking
 	HeaderFromExpression = "X-Grafana-From-Expr" // used by datasources to identify expression queries
+
+	// HeaderOodleUserEmail names the person a query is served for, so
+	// that a datasource can report a slow query against a user rather
+	// than against whatever proxied it.
+	HeaderOodleUserEmail = "X-Oodle-User-Email"
 )
 
 func ProvideService(

@@ -19,6 +19,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
@@ -41,9 +42,10 @@ const (
 )
 
 const (
-	jaegerExporter string = "jaeger"
-	otlpExporter   string = "otlp"
-	noopExporter   string = "noop"
+	jaegerExporter   string = "jaeger"
+	otlpExporter     string = "otlp"
+	otlpHTTPExporter string = "otlphttp"
+	noopExporter     string = "noop"
 
 	jaegerPropagator string = "jaeger"
 	w3cPropagator    string = "w3c"
@@ -194,6 +196,48 @@ func (ots *TracingService) initOTLPTracerProvider() (*tracesdk.TracerProvider, e
 	return initTracerProvider(exp, ots.cfg.ServiceName, ots.cfg.ServiceVersion, sampler, ots.cfg.CustomAttribs...)
 }
 
+// initOTLPHTTPTracerProvider exports over OTLP on HTTP.
+//
+// Used where the collector serves OTLP on HTTP only, or where the
+// export needs a request header that the gRPC exporter cannot send.
+func (ots *TracingService) initOTLPHTTPTracerProvider() (*tracesdk.TracerProvider, error) {
+	opts := []otlptracehttp.Option{
+		otlptracehttp.WithEndpoint(ots.cfg.Address),
+		otlptracehttp.WithCompression(otlptracehttp.GzipCompression),
+	}
+	if ots.cfg.URLPath != "" {
+		opts = append(opts, otlptracehttp.WithURLPath(ots.cfg.URLPath))
+	}
+	if ots.cfg.Insecure {
+		opts = append(opts, otlptracehttp.WithInsecure())
+	}
+	if len(ots.cfg.Headers) > 0 {
+		opts = append(opts, otlptracehttp.WithHeaders(ots.cfg.Headers))
+	}
+
+	exp, err := otlptrace.New(context.Background(), otlptracehttp.NewClient(opts...))
+	if err != nil {
+		return nil, err
+	}
+
+	sampler, err := ots.initSampler()
+	if err != nil {
+		return nil, err
+	}
+
+	// initTracerProvider applies ParentBased, so a request that arrives
+	// with a sampling decision keeps it. Without that Grafana would
+	// re-decide, and the services below would follow Grafana rather
+	// than the proxy that started the trace.
+	return initTracerProvider(
+		exp,
+		ots.cfg.ServiceName,
+		ots.cfg.ServiceVersion,
+		sampler,
+		ots.cfg.CustomAttribs...,
+	)
+}
+
 func (ots *TracingService) initSampler() (tracesdk.Sampler, error) {
 	switch ots.cfg.Sampler {
 	case "const", "":
@@ -257,6 +301,11 @@ func (ots *TracingService) initOpentelemetryTracer() error {
 		}
 	case otlpExporter:
 		tp, err = ots.initOTLPTracerProvider()
+		if err != nil {
+			return err
+		}
+	case otlpHTTPExporter:
+		tp, err = ots.initOTLPHTTPTracerProvider()
 		if err != nil {
 			return err
 		}

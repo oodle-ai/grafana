@@ -16,6 +16,12 @@ type TracingConfig struct {
 	Propagation   string
 	CustomAttribs []attribute.KeyValue
 
+	// URLPath and Headers apply to the OTLP-over-HTTP exporter only.
+	// A collector that identifies the caller from a request header needs
+	// an exporter that can send one.
+	URLPath string
+	Headers map[string]string
+
 	Sampler          string
 	SamplerParam     float64
 	SamplerRemoteURL string
@@ -132,9 +138,65 @@ func ParseTracingConfig(cfg *setting.Cfg) (*TracingConfig, error) {
 	}
 	tc.Propagation = section.Key("propagation").MustString("")
 	tc.Insecure = section.Key("insecure").MustBool(true)
+	if tc.enabled == otlpExporter {
+		return tc, nil
+	}
+
+	// OTLP over HTTP. Used where the collector serves no gRPC port, or
+	// where the export needs a request header the gRPC exporter cannot
+	// send.
+	section = cfg.Raw.Section("tracing.opentelemetry.otlphttp")
+	address := section.Key("address").MustString("")
+	if address == "" {
+		return tc, nil
+	}
+
+	tc.enabled = otlpHTTPExporter
+	tc.Address = address
+	// Left empty the exporter posts to the path the OpenTelemetry
+	// specification names, which the receiver also serves.
+	tc.URLPath = section.Key("url_path").MustString("")
+	tc.Headers, err = splitHeaders(section.Key("headers").MustString(""))
+	if err != nil {
+		return nil, err
+	}
+	if propagation := section.Key("propagation").MustString(""); propagation != "" {
+		tc.Propagation = propagation
+	}
+	tc.Insecure = section.Key("insecure").MustBool(true)
+
 	return tc, nil
 }
 
+// splitHeaders reads a comma-separated list of key=value pairs into the
+// headers the OTLP-over-HTTP exporter sends on every export.
+func splitHeaders(s string) (map[string]string, error) {
+	headers := map[string]string{}
+	if s == "" {
+		return headers, nil
+	}
+
+	for _, pair := range strings.Split(s, ",") {
+		if pair == "" {
+			continue
+		}
+
+		parts := strings.SplitN(pair, "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("tracing header malformed - must be in 'key=value' form: %q", pair)
+		}
+
+		headers[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+	}
+
+	return headers, nil
+}
+
+// OTelExporterEnabled reports whether external plugins should be given
+// this tracing configuration. It stays false for the OTLP-over-HTTP
+// exporter: plugins build an OTLP gRPC client from the address, and the
+// HTTP endpoint is not one. Core datasources are unaffected, since they
+// run in process and use the global tracer.
 func (tc TracingConfig) OTelExporterEnabled() bool {
 	return tc.enabled == otlpExporter
 }

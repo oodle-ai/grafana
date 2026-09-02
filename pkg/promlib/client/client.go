@@ -163,6 +163,8 @@ func createRequest(ctx context.Context, method string, u *url.URL, bodyReader io
 		return nil, err
 	}
 
+	applyForwardedHeaders(ctx, request)
+
 	if strings.ToUpper(method) == http.MethodPost {
 		// This may not be true but right now we don't have more information here and seems like we send just this type
 		// of encoding right now if it is a POST
