@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/grafana/grafana/pkg/setting"
@@ -205,4 +206,122 @@ func TestTracingConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSplitHeaders(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected map[string]string
+	}{
+		{
+			input:    "",
+			expected: map[string]string{},
+		},
+		{
+			input:    "X-Tenant-Id=team-a",
+			expected: map[string]string{"X-Tenant-Id": "team-a"},
+		},
+		{
+			input: "X-Tenant-Id=team-a,X-Resource-Attrs=k8s.cluster.name=prod",
+			expected: map[string]string{
+				"X-Tenant-Id": "team-a",
+				// Only the first "=" separates the pair, so a value
+				// that is itself a key=value list survives intact.
+				"X-Resource-Attrs": "k8s.cluster.name=prod",
+			},
+		},
+		{
+			input:    " X-Tenant-Id = team-a ",
+			expected: map[string]string{"X-Tenant-Id": "team-a"},
+		},
+	}
+
+	for _, test := range tests {
+		headers, err := splitHeaders(test.input)
+		assert.NoError(t, err)
+		assert.EqualValues(t, test.expected, headers)
+	}
+}
+
+func TestSplitHeaders_Malformed(t *testing.T) {
+	_, err := splitHeaders("no-equals-sign")
+	assert.Error(t, err)
+}
+
+func TestTracingConfig_OTLPHTTP(t *testing.T) {
+	cfg := setting.NewCfg()
+	err := cfg.Raw.Append([]byte(`
+	[tracing.opentelemetry.otlphttp]
+	address = collector:4318
+	url_path = /v1/otlp/traces
+	propagation = w3c
+	headers = X-Tenant-Id=team-a
+	`))
+	assert.NoError(t, err)
+
+	tracingCfg, err := ParseTracingConfig(cfg)
+	assert.NoError(t, err)
+
+	assert.Equal(t, otlpHTTPExporter, tracingCfg.enabled)
+	assert.Equal(t, "collector:4318", tracingCfg.Address)
+	assert.Equal(t, "/v1/otlp/traces", tracingCfg.URLPath)
+	assert.Equal(t, "w3c", tracingCfg.Propagation)
+	assert.Equal(
+		t,
+		map[string]string{"X-Tenant-Id": "team-a"},
+		tracingCfg.Headers,
+	)
+
+	// External plugins build an OTLP gRPC client from the address, and
+	// this address serves HTTP, so they must not be handed it.
+	assert.False(t, tracingCfg.OTelExporterEnabled())
+}
+
+// The gRPC exporter keeps precedence, so an existing deployment that
+// sets both is not silently moved onto the HTTP one.
+func TestTracingConfig_OTLPTakesPrecedenceOverOTLPHTTP(t *testing.T) {
+	cfg := setting.NewCfg()
+	err := cfg.Raw.Append([]byte(`
+	[tracing.opentelemetry.otlp]
+	address = otel-collector:4317
+
+	[tracing.opentelemetry.otlphttp]
+	address = collector:4318
+	`))
+	assert.NoError(t, err)
+
+	tracingCfg, err := ParseTracingConfig(cfg)
+	assert.NoError(t, err)
+
+	assert.Equal(t, otlpExporter, tracingCfg.enabled)
+	assert.Equal(t, "otel-collector:4317", tracingCfg.Address)
+}
+
+// Configuration reaches this deployment as GF_* environment variables,
+// not as an ini file. Grafana applies an override only to a key that
+// already exists in the loaded ini, so a section absent from
+// defaults.ini is silently ignored and the exporter stays disabled.
+// Appending ini text in a test bypasses that mechanism entirely, so
+// this case loads the real defaults instead.
+func TestTracingConfig_OTLPHTTPFromEnvironment(t *testing.T) {
+	t.Setenv("GF_TRACING_OPENTELEMETRY_OTLPHTTP_ADDRESS", "collector:4318")
+	t.Setenv("GF_TRACING_OPENTELEMETRY_OTLPHTTP_URL_PATH", "/v1/otlp/traces")
+	t.Setenv("GF_TRACING_OPENTELEMETRY_OTLPHTTP_HEADERS", "X-Tenant-Id=team-a")
+	t.Setenv("GF_TRACING_OPENTELEMETRY_OTLPHTTP_PROPAGATION", "w3c")
+
+	cfg := setting.NewCfg()
+	require.NoError(t, cfg.Load(setting.CommandLineArgs{HomePath: "../../../"}))
+
+	tracingCfg, err := ParseTracingConfig(cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, otlpHTTPExporter, tracingCfg.enabled)
+	assert.Equal(t, "collector:4318", tracingCfg.Address)
+	assert.Equal(t, "/v1/otlp/traces", tracingCfg.URLPath)
+	assert.Equal(t, "w3c", tracingCfg.Propagation)
+	assert.Equal(
+		t,
+		map[string]string{"X-Tenant-Id": "team-a"},
+		tracingCfg.Headers,
+	)
 }

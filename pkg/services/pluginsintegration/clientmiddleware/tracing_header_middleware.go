@@ -18,7 +18,7 @@ import (
 // populate useful tracing headers on outgoing backend.Handler and HTTP
 // requests.
 // Tracing headers are X-Datasource-Uid, X-Dashboard-Uid,
-// X-Panel-Id, X-Grafana-Org-Id.
+// X-Panel-Id, X-Grafana-Org-Id, X-Oodle-User-Email.
 func NewTracingHeaderMiddleware() backend.HandlerMiddleware {
 	return backend.HandlerMiddlewareFunc(func(next backend.Handler) backend.Handler {
 		return &TracingHeaderMiddleware{
@@ -48,6 +48,7 @@ func (m *TracingHeaderMiddleware) applyHeaders(ctx context.Context, req backend.
 		query.HeaderPanelPluginId,
 		query.HeaderDashboardTitle,
 		query.HeaderPanelTitle,
+		query.HeaderOodleUserEmail,
 	}
 
 	for _, headerName := range headersList {
