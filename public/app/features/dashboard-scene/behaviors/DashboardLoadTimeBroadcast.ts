@@ -1,3 +1,4 @@
+import { PanelData } from '@grafana/data';
 import { sceneGraph, SceneQueryRunner } from '@grafana/scenes';
 
 import { DashboardScene } from '../scene/DashboardScene';
@@ -5,18 +6,27 @@ import { DashboardScene } from '../scene/DashboardScene';
 const DEBOUNCE_MS = 500;
 
 /**
- * The parent joins the ids into one string and truncates it at 300
- * characters, which a 32-character id plus its separator reaches at nine.
- * Capping here instead means the last id sent is a whole one.
+ * A load reports one id per panel that queried, and the slowest panels are
+ * the ones worth opening, so the ids are ranked before they are cut.
  *
- * These are the first ids of the load rather than the slowest. A dashboard
- * with more panels than this reports only some of its queries; rank by panel
- * query duration here if that is not good enough.
+ * Eight keeps the joined ids inside the length the receiver accepts, so
+ * that the last id sent is always a whole one.
  */
 const MAX_TRACE_IDS = 8;
 
 /**
- * The trace ids of the queries this load ran.
+ * How long the query behind a panel's data took. A request that has not
+ * finished has no end, and sorts last rather than being dropped: its id is
+ * still worth sending if there is room.
+ */
+function queryDurationMs(data: PanelData): number {
+  const { startTime, endTime } = data.request ?? {};
+
+  return startTime !== undefined && endTime !== undefined ? endTime - startTime : 0;
+}
+
+/**
+ * The trace ids of the queries this load ran, slowest first.
  *
  * Grafana already records one per query: the backend returns its trace id
  * on the `grafana-trace-id` response header, and `runRequest` keeps them on
@@ -28,7 +38,7 @@ const MAX_TRACE_IDS = 8;
  * trace, so a load has as many ids as it has panels that queried.
  */
 export function collectTraceIds(dashboard: DashboardScene): string[] {
-  const ids = new Set<string>();
+  const queried: Array<{ durationMs: number; traceIds: string[] }> = [];
 
   for (const object of sceneGraph.findAllObjects(dashboard, (o) => o instanceof SceneQueryRunner)) {
     // findAllObjects returns SceneObject, so the check is repeated to narrow it.
@@ -36,7 +46,19 @@ export function collectTraceIds(dashboard: DashboardScene): string[] {
       continue;
     }
 
-    for (const id of object.state.data?.traceIds ?? []) {
+    const data = object.state.data;
+    if (!data?.traceIds?.length) {
+      continue;
+    }
+
+    queried.push({ durationMs: queryDurationMs(data), traceIds: data.traceIds });
+  }
+
+  queried.sort((a, b) => b.durationMs - a.durationMs);
+
+  const ids = new Set<string>();
+  for (const { traceIds } of queried) {
+    for (const id of traceIds) {
       ids.add(id);
 
       if (ids.size >= MAX_TRACE_IDS) {
