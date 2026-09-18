@@ -1,4 +1,4 @@
-import { LoadingState, PanelData, getDefaultTimeRange } from '@grafana/data';
+import { DataQueryRequest, LoadingState, PanelData, getDefaultTimeRange } from '@grafana/data';
 import { SceneQueryRunner, VizPanel } from '@grafana/scenes';
 
 import { DashboardScene } from '../scene/DashboardScene';
@@ -6,13 +6,14 @@ import { DefaultGridLayoutManager } from '../scene/layout-default/DefaultGridLay
 
 import { collectTraceIds } from './DashboardLoadTimeBroadcast';
 
-function panelWithTraceIds(key: string, traceIds?: string[]): VizPanel {
+function panelWithTraceIds(key: string, traceIds?: string[], durationMs = 0): VizPanel {
   const runner = new SceneQueryRunner({ key: `${key}-runner`, queries: [{ refId: 'A' }] });
 
   const data: PanelData = {
     state: LoadingState.Done,
     series: [],
     timeRange: getDefaultTimeRange(),
+    request: { startTime: 0, endTime: durationMs } as DataQueryRequest,
     ...(traceIds ? { traceIds } : {}),
   };
   runner.setState({ data });
@@ -47,9 +48,28 @@ describe('collectTraceIds', () => {
     expect(collectTraceIds(scene)).toEqual([]);
   });
 
-  it('stops at the cap, so that the parent never truncates an id', () => {
-    const panels = Array.from({ length: 12 }, (_, i) => panelWithTraceIds(`panel-${i}`, [`trace-${i}`]));
+  it('stops at the cap', () => {
+    const panels = Array.from({ length: 20 }, (_, i) => panelWithTraceIds(`panel-${i}`, [`trace-${i}`]));
 
     expect(collectTraceIds(sceneWith(panels))).toHaveLength(8);
+  });
+
+  it('keeps the slowest queries when it has to cut', () => {
+    // Ascending duration, so the ids that must survive are the last ones.
+    const panels = Array.from({ length: 20 }, (_, i) => panelWithTraceIds(`panel-${i}`, [`trace-${i}`], i * 100));
+
+    const slowest = Array.from({ length: 8 }, (_, i) => `trace-${19 - i}`);
+    expect(collectTraceIds(sceneWith(panels))).toEqual(slowest);
+  });
+
+  it('sorts a query that has not finished last, without dropping it', () => {
+    const unfinished = panelWithTraceIds('panel-slow', ['no-end']);
+    unfinished.state.$data!.setState({
+      data: { ...unfinished.state.$data!.state.data!, request: undefined },
+    });
+
+    const scene = sceneWith([unfinished, panelWithTraceIds('panel-fast', ['done'], 500)]);
+
+    expect(collectTraceIds(scene)).toEqual(['done', 'no-end']);
   });
 });
