@@ -314,6 +314,42 @@ describe('DataSourceWithBackend', () => {
     `);
   });
 
+  test('keeps only printable ASCII in the dashboard and panel title headers', () => {
+    const { mock, ds } = createMockDatasource();
+    ds.query({
+      maxDataPoints: 10,
+      intervalMs: 5000,
+      targets: [{ refId: 'A' }],
+      dashboardUID: 'dashA',
+      dashboardTitle: 'Checkout \u2013 API \u{1F6D2}',
+      panelId: 123,
+      panelName: 'CPU temperature (\u00b0C)\n',
+      range: getDefaultTimeRange(),
+    } as DataQueryRequest);
+
+    const headers = mock.calls[0][0].headers ?? {};
+    expect(headers['X-Dashboard-Title']).toBe('Checkout API');
+    expect(headers['X-Panel-Title']).toBe('CPU temperature (C)');
+  });
+
+  test('omits a title header when nothing printable is left', () => {
+    const { mock, ds } = createMockDatasource();
+    ds.query({
+      maxDataPoints: 10,
+      intervalMs: 5000,
+      targets: [{ refId: 'A' }],
+      dashboardUID: 'dashA',
+      dashboardTitle: '\u65e5\u672c\u8a9e',
+      panelId: 123,
+      panelName: '\u{1F525}',
+      range: getDefaultTimeRange(),
+    } as DataQueryRequest);
+
+    const headers = mock.calls[0][0].headers;
+    expect(headers).not.toHaveProperty('X-Dashboard-Title');
+    expect(headers).not.toHaveProperty('X-Panel-Title');
+  });
+
   test('correctly creates expression queries', () => {
     const { mock, ds } = createMockDatasource();
     ds.query({
