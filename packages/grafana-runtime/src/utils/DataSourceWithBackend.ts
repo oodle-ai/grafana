@@ -92,6 +92,26 @@ enum PluginRequestHeaders {
 }
 
 /**
+ * Reduces a user-written title to a value that is safe in an HTTP header.
+ *
+ * The browser sends a header as bytes: a character outside ASCII becomes
+ * bytes that are not valid UTF-8, and a proxy in front of Grafana then
+ * rejects the whole request, so a panel with such a title never loads.
+ * Characters outside printable ASCII are dropped rather than encoded so
+ * that a plain title reaches the backend unchanged.
+ */
+function toHeaderValue(title: string | undefined): string {
+  if (!title) {
+    return '';
+  }
+  // eslint-disable-next-line no-control-regex
+  return title
+    .replace(/[^\x20-\x7e]+/g, '')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
+/**
  * Describes the details in the payload returned when checking the health of a data source
  * plugin.
  *
@@ -251,14 +271,16 @@ class DataSourceWithBackend<
 
     if (request.dashboardUID) {
       headers[PluginRequestHeaders.DashboardUID] = request.dashboardUID;
-      if (request.dashboardTitle) {
-        headers[PluginRequestHeaders.DashboardTitle] = request.dashboardTitle;
+      const dashboardTitle = toHeaderValue(request.dashboardTitle);
+      if (dashboardTitle) {
+        headers[PluginRequestHeaders.DashboardTitle] = dashboardTitle;
       }
       if (request.panelId) {
         headers[PluginRequestHeaders.PanelID] = `${request.panelId}`;
       }
-      if (request.panelName) {
-        headers[PluginRequestHeaders.PanelTitle] = request.panelName;
+      const panelTitle = toHeaderValue(request.panelName);
+      if (panelTitle) {
+        headers[PluginRequestHeaders.PanelTitle] = panelTitle;
       }
     }
     if (request.panelPluginId) {
