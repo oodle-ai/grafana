@@ -7,6 +7,9 @@ jobs:
   gen-swagger:
     name: Alerting Swagger spec generation cron job
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout repository
@@ -31,7 +34,4 @@ jobs:
             Please review and merge.
           branch: update-alerting-swagger-spec
           delete-branch: true
-          labels: 'area/alerting,type/docs,no-changelog'
-          team-reviewers: 'grafana/alerting-backend'
           draft: false
-
