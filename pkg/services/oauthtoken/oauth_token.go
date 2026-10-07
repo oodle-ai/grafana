@@ -119,7 +119,7 @@ func (o *Service) GetCurrentOAuthToken(ctx context.Context, usr identity.Request
 	// to the new session handling smoother.
 	externalSession, err := o.getExternalSession(ctx, usr, userID, sessionToken)
 	if err != nil && !errors.Is(err, auth.ErrExternalSessionNotFound) {
-		ctxLogger.Error("Failed to get external session", "error", err)
+		ctxLogger.Warn("Failed to get external session", "error", err)
 		return nil
 	}
 

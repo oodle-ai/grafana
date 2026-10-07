@@ -775,6 +775,12 @@ func TestIntegration_GetCurrentOAuthToken(t *testing.T) {
 			expectedToken: nil,
 		},
 		{
+			desc:          "should return nil without panicking when session token is nil",
+			identity:      &authn.Identity{ID: "1", Type: claims.TypeUser, AuthenticatedBy: login.AuthProxyAuthModule},
+			sessionToken:  nil,
+			expectedToken: nil,
+		},
+		{
 			desc:     "should refresh token for render service user",
 			identity: &authn.Identity{ID: "1", Type: claims.TypeUser, AuthenticatedBy: login.RenderModule},
 			setup: func(env *environment) {
@@ -1150,6 +1156,12 @@ func TestIntegration_GetCurrentOAuthToken_WithExternalSessions(t *testing.T) {
 		{
 			desc:          "should return nil when identity is not a user",
 			identity:      &authn.Identity{ID: "1", Type: claims.TypeServiceAccount},
+			expectedToken: nil,
+		},
+		{
+			desc:          "should return nil without panicking when session token is nil",
+			identity:      &authn.Identity{ID: "1", Type: claims.TypeUser, AuthenticatedBy: login.AuthProxyAuthModule},
+			sessionToken:  nil,
 			expectedToken: nil,
 		},
 		{
