@@ -1,24 +1,25 @@
 import { DEFAULT_SPLIT_INTERVAL_MINUTES } from './config';
 import { calculateStreamingParts, minutesToMs, splitTimeRangeDescending } from './timeSplitting';
 
-const THIRTY_DAYS = minutesToMs(DEFAULT_SPLIT_INTERVAL_MINUTES);
+const SEVEN_DAYS = minutesToMs(DEFAULT_SPLIT_INTERVAL_MINUTES);
 const DAY = minutesToMs(24 * 60);
 
 describe('calculateStreamingParts', () => {
   it('does not split ranges up to the split interval', () => {
-    expect(calculateStreamingParts(minutesToMs(60), THIRTY_DAYS)).toBe(1);
-    expect(calculateStreamingParts(7 * DAY, THIRTY_DAYS)).toBe(1);
-    expect(calculateStreamingParts(THIRTY_DAYS - 1, THIRTY_DAYS)).toBe(1);
-    expect(calculateStreamingParts(THIRTY_DAYS, THIRTY_DAYS)).toBe(1);
-    expect(calculateStreamingParts(0, THIRTY_DAYS)).toBe(1);
+    expect(calculateStreamingParts(minutesToMs(60), SEVEN_DAYS)).toBe(1);
+    expect(calculateStreamingParts(DAY, SEVEN_DAYS)).toBe(1);
+    expect(calculateStreamingParts(SEVEN_DAYS - 1, SEVEN_DAYS)).toBe(1);
+    expect(calculateStreamingParts(SEVEN_DAYS, SEVEN_DAYS)).toBe(1);
+    expect(calculateStreamingParts(0, SEVEN_DAYS)).toBe(1);
   });
 
   it('splits longer ranges into parts of at most the split interval', () => {
-    expect(calculateStreamingParts(THIRTY_DAYS + 1, THIRTY_DAYS)).toBe(2);
-    expect(calculateStreamingParts(45 * DAY, THIRTY_DAYS)).toBe(2);
-    expect(calculateStreamingParts(60 * DAY, THIRTY_DAYS)).toBe(2);
-    expect(calculateStreamingParts(90 * DAY, THIRTY_DAYS)).toBe(3);
-    expect(calculateStreamingParts(365 * DAY, THIRTY_DAYS)).toBe(13);
+    expect(calculateStreamingParts(SEVEN_DAYS + 1, SEVEN_DAYS)).toBe(2);
+    expect(calculateStreamingParts(10 * DAY, SEVEN_DAYS)).toBe(2);
+    expect(calculateStreamingParts(14 * DAY, SEVEN_DAYS)).toBe(2);
+    expect(calculateStreamingParts(30 * DAY, SEVEN_DAYS)).toBe(5);
+    expect(calculateStreamingParts(90 * DAY, SEVEN_DAYS)).toBe(13);
+    expect(calculateStreamingParts(365 * DAY, SEVEN_DAYS)).toBe(53);
   });
 
   it('does not split when the interval is not usable', () => {

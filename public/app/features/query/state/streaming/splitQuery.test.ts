@@ -24,13 +24,13 @@ const target = (t: { refId: string; expr?: string; instant?: boolean; hide?: boo
 
 function makeRequest(overrides: Partial<DataQueryRequest> = {}): DataQueryRequest {
   const to = dateTime(1700000000000);
-  const from = dateTime(to.valueOf() - 90 * 24 * 60 * 60 * 1000);
+  const from = dateTime(to.valueOf() - 21 * 24 * 60 * 60 * 1000);
 
   return {
     requestId: 'req1',
     interval: '1m',
     intervalMs: 60000,
-    range: { from, to, raw: { from: 'now-90d', to: 'now' } },
+    range: { from, to, raw: { from: 'now-21d', to: 'now' } },
     scopedVars: {},
     targets: [target({ refId: 'A', expr: 'up' })],
     timezone: 'browser',
@@ -54,10 +54,11 @@ describe('getRequestSplitParts', () => {
     [60, 1],
     [24 * 60, 1],
     [7 * 24 * 60, 1],
-    [30 * 24 * 60, 1],
-    [31 * 24 * 60, 2],
-    [60 * 24 * 60, 2],
-    [90 * 24 * 60, 3],
+    [8 * 24 * 60, 2],
+    [14 * 24 * 60, 2],
+    [21 * 24 * 60, 3],
+    [30 * 24 * 60, 5],
+    [90 * 24 * 60, 13],
   ])('splits a range of %i minutes into %i parts', (minutes, parts) => {
     const to = dateTime(1700000000000);
     const from = dateTime(to.valueOf() - minutes * 60 * 1000);
