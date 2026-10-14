@@ -24,7 +24,7 @@ jest.mock('app/features/dashboard/services/DashboardSrv', () => ({
 
 const STEP_MS = 60 * 60 * 1000;
 const TO_MS = 1700000000000;
-const FROM_MS = TO_MS - 120 * 24 * 60 * 60 * 1000;
+const FROM_MS = TO_MS - 28 * 24 * 60 * 60 * 1000;
 
 function makeRequest(): DataQueryRequest {
   return {
@@ -32,7 +32,7 @@ function makeRequest(): DataQueryRequest {
     interval: '1h',
     intervalMs: STEP_MS,
     maxDataPoints: 200,
-    range: { from: dateTime(FROM_MS), to: dateTime(TO_MS), raw: { from: 'now-120d', to: 'now' } },
+    range: { from: dateTime(FROM_MS), to: dateTime(TO_MS), raw: { from: 'now-28d', to: 'now' } },
     scopedVars: {},
     targets: [{ refId: 'A' }],
     timezone: 'browser',
@@ -130,7 +130,7 @@ describe('runRequest with query splitting', () => {
     expect(first.totalParts).toBe(4);
     expect(results[0].state).toBe(LoadingState.Loading);
 
-    // The range is relative ('now-120d' to 'now'), it must not be re-resolved between parts or the
+    // The range is relative ('now-28d' to 'now'), it must not be re-resolved between parts or the
     // axis would creep while the panel fills in
     results.forEach((result) => {
       expect(result.timeRange.from.valueOf()).toBe(FROM_MS);

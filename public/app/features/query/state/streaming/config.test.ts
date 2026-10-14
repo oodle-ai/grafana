@@ -57,9 +57,9 @@ describe('getQueryStreamingConfig', () => {
     expect(getQueryStreamingConfig().splitIntervalMinutes).toBe(60);
   });
 
-  it('splits ranges longer than 30 days by default', () => {
+  it('splits ranges longer than 7 days by default', () => {
     expect(getQueryStreamingConfig().splitIntervalMinutes).toBe(DEFAULT_SPLIT_INTERVAL_MINUTES);
-    expect(DEFAULT_SPLIT_INTERVAL_MINUTES).toBe(30 * 24 * 60);
+    expect(DEFAULT_SPLIT_INTERVAL_MINUTES).toBe(7 * 24 * 60);
   });
 
   it('ignores malformed values', () => {

@@ -17,8 +17,8 @@ export interface QueryStreamingConfig {
   apps: string[];
 }
 
-/** 30 days: ranges up to this run as a single request, longer ones are split into 30 day parts */
-export const DEFAULT_SPLIT_INTERVAL_MINUTES = 30 * 24 * 60;
+/** 7 days: ranges up to this run as a single request, longer ones are split into parts of about 7 days */
+export const DEFAULT_SPLIT_INTERVAL_MINUTES = 7 * 24 * 60;
 
 export const DEFAULT_STREAMING_CONFIG: QueryStreamingConfig = {
   enabled: true,
