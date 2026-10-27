@@ -2,6 +2,7 @@ package clients
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -10,9 +11,12 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	claims "github.com/grafana/authlib/types"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/grafana/grafana/pkg/apimachinery/errutil"
@@ -41,6 +45,25 @@ var (
 	errNotAcceptedIP      = errutil.Unauthorized("auth-proxy.invalid-ip")
 	errEmptyProxyHeader   = errutil.Unauthorized("auth-proxy.empty-header")
 	errInvalidProxyHeader = errutil.Internal("auth-proxy.invalid-proxy-header")
+	errInvalidProxySecret = errutil.Unauthorized("auth-proxy.invalid-secret")
+)
+
+// proxySecretRequests counts auth proxy requests by the result of the secret
+// check, so an operator can see that every proxy sends the secret before
+// require_secret is turned on.
+var proxySecretRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+	Namespace: "grafana",
+	Name:      "auth_proxy_secret_requests_total",
+	Help:      "Auth proxy requests by the result of the secret check (ok, missing, invalid).",
+}, []string{"result"})
+
+// proxySecretLogInterval limits the log of requests without a valid secret,
+// which before require_secret is on can be every request.
+const proxySecretLogInterval = time.Minute
+
+var (
+	proxySecretLogMu   sync.Mutex
+	proxySecretLastLog = map[string]time.Time{}
 )
 
 var (
@@ -81,6 +104,9 @@ func (c *Proxy) Authenticate(ctx context.Context, r *authn.Request) (*authn.Iden
 	if !c.isAllowedIP(r) {
 		return nil, errNotAcceptedIP.Errorf("request ip is not in the configured accept list")
 	}
+	if err := c.checkSecret(ctx, r); err != nil {
+		return nil, err
+	}
 
 	username := getProxyHeader(r, c.cfg.AuthProxy.HeaderName, c.cfg.AuthProxy.HeadersEncoded)
 	if len(username) == 0 {
@@ -112,6 +138,64 @@ func (c *Proxy) Authenticate(ctx context.Context, r *authn.Request) (*authn.Iden
 	}
 
 	return nil, clientErr
+}
+
+// checkSecret checks the secret that the auth proxy sends, and removes it from
+// the request. Grafana forwards request headers to datasources and plugin
+// routes, so a secret left on the request would reach those hosts.
+func (c *Proxy) checkSecret(ctx context.Context, r *authn.Request) error {
+	settings := c.cfg.AuthProxy
+	if settings.SecretHeader == "" || r.HTTPRequest == nil {
+		return nil
+	}
+	got := r.HTTPRequest.Header.Get(settings.SecretHeader)
+	r.HTTPRequest.Header.Del(settings.SecretHeader)
+	if len(settings.Secrets) == 0 {
+		return nil
+	}
+
+	result := "ok"
+	switch {
+	case got == "":
+		result = "missing"
+	case !proxySecretMatches(got, settings.Secrets):
+		result = "invalid"
+	}
+	proxySecretRequests.WithLabelValues(result).Inc()
+	if result == "ok" {
+		return nil
+	}
+	if settings.RequireSecret {
+		return errInvalidProxySecret.Errorf("auth proxy secret is %s", result)
+	}
+	if proxySecretShouldLog(result) {
+		c.log.FromContext(ctx).Warn("Auth proxy request without a valid secret",
+			"result", result, "remoteAddr", r.HTTPRequest.RemoteAddr)
+	}
+	return nil
+}
+
+// proxySecretMatches compares in constant time, so the time of a refusal
+// does not tell how much of a guess was right.
+func proxySecretMatches(got string, secrets []string) bool {
+	ok := false
+	for _, secret := range secrets {
+		if subtle.ConstantTimeCompare([]byte(got), []byte(secret)) == 1 {
+			ok = true
+		}
+	}
+	return ok
+}
+
+func proxySecretShouldLog(result string) bool {
+	proxySecretLogMu.Lock()
+	defer proxySecretLogMu.Unlock()
+	now := time.Now()
+	if last, ok := proxySecretLastLog[result]; ok && now.Sub(last) < proxySecretLogInterval {
+		return false
+	}
+	proxySecretLastLog[result] = now
+	return true
 }
 
 func (c *Proxy) IsEnabled() bool {

@@ -264,3 +264,57 @@ func TestProxy_Hook(t *testing.T) {
 	t.Run("step 2: cached user with new Role Viewer", withRole("Viewer"))
 	t.Run("step 3: cached user get changed back to Admin", withRole("Admin"))
 }
+
+func TestProxy_AuthenticateSecret(t *testing.T) {
+	const secretHeader = "X-Grafana-Auth-Proxy-Secret"
+	newRequest := func(secret string) *authn.Request {
+		h := http.Header{"X-Username": {"username"}}
+		if secret != "" {
+			h.Set(secretHeader, secret)
+		}
+		return &authn.Request{HTTPRequest: &http.Request{Header: h, RemoteAddr: "127.0.0.1:333"}}
+	}
+
+	tests := []struct {
+		desc        string
+		secrets     []string
+		require     bool
+		sent        string
+		expectedErr error
+	}{
+		{desc: "no secret configured accepts any request", sent: ""},
+		{desc: "the secret is accepted", secrets: []string{"s1"}, require: true, sent: "s1"},
+		{desc: "the second secret is accepted during a rotation", secrets: []string{"s1", "s2"}, require: true, sent: "s2"},
+		{desc: "a missing secret is refused", secrets: []string{"s1"}, require: true, sent: "", expectedErr: errInvalidProxySecret},
+		{desc: "a wrong secret is refused", secrets: []string{"s1"}, require: true, sent: "s1x", expectedErr: errInvalidProxySecret},
+		{desc: "a wrong secret is accepted until the secret is required", secrets: []string{"s1"}, sent: "bad"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			cfg := setting.NewCfg()
+			cfg.AuthProxy.HeaderName = "X-Username"
+			cfg.AuthProxy.SecretHeader = secretHeader
+			cfg.AuthProxy.Secrets = tt.secrets
+			cfg.AuthProxy.RequireSecret = tt.require
+
+			called := false
+			proxyClient := authntest.MockProxyClient{AuthenticateProxyFunc: func(ctx context.Context, r *authn.Request, username string, additional map[string]string) (*authn.Identity, error) {
+				called = true
+				return nil, nil
+			}}
+			c, err := ProvideProxy(cfg, &fakeCache{expectedErr: errors.New("")}, tracing.InitializeTracerForTest(), proxyClient)
+			require.NoError(t, err)
+
+			req := newRequest(tt.sent)
+			_, err = c.Authenticate(context.Background(), req)
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+				assert.False(t, called, "a refused request does not sign in")
+			} else {
+				assert.True(t, called)
+			}
+			assert.Empty(t, req.HTTPRequest.Header.Get(secretHeader),
+				"the secret never stays on the request, so Grafana does not forward it")
+		})
+	}
+}

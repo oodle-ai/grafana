@@ -17,6 +17,16 @@ type AuthProxySettings struct {
 	Headers          map[string]string
 	HeadersEncoded   bool
 	SyncTTL          int
+
+	// SecretHeader and Secrets let the auth proxy prove that a request came
+	// through it. The accept list checks only the client address, which is
+	// not enough when other clients on the same network can reach Grafana.
+	// Two secrets allow a rotation without downtime. When RequireSecret is
+	// false, a request without a valid secret is counted but still accepted,
+	// so the proxy can start to send the secret before Grafana requires it.
+	SecretHeader  string
+	Secrets       []string
+	RequireSecret bool
 }
 
 func (cfg *Cfg) readAuthProxySettings() {
@@ -40,6 +50,14 @@ func (cfg *Cfg) readAuthProxySettings() {
 	}
 
 	authProxySettings.HeadersEncoded = authProxy.Key("headers_encoded").MustBool(false)
+
+	authProxySettings.SecretHeader = valueAsString(authProxy, "secret_header", "X-Grafana-Auth-Proxy-Secret")
+	for _, key := range []string{"secret", "secret_alt"} {
+		if secret := strings.TrimSpace(valueAsString(authProxy, key, "")); secret != "" {
+			authProxySettings.Secrets = append(authProxySettings.Secrets, secret)
+		}
+	}
+	authProxySettings.RequireSecret = authProxy.Key("require_secret").MustBool(false)
 
 	cfg.AuthProxy = authProxySettings
 }
