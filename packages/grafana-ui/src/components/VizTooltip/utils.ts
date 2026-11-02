@@ -1,5 +1,5 @@
 import { FALLBACK_COLOR, Field, FieldType, formattedValueToString, getFieldColorModeForField } from '@grafana/data';
-import { SortOrder, TooltipDisplayMode } from '@grafana/schema';
+import { SortOrder, StackingMode, TooltipDisplayMode } from '@grafana/schema';
 
 import { ColorIndicatorStyles } from './VizTooltipColorIndicator';
 import { ColorIndicator, ColorPlacement, VizTooltipItem } from './types';
@@ -88,10 +88,12 @@ export const getContentItems = (
   let rows: VizTooltipItem[] = [];
 
   let allNumeric = true;
-  let totalNumericValue = 0; // Sum of all numeric values for total line
-  let hasNumericFields = false; // Whether we have any valid numeric fields
-  let processedNumericFields = 0; // Count of processed numeric fields
-  let firstNumericField: Field | undefined; // First numeric field for total line formatting
+  // The Total line sums the values of the stacked series. A series that is not
+  // stacked (for example, a capacity or limit line drawn over a stack) is not a
+  // part of the stack, so adding it gives a wrong total. When no series is
+  // stacked, the Total line sums all the numeric series.
+  const allTotal = newTooltipTotal();
+  const stackedTotal = newTooltipTotal();
 
   for (let i = 0; i < fields.length; i++) {
     const field = fields[i];
@@ -136,15 +138,11 @@ export const getContentItems = (
         ? Number.MIN_SAFE_INTEGER
         : Number.MAX_SAFE_INTEGER;
 
-    // Track numeric fields for total calculation and first numeric field
     if (field.type === FieldType.number && !Number.isNaN(display.numeric)) {
-      totalNumericValue += display.numeric; // Accumulate sum for total
-      hasNumericFields = true; // Mark we have valid numeric fields
-      processedNumericFields++; // Count fields contributing to total
+      addToTooltipTotal(allTotal, field, display.numeric);
 
-      // Store the first numeric field for total formatting
-      if (!firstNumericField) {
-        firstNumericField = field; // Capture first field for consistent formatting
+      if (isStackedField(field)) {
+        addToTooltipTotal(stackedTotal, field, display.numeric);
       }
     }
 
@@ -195,9 +193,10 @@ export const getContentItems = (
 
   // Add Total line for stacked charts (when there are multiple numeric fields and we're in multi mode)
   // Show total when we have 2 or more numeric fields - add after sorting to ensure it's always at the top
-  if (hasNumericFields && rows.length >= 2 && mode === TooltipDisplayMode.Multi && processedNumericFields >= 2) {
-    if (firstNumericField) {
-      const totalDisplay = firstNumericField.display!(totalNumericValue); // Use first field's formatter for consistency
+  const total = stackedTotal.count > 0 ? stackedTotal : allTotal;
+  if (rows.length >= 2 && mode === TooltipDisplayMode.Multi && total.count >= 2) {
+    if (total.firstField) {
+      const totalDisplay = total.firstField.display!(total.sum); // Use first field's formatter for consistency
       rows.unshift({
         label: 'Total',
         value: formattedValueToString(totalDisplay),
@@ -205,13 +204,33 @@ export const getContentItems = (
         colorIndicator: ColorIndicator.series,
         colorPlacement: ColorPlacement.first,
         isActive: false,
-        numeric: totalNumericValue, // Raw numeric value for sorting
+        numeric: total.sum, // Raw numeric value for sorting
         showDivider: true, // Add border-bottom divider
       });
     }
   }
 
   return rows;
+};
+
+interface TooltipTotal {
+  sum: number;
+  count: number;
+  // The Total line uses the formatter of the first field that it sums.
+  firstField?: Field;
+}
+
+const newTooltipTotal = (): TooltipTotal => ({ sum: 0, count: 0 });
+
+const addToTooltipTotal = (total: TooltipTotal, field: Field, value: number) => {
+  total.sum += value;
+  total.count++;
+  total.firstField ??= field;
+};
+
+const isStackedField = (field: Field) => {
+  const stackingMode = field.config.custom?.stacking?.mode;
+  return stackingMode != null && stackingMode !== StackingMode.None;
 };
 
 const getIndicatorAndPlacement = (field: Field) => {

@@ -1,5 +1,5 @@
-import { DataFrame, FieldType } from '@grafana/data';
-import { SortOrder, TooltipDisplayMode } from '@grafana/schema';
+import { DataFrame, Field, FieldType } from '@grafana/data';
+import { SortOrder, StackingMode, TooltipDisplayMode } from '@grafana/schema';
 
 import { calculateTooltipPosition, getContentItems } from './utils';
 
@@ -441,6 +441,67 @@ describe('utils', () => {
       expect(rows[1].value).toBe('20');
       expect(rows[2].value).toBe('25');
       expect(rows[3].value).toBe('10');
+    });
+  });
+
+  describe('it tests getContentItems with stacked series and a series that is not stacked', () => {
+    const numberField = (name: string, values: number[], stackingMode?: StackingMode) =>
+      ({
+        name,
+        type: FieldType.number,
+        values,
+        config: stackingMode ? { custom: { stacking: { group: 'A', mode: stackingMode } } } : {},
+        display: (value: string) => ({
+          text: value,
+          color: undefined,
+          numeric: Number(value),
+        }),
+      }) as unknown as Field;
+
+    const timeField = {
+      name: 'time',
+      type: FieldType.time,
+      values: [1707833954056, 1707838274056],
+      config: {},
+      display: (value: string) => ({ text: value, color: undefined, numeric: NaN }),
+    } as unknown as Field;
+
+    it('does not add a series that is not stacked to the total', () => {
+      const fields = [
+        timeField,
+        numberField('cluster-a', [10, 20], StackingMode.Normal),
+        numberField('cluster-b', [5, 7], StackingMode.Normal),
+        numberField('Capacity', [100, 100], StackingMode.None),
+      ];
+
+      const rows = getContentItems(fields, timeField, [1, 1, 1, 1], null, TooltipDisplayMode.Multi, SortOrder.None);
+
+      expect(rows.map((row) => [row.label, row.value])).toEqual([
+        ['Total', '27'],
+        ['cluster-a', '20'],
+        ['cluster-b', '7'],
+        ['Capacity', '100'],
+      ]);
+    });
+
+    it('does not show a total when only one series is stacked', () => {
+      const fields = [
+        timeField,
+        numberField('cluster-a', [10, 20], StackingMode.Normal),
+        numberField('Capacity', [100, 100], StackingMode.None),
+      ];
+
+      const rows = getContentItems(fields, timeField, [1, 1, 1], null, TooltipDisplayMode.Multi, SortOrder.None);
+
+      expect(rows.map((row) => row.label)).toEqual(['cluster-a', 'Capacity']);
+    });
+
+    it('adds all the series to the total when no series is stacked', () => {
+      const fields = [timeField, numberField('a', [1, 2], StackingMode.None), numberField('b', [3, 4])];
+
+      const rows = getContentItems(fields, timeField, [1, 1, 1], null, TooltipDisplayMode.Multi, SortOrder.None);
+
+      expect(rows[0]).toMatchObject({ label: 'Total', value: '6' });
     });
   });
 });
