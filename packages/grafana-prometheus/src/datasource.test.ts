@@ -688,6 +688,19 @@ describe('PrometheusDatasource', () => {
       it('should preserve regex metacharacters for 1-element array containing .*', () => {
         expect(ds.interpolateQueryExpr(['de.*'], customVariable)).toEqual('de.*');
       });
+
+      it('should match every value with .* when All is selected without a custom all value', () => {
+        expect(ds.interpolateQueryExpr(['a|bc', 'de|f'], { ...customVariable, isAllValue: true })).toEqual('.*');
+        expect(ds.interpolateQueryExpr(['a|bc', 'de|f'], { ...customVariable, multi: true, isAllValue: true })).toEqual(
+          '.*'
+        );
+      });
+
+      it('should list every value when every option is picked by hand', () => {
+        expect(ds.interpolateQueryExpr(['a|bc', 'de|f'], { ...customVariable, isAllValue: false })).toEqual(
+          '(a\\\\|bc|de\\\\|f)'
+        );
+      });
     });
   });
 

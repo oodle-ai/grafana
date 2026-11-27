@@ -63,7 +63,7 @@ export function SelectionOptionsForm({
       />
       {includeAll && (
         <VariableTextField
-          defaultValue={(allValue?.length ?? 0 > 0) ? allValue ?? '' : '.*'}
+          defaultValue={allValue ?? ''}
           onBlur={onAllValueChange}
           name="Custom all value"
           testId={selectors.pages.Dashboard.Settings.Variables.Edit.General.selectionOptionsCustomAllInput}
