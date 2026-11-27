@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"gopkg.in/ini.v1"
+
+	"github.com/grafana/grafana/pkg/util"
 )
 
 const defaultDataProxyRowLimit = int64(1000000)
@@ -23,6 +25,14 @@ func readDataProxySettings(iniFile *ini.File, cfg *Cfg) error {
 	cfg.ResponseLimit = dataproxy.Key("response_limit").MustInt64(0)
 	cfg.DataProxyRowLimit = dataproxy.Key("row_limit").MustInt64(defaultDataProxyRowLimit)
 	cfg.DataProxyUserAgent = dataproxy.Key("user_agent").String()
+
+	cfg.DataProxyBlockInternalAddresses = dataproxy.Key("block_internal_addresses").MustBool(false)
+	cfg.DataProxyInternalAddressAllowedUIDs = util.SplitString(
+		dataproxy.Key("internal_address_allowed_datasource_uids").String(),
+	)
+	cfg.DataProxyInternalAddressAllowedHosts = util.SplitString(
+		dataproxy.Key("internal_address_allowed_hosts").String(),
+	)
 
 	if cfg.DataProxyUserAgent == "" {
 		cfg.DataProxyUserAgent = fmt.Sprintf("Grafana/%s", BuildVersion)

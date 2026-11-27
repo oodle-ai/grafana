@@ -315,6 +315,17 @@ type Cfg struct {
 	DataProxyRowLimit              int64
 	DataProxyUserAgent             string
 
+	// DataProxyBlockInternalAddresses makes datasource clients refuse
+	// private, loopback, link-local and other internal addresses at connect
+	// time.
+	DataProxyBlockInternalAddresses bool
+	// DataProxyInternalAddressAllowedUIDs and DataProxyInternalAddressAllowedHosts
+	// are for datasources that the operator runs inside the private network.
+	// A datasource with one of these UIDs reaches an internal address only
+	// through one of these host names.
+	DataProxyInternalAddressAllowedUIDs  []string
+	DataProxyInternalAddressAllowedHosts []string
+
 	// DistributedCache
 	RemoteCacheOptions *RemoteCacheSettings
 

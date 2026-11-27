@@ -49,9 +49,15 @@ func New(cfg *setting.Cfg, validator validations.DataSourceRequestURLValidator, 
 
 	setDefaultTimeoutOptions(cfg)
 
+	guard := newInternalAddressGuard(cfg)
+
 	return newProviderFunc(sdkhttpclient.ProviderOptions{
 		Middlewares: middlewares,
 		ConfigureTransport: func(opts sdkhttpclient.Options, transport *http.Transport) {
+			// The guard sets the dialer first, so that the conntrack
+			// dialer below wraps the guarded one.
+			guard.configure(opts, transport)
+
 			datasourceName, exists := opts.Labels["datasource_name"]
 			if !exists {
 				return
