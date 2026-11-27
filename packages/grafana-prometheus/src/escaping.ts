@@ -4,10 +4,19 @@
 import { QueryVariableModel, CustomVariableModel } from '@grafana/data';
 import { config } from '@grafana/runtime';
 
-export function interpolateQueryExpr(
-  value: string | string[] = [],
-  variable: QueryVariableModel | CustomVariableModel
-) {
+// Oodle: Scenes sets `isAllValue` on the variable it passes a format function when the All option is selected and the
+// variable has no custom all value.
+export type PromInterpolationVariable = (QueryVariableModel | CustomVariableModel) & { isAllValue?: boolean };
+
+// Oodle: what the All option of a variable with no custom all value turns into: a regex that matches every value,
+// in place of a list of every option. Other datasources get that list, as in upstream Grafana.
+export const PROMETHEUS_ALL_VALUE = '.*';
+
+export function interpolateQueryExpr(value: string | string[] = [], variable: PromInterpolationVariable) {
+  if (variable.includeAll && variable.isAllValue) {
+    return PROMETHEUS_ALL_VALUE;
+  }
+
   // if no multi or include all do not regexEscape
   if (!variable.multi && !variable.includeAll) {
     return prometheusRegularEscape(value);

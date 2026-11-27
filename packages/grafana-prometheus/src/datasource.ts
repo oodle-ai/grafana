@@ -8,7 +8,6 @@ import {
   AbstractQuery,
   AdHocVariableFilter,
   CoreApp,
-  CustomVariableModel,
   DataQueryRequest,
   DataQueryResponse,
   DataSourceGetTagKeysOptions,
@@ -21,7 +20,6 @@ import {
   LegacyMetricFindQueryOptions,
   MetricFindValue,
   QueryFixAction,
-  QueryVariableModel,
   rangeUtil,
   ScopedVars,
   scopeFilterOperatorMap,
@@ -42,7 +40,7 @@ import {
 import { addLabelToQuery } from './add_label_to_query';
 import { PrometheusAnnotationSupport } from './annotations';
 import { DEFAULT_SERIES_LIMIT, GET_AND_POST_METADATA_ENDPOINTS, InstantQueryRefIdIndex } from './constants';
-import { interpolateQueryExpr, prometheusRegularEscape } from './escaping';
+import { interpolateQueryExpr, PromInterpolationVariable, prometheusRegularEscape } from './escaping';
 import {
   exportToAbstractQuery,
   importFromAbstractQuery,
@@ -345,7 +343,7 @@ export class PrometheusDatasource
     ); // toPromise until we change getTagValues, getLabelNames to Observable
   }
 
-  interpolateQueryExpr(value: string | string[] = [], variable: QueryVariableModel | CustomVariableModel) {
+  interpolateQueryExpr(value: string | string[] = [], variable: PromInterpolationVariable) {
     return interpolateQueryExpr(value, variable);
   }
 
@@ -788,7 +786,7 @@ export class PrometheusDatasource
   }
 
   interpolateExploreMetrics(fromExploreMetrics?: boolean) {
-    return (value: string | string[] = [], variable: QueryVariableModel | CustomVariableModel) => {
+    return (value: string | string[] = [], variable: PromInterpolationVariable) => {
       if (typeof value === 'string' && fromExploreMetrics) {
         if (variable.name === 'filters') {
           return wrapUtf8Filters(value);
